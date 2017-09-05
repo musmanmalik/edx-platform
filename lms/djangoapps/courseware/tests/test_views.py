@@ -2406,7 +2406,8 @@ class TestIndexViewWithGating(ModuleStoreTestCase, MilestonesTestCaseMixin):
             )
         )
 
-        self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.status_code, 200)
+        self.assertIn("Content Locked", response.content)
 
 
 class TestRenderXBlock(RenderXBlockTestMixin, ModuleStoreTestCase):

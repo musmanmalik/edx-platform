@@ -59,6 +59,7 @@ from openedx.core.djangoapps.credit.services import CreditService
 from openedx.core.djangoapps.monitoring_utils import set_custom_metrics_for_course_key, set_monitoring_transaction_name
 from openedx.core.djangoapps.util.user_utils import SystemUser
 from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
+from openedx.core.lib.gating.services import GatingService
 from openedx.core.lib.license import wrap_with_license
 from openedx.core.lib.url_utils import quote_slashes, unquote_slashes
 from openedx.core.lib.xblock_utils import request_token as xblock_request_token
@@ -801,7 +802,21 @@ def get_module_system_for_user(
         mixins=descriptor.runtime.mixologist._mixins,  # pylint: disable=protected-access
         wrappers=block_wrappers,
         get_real_user=user_by_anonymous_id,
+<<<<<<< HEAD
         services=services_list,
+=======
+        services={
+            'fs': FSService(),
+            'field-data': field_data,
+            'user': DjangoXBlockUserService(user, user_is_staff=user_is_staff),
+            'verification': VerificationService(),
+            'proctoring': ProctoringService(),
+            'milestones': milestones_helpers.get_service(),
+            'credit': CreditService(),
+            'bookmarks': BookmarksService(user=user),
+            'gating': GatingService(),
+        },
+>>>>>>> 4fe5f3457d... Conditionally display gated content in courseware
         get_user_role=lambda: get_user_role(user, course_id),
         descriptor_runtime=descriptor._runtime,  # pylint: disable=protected-access
         rebind_noauth_module_to_user=rebind_noauth_module_to_user,

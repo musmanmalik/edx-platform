@@ -516,7 +516,6 @@ def _has_access_descriptor(user, action, descriptor, course_key=None):
 
         return (
             _visible_to_nonstaff_users(descriptor) and
-            _can_access_descriptor_with_milestones(user, descriptor, course_key) and
             (
                 _has_detached_class_tag(descriptor) or
                 _can_access_descriptor_with_start_date(user, descriptor, course_key)
