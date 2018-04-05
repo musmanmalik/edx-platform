@@ -755,6 +755,7 @@ def get_module_system_for_user(
         'credit': CreditService(),
         'bookmarks': BookmarksService(user=user),
         'courseware_parent_info': CoursewareParentInfoService(),
+        'gating': GatingService(),
     }
 
     if settings.FEATURES.get('ENABLE_NOTIFICATIONS', False):
@@ -802,21 +803,7 @@ def get_module_system_for_user(
         mixins=descriptor.runtime.mixologist._mixins,  # pylint: disable=protected-access
         wrappers=block_wrappers,
         get_real_user=user_by_anonymous_id,
-<<<<<<< HEAD
         services=services_list,
-=======
-        services={
-            'fs': FSService(),
-            'field-data': field_data,
-            'user': DjangoXBlockUserService(user, user_is_staff=user_is_staff),
-            'verification': VerificationService(),
-            'proctoring': ProctoringService(),
-            'milestones': milestones_helpers.get_service(),
-            'credit': CreditService(),
-            'bookmarks': BookmarksService(user=user),
-            'gating': GatingService(),
-        },
->>>>>>> 4fe5f3457d... Conditionally display gated content in courseware
         get_user_role=lambda: get_user_role(user, course_id),
         descriptor_runtime=descriptor._runtime,  # pylint: disable=protected-access
         rebind_noauth_module_to_user=rebind_noauth_module_to_user,
