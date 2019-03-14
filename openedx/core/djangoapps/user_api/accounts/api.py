@@ -564,16 +564,21 @@ def delete_users(users):
         users: An iterable of 'User' objects.
 
     Returns:
-        None
+        results array of dictionaries with user email and error message or None in case of success
 
     Raises:
         UserAPIInternalError
     """
+    results = {}
     for user in users:
-        retire_user_comments(user)
+        try:
+            retire_user_comments(user)
+            user.delete()
+        except Exception as e:
+            results[user.email] = str(e)
 
     # Delete user profile images in background task
     usernames = list(users.values_list('username', flat=True))
     delete_profile_images.delay(usernames)
 
-    users.delete()
+    return results
