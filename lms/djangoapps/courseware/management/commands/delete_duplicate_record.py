@@ -49,7 +49,7 @@ class Command(BaseCommand):
                             content_id=content_id,
                         )
                         if course_modules and len(course_modules) > 1:
-                            [course_module.delete() for course_module in course_modules]
+                            [course_module.delete() for index, course_module in enumerate(course_modules) if index != 0]
                             print('Duplicate records deleted!')
                         else:
                             print('No duplicates records exists')
