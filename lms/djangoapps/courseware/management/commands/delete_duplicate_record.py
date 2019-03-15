@@ -53,3 +53,7 @@ class Command(BaseCommand):
                             print('Duplicate records deleted!')
                         else:
                             print('No duplicates records exists')
+            else:
+                print("Please provide a valid content_id")
+        else:
+            print("Please provide a valid username")
