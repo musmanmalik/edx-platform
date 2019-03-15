@@ -569,16 +569,21 @@ def delete_users(users):
     Raises:
         UserAPIInternalError
     """
-    results = {}
+    failed = {}
     for user in users:
         try:
             retire_user_comments(user)
-            user.delete()
         except Exception as e:
-            results[user.email] = str(e)
+            failed[user.email] = str(e)
 
     # Delete user profile images in background task
     usernames = list(users.values_list('username', flat=True))
     delete_profile_images.delay(usernames)
 
-    return results
+    for user in users.exclude(email__in=failed):
+        try:
+            user.delete()
+        except Exception as e:
+            failed[user.email] = str(e)
+
+    return failed
