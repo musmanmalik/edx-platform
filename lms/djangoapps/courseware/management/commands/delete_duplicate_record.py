@@ -33,6 +33,7 @@ class Command(BaseCommand):
 
         content_id = args[1]
         username = args[2]
+        
         if username:
             try:
                 user_id = User.objects.get(username=username).pk
@@ -40,19 +41,16 @@ class Command(BaseCommand):
                 raise Exception("User does not exists with the given username")
 
             if content_id:
-                if query_yes_no("Deleting Duplicate records with references to course {0} and content {1} and"
-                                " username {2}. Confirm?".format(course_key, content_id, username), default="no"):
-                    if query_yes_no("Are you sure. This action cannot be undone!", default="no"):
-                        course_modules = CourseModuleCompletion.objects.filter(
-                            user_id=user_id,
-                            course_id=course_key,
-                            content_id=content_id,
-                        )
-                        if course_modules and len(course_modules) > 1:
-                            [course_module.delete() for index, course_module in enumerate(course_modules) if index != 0]
-                            print('Duplicate records deleted!')
-                        else:
-                            print('No duplicates records exists')
+                course_modules = CourseModuleCompletion.objects.filter(
+                    user_id=user_id,
+                    course_id=course_key,
+                    content_id=content_id,
+                )
+                if course_modules and len(course_modules) > 1:
+                    [course_module.delete() for index, course_module in enumerate(course_modules) if index != 0]
+                    print('Duplicate records deleted!')
+                else:
+                    print('No duplicates records exists')
             else:
                 print("Please provide a valid content_id")
         else:
