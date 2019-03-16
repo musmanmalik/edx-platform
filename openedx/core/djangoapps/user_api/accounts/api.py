@@ -11,7 +11,9 @@ from django.core.validators import validate_email, ValidationError
 from django.http import HttpResponseForbidden
 from openedx.core.djangoapps.profile_images.tasks import delete_profile_images
 from openedx.core.djangoapps.user_api.preferences.api import update_user_preferences
+from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.user_api.errors import PreferenceValidationError
+from openedx.core.lib.api.view_utils import add_serializer_errors
 
 from student.models import User, UserProfile, Registration
 from student import forms as student_forms
@@ -20,7 +22,11 @@ from util.model_utils import emit_setting_changed_event
 from lms.lib.comment_client.user import User as CCUser
 from lms.lib.comment_client.utils import CommentClientRequestError
 
-from openedx.core.lib.api.view_utils import add_serializer_errors
+from edx_notifications.models import (
+    SQLUserNotification,
+    SQLUserNotificationArchive,
+    SQLUserNotificationPreferences
+)
 
 from ..errors import (
     AccountUpdateError, AccountValidationError, AccountUsernameInvalid, AccountPasswordInvalid,
@@ -38,7 +44,6 @@ from .serializers import (
     AccountLegacyProfileSerializer, AccountUserSerializer,
     UserReadOnlySerializer, _visible_fields  # pylint: disable=invalid-name
 )
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 
 # Public access point for this function.
@@ -559,6 +564,7 @@ def delete_users(users):
     1. models with a ForeignKey relationship to User (with on_delete=CASCADE).
     2. models with indirect relationship to User (i.e. through another model, or with on_delete other than CASCADE)
     3. files belonging to the user.
+    4. user notifications in edx-notification models
 
     Arguments:
         users: An iterable of 'User' objects.
@@ -580,6 +586,13 @@ def delete_users(users):
     usernames = list(users.values_list('username', flat=True))
     delete_profile_images.delay(usernames)
 
+    # Delete notifications
+    user_ids = users.values_list('id', flat=True)
+    SQLUserNotification.objects.filter(user_id__in=user_ids).delete()
+    SQLUserNotificationArchive.objects.filter(user_id__in=user_ids).delete()
+    SQLUserNotificationPreferences.objects.filter(user_id__in=user_ids).delete()
+
+    # Finally delete user and related models
     for user in users.exclude(email__in=failed):
         try:
             user.delete()
