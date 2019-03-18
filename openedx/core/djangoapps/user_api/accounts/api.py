@@ -21,12 +21,7 @@ from student import views as student_views
 from util.model_utils import emit_setting_changed_event
 from lms.lib.comment_client.user import User as CCUser
 from lms.lib.comment_client.utils import CommentClientRequestError
-
-from edx_notifications.models import (
-    SQLUserNotification,
-    SQLUserNotificationArchive,
-    SQLUserNotificationPreferences
-)
+from edx_notifications.lib.admin import purge_user_data as purge_notifications
 
 from ..errors import (
     AccountUpdateError, AccountValidationError, AccountUsernameInvalid, AccountPasswordInvalid,
@@ -588,9 +583,7 @@ def delete_users(users):
 
     # Delete notifications
     user_ids = users.values_list('id', flat=True)
-    SQLUserNotification.objects.filter(user_id__in=user_ids).delete()
-    SQLUserNotificationArchive.objects.filter(user_id__in=user_ids).delete()
-    SQLUserNotificationPreferences.objects.filter(user_id__in=user_ids).delete()
+    purge_notifications(user_ids)
 
     # Finally delete user and related models
     for user in users.exclude(email__in=failed):
