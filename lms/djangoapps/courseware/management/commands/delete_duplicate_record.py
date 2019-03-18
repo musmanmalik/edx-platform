@@ -7,7 +7,6 @@ for a specific username.
 from django.core.management.base import BaseCommand, CommandError
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys import InvalidKeyError
-from util.prompt import query_yes_no
 from progress.models import CourseModuleCompletion
 from django.contrib.auth.models import User
 
@@ -33,7 +32,6 @@ class Command(BaseCommand):
 
         content_id = args[1]
         username = args[2]
-        
         if username:
             try:
                 user_id = User.objects.get(username=username).pk
