@@ -395,6 +395,10 @@ class ImportManager(object):
                     if self.verbose:
                         log.debug('importing module location %s', child.location)
 
+                    if child.category == 'eoc-journal':
+                        blocks = fix_selected_pb_answer_blocks_course_key(child.selected_pb_answer_blocks)
+                        child.selected_pb_answer_blocks = blocks
+
                     _update_and_import_module(
                         child,
                         self.store,
@@ -406,6 +410,21 @@ class ImportManager(object):
                     )
 
                     depth_first(child)
+
+        def fix_selected_pb_answer_blocks_course_key(selected_pb_answer_blocks):
+            blocks = []
+            course = self.target_id
+            course_name = str(course.course)
+            org_name = str(course.org)
+            if org_name and course_name:
+                for item in selected_pb_answer_blocks:
+                    blocks_parts = item.rsplit('/')
+                    blocks_parts[2] = org_name
+                    blocks_parts[3] = course_name
+                    blocks.append('/'.join(blocks_parts))
+                return blocks
+            else:
+                return selected_pb_answer_blocks
 
         depth_first(source_courselike)
 
