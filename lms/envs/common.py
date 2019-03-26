@@ -196,6 +196,8 @@ FEATURES = {
     # Grade calculation started from the instructor dashboard will write grades
     # CSV files to the configured storage backend and give links for downloads.
     'ENABLE_GRADE_DOWNLOADS': False,
+    # Maximum number of rows to include in the csv file for downloading problem responses.
+    'MAX_PROBLEM_RESPONSES_COUNT': 5000,
 
     # whether to use password policy enforcement or not
     'ENFORCE_PASSWORD_POLICY': True,
@@ -3384,6 +3386,7 @@ COMPLETION_BY_VIEWING_DELAY_MS = 5000
 # Once a user has watched this percentage of a video, mark it as complete:
 # (0.0 = 0%, 1.0 = 100%)
 COMPLETION_VIDEO_COMPLETE_PERCENTAGE = 0.95
+COMPLETION_BY_VIEWING_DELAY_MS = 5000
 
 COMPLETION_AGGREGATOR_BLOCK_TYPES = {
     'course',
@@ -3391,3 +3394,7 @@ COMPLETION_AGGREGATOR_BLOCK_TYPES = {
     'sequential',
     'vertical',
 }
+
+############### Settings for user-state-client ##################
+# Maximum number of rows to fetch in XBlockUserStateClient calls. Adjust for performance
+USER_STATE_BATCH_SIZE = 5000

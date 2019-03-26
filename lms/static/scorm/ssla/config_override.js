@@ -13,11 +13,13 @@ var sslaConfig = {
     studentName: studentName,
 	
     // McKA specific configurations
-    closePopupSingleScoBehavior: "",
-    closePopupMultiScoBehavior: "",
+    closePopupSingleScoBehavior: "custom",
+    closePopupMultiScoBehavior: "custom",
+    closePopupSingleScoCustomFunction: closePopupSingleSco,
+    closePopupMultiScoCustomFunction: closePopupMultiSco,
     singleScoView: "HIDE_ALL",
     popupMainContentMessageAfterOpen: function() {
-        return '<a style="pointer-events: none; font-family: \'Open Sans\', Arial, sans-serif; font-size: 14px; color: #cccccc;" href="#">Click here to open the content experience.</a>';
+        return '';
     },
     popupMainContentMessageFailed: function() {
         return '<div style="background-color:rgb(250,250,250); width: 100%; height: 100%; display: table;"> <p style="font-family: \'Open Sans\', Arial, sans-serif; font-size: 14px; color: #000000; padding-top: 54px;">It looks like your browser settings has pop-ups disabled. <br>The content takes place in a new window.</p> <br><br> <button onclick="parent.ssla.ssla.popupManually();" style="background-color: #3385C7; color: white; padding: 1rem 2rem; font-family: \'Open Sans\', Arial, sans-serif; font-size: 14px; border-width: 0; font-weight: 700; border-color: #2s6a9f; border-radius: 5px;">Launch pop-up to continue</button></div>';
@@ -142,4 +144,18 @@ function studentName() {
   catch (e){
     return "";
   }
+}
+
+function closePopupSingleSco(){
+    console.log('Closing single sco popup');
+    handlePopupClosed();
+}
+
+function closePopupMultiSco() {
+    console.log('Closing multi sco popup');
+    handlePopupClosed();
+}
+
+function handlePopupClosed() {
+    parent.document.handleScormPopupClosed()
 }
