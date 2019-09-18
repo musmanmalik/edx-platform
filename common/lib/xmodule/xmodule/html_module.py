@@ -6,16 +6,15 @@ import sys
 import textwrap
 from datetime import datetime
 
-from fs.errors import ResourceNotFoundError
+from django.conf import settings
+from fs.errors import ResourceNotFound
 from lxml import etree
 from path import Path as path
 from pkg_resources import resource_string
-from django.conf import settings
+from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.fields import Boolean, List, Scope, String
-from xblock.fragment import Fragment
 
-import dogstats_wrapper as dog_stats_api
 from xmodule.contentstore.content import StaticContent
 from xmodule.editing_module import EditingDescriptor
 from xmodule.edxnotes_utils import edxnotes
@@ -79,6 +78,13 @@ class HtmlBlock(object):
         """
         return Fragment(self.get_html())
 
+    @XBlock.supports("multi_device")
+    def public_view(self, context):
+        """
+        Returns a fragment that contains the html for the preview view
+        """
+        return self.student_view(context)
+
     def student_view_data(self, context=None):  # pylint: disable=unused-argument
         """
         Return a JSON representation of the student_view of this XBlock.
@@ -113,10 +119,8 @@ class HtmlModuleMixin(HtmlBlock, XModule):
     Attributes and methods used by HtmlModules internally.
     """
     js = {
-        'coffee': [
-            resource_string(__name__, 'js/src/html/display.coffee'),
-        ],
         'js': [
+            resource_string(__name__, 'js/src/html/display.js'),
             resource_string(__name__, 'js/src/javascript_loader.js'),
             resource_string(__name__, 'js/src/collapsible.js'),
             resource_string(__name__, 'js/src/html/imageModal.js'),
@@ -145,7 +149,7 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
     template_dir_name = "html"
     show_in_read_only_mode = True
 
-    js = {'coffee': [resource_string(__name__, 'js/src/html/edit.coffee')]}
+    js = {'js': [resource_string(__name__, 'js/src/html/edit.js')]}
     js_module_name = "HTMLEditingDescriptor"
     css = {'scss': [resource_string(__name__, 'css/editor/edit.scss'), resource_string(__name__, 'css/html/edit.scss')]}
 
@@ -156,12 +160,6 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
         """
         Get paths for html and xml files.
         """
-
-        dog_stats_api.increment(
-            DEPRECATION_VSCOMPAT_EVENT,
-            tags=["location:html_descriptor_backcompat_paths"]
-        )
-
         if filepath.endswith('.html.xml'):
             filepath = filepath[:-9] + '.html'  # backcompat--look for html instead of xml
         if filepath.endswith('.html.html'):
@@ -238,11 +236,11 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
             # (not same as 'html/blah.html' when the pointer is in a directory itself)
             pointer_path = "{category}/{url_path}".format(
                 category='html',
-                url_path=name_to_pathname(location.name)
+                url_path=name_to_pathname(location.block_id)
             )
             base = path(pointer_path).dirname()
             # log.debug("base = {0}, base.dirname={1}, filename={2}".format(base, base.dirname(), filename))
-            filepath = "{base}/{name}.html".format(base=base, name=filename)
+            filepath = u"{base}/{name}.html".format(base=base, name=filename)
             # log.debug("looking for html file for {0} at {1}".format(location, filepath))
 
             # VS[compat]
@@ -252,11 +250,6 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
             # online and has imported all current (fall 2012) courses from xml
             if not system.resources_fs.exists(filepath):
 
-                dog_stats_api.increment(
-                    DEPRECATION_VSCOMPAT_EVENT,
-                    tags=["location:html_descriptor_load_definition"]
-                )
-
                 candidates = cls.backcompat_paths(filepath)
                 # log.debug("candidates = {0}".format(candidates))
                 for candidate in candidates:
@@ -265,8 +258,8 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
                         break
 
             try:
-                with system.resources_fs.open(filepath) as infile:
-                    html = infile.read().decode('utf-8')
+                with system.resources_fs.open(filepath, encoding='utf-8') as infile:
+                    html = infile.read()
                     # Log a warning if we can't parse the file, but don't error
                     if not check_html(html) and len(html) > 0:
                         msg = "Couldn't parse html in {0}, content = {1}".format(filepath, html)
@@ -281,7 +274,7 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
 
                     return definition, []
 
-            except (ResourceNotFoundError) as err:
+            except ResourceNotFound as err:
                 msg = 'Unable to load file contents at path {0}: {1} '.format(
                     filepath, err)
                 # add more info and re-raise
@@ -301,8 +294,8 @@ class HtmlDescriptor(HtmlBlock, XmlDescriptor, EditingDescriptor):  # pylint: di
             pathname=pathname
         )
 
-        resource_fs.makedir(os.path.dirname(filepath), recursive=True, allow_recreate=True)
-        with resource_fs.open(filepath, 'w') as filestream:
+        resource_fs.makedirs(os.path.dirname(filepath), recreate=True)
+        with resource_fs.open(filepath, 'wb') as filestream:
             html_data = self.data.encode('utf-8')
             filestream.write(html_data)
 

@@ -3,6 +3,7 @@ import logging
 import sys
 from functools import wraps
 from smtplib import SMTPException
+import crum
 
 import zendesk
 from django.conf import settings
@@ -17,7 +18,6 @@ from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
 
 import calc
-import dogstats_wrapper as dog_stats_api
 import track.views
 from edxmako.shortcuts import render_to_response, render_to_string
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -85,6 +85,21 @@ def require_global_staff(func):
                 )
             )
     return login_required(wrapped)
+
+
+def fix_crum_request(func):
+    """
+    A decorator that ensures that the 'crum' package (a middleware that stores and fetches the current request in
+    thread-local storage) can correctly fetch the current request. Under certain conditions, the current request cannot
+    be fetched by crum (e.g.: when HTTP errors are raised in our views via 'raise Http404', et. al.). This decorator
+    manually sets the current request for crum if it cannot be fetched.
+    """
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        if not crum.get_current_request():
+            crum.set_current_request(request=request)
+        return func(request, *args, **kwargs)
+    return wrapper
 
 
 @requires_csrf_token
@@ -232,7 +247,7 @@ def _get_zendesk_custom_field_context(request, **kwargs):
         return context
 
     context["course_id"] = course_id
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return context
 
     enrollment = CourseEnrollment.get_enrollment(request.user, CourseKey.from_string(course_id))
@@ -298,11 +313,11 @@ def _record_feedback_in_zendesk(
     # Tag all issues with LMS to distinguish channel in Zendesk; requested by student support team
     zendesk_tags = list(tags.values()) + ["LMS"]
 
-    # Per edX support, we would like to be able to route white label feedback items
-    # via tagging
-    white_label_org = configuration_helpers.get_value('course_org_filter')
-    if white_label_org:
-        zendesk_tags = zendesk_tags + ["whitelabel_{org}".format(org=white_label_org)]
+    # Per edX support, we would like to be able to route feedback items by site via tagging
+    current_site_name = configuration_helpers.get_value("SITE_NAME")
+    if current_site_name:
+        current_site_name = current_site_name.replace(".", "_")
+        zendesk_tags.append("site_name_{site}".format(site=current_site_name))
 
     new_ticket = {
         "ticket": {
@@ -352,11 +367,6 @@ def _record_feedback_in_zendesk(
     return True
 
 
-def _record_feedback_in_datadog(tags):
-    datadog_tags = [u"{k}:{v}".format(k=k, v=v) for k, v in tags.items()]
-    dog_stats_api.increment(DATADOG_FEEDBACK_METRIC, tags=datadog_tags)
-
-
 def get_feedback_form_context(request):
     """
     Extract the submitted form fields to be used as a context for
@@ -372,7 +382,7 @@ def get_feedback_form_context(request):
 
     context["additional_info"] = {}
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         context["realname"] = request.user.profile.name
         context["email"] = request.user.email
         context["additional_info"]["username"] = request.user.username
@@ -416,7 +426,7 @@ def submit_feedback(request):
 
     required_fields = ["subject", "details"]
 
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         required_fields += ["name", "email"]
 
     required_field_errs = {
@@ -429,7 +439,7 @@ def submit_feedback(request):
         if field not in request.POST or not request.POST[field]:
             return build_error_response(400, field, required_field_errs[field])
 
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         try:
             validate_email(request.POST["email"])
         except ValidationError:
@@ -438,8 +448,8 @@ def submit_feedback(request):
     success = False
     context = get_feedback_form_context(request)
 
-    #Update the tag info with 'enterprise_learner' if the user belongs to an enterprise customer.
-    enterprise_learner_data = enterprise_api.get_enterprise_learner_data(site=request.site, user=request.user)
+    # Update the tag info with 'enterprise_learner' if the user belongs to an enterprise customer.
+    enterprise_learner_data = enterprise_api.get_enterprise_learner_data(user=request.user)
     if enterprise_learner_data:
         context["tags"]["learner_type"] = "enterprise_learner"
 
@@ -478,8 +488,6 @@ def submit_feedback(request):
             support_email=context["support_email"],
             custom_fields=custom_fields
         )
-
-    _record_feedback_in_datadog(context["tags"])
 
     return HttpResponse(status=(200 if success else 500))
 

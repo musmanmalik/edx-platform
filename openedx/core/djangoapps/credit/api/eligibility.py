@@ -277,7 +277,6 @@ def set_credit_requirement_status(user, course_key, req_namespace, req_name, sta
                 log.exception("Error sending email")
 
 
-# pylint: disable=invalid-name
 def remove_credit_requirement_status(username, course_key, req_namespace, req_name):
     """
     Remove the user's requirement status.
@@ -297,7 +296,7 @@ def remove_credit_requirement_status(username, course_key, req_namespace, req_na
     """
 
     # Find the requirement we're trying to remove
-    req_to_remove = CreditRequirement.get_course_requirements(course_key, namespace=req_namespace, name=req_name)
+    req_to_remove = CreditRequirement.get_course_requirement(course_key, req_namespace, req_name)
 
     # If we can't find the requirement, then the most likely explanation
     # is that there was a lag removing the credit requirements after the course

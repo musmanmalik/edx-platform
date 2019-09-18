@@ -2,14 +2,14 @@
 
 import unittest
 
-from openedx.features.enterprise_support.api import enterprise_enabled
 from third_party_auth import provider, settings
 from third_party_auth.tests import testutil
 
-_ORIGINAL_AUTHENTICATION_BACKENDS = ('first_authentication_backend',)
-_ORIGINAL_INSTALLED_APPS = ('first_installed_app',)
-_ORIGINAL_MIDDLEWARE_CLASSES = ('first_middleware_class',)
-_ORIGINAL_TEMPLATE_CONTEXT_PROCESSORS = ('first_template_context_preprocessor',)
+
+_ORIGINAL_AUTHENTICATION_BACKENDS = ['first_authentication_backend']
+_ORIGINAL_INSTALLED_APPS = ['first_installed_app']
+_ORIGINAL_MIDDLEWARE_CLASSES = ['first_middleware_class']
+_ORIGINAL_TEMPLATE_CONTEXT_PROCESSORS = ['first_template_context_preprocessor']
 _SETTINGS_MAP = {
     'AUTHENTICATION_BACKENDS': _ORIGINAL_AUTHENTICATION_BACKENDS,
     'INSTALLED_APPS': _ORIGINAL_INSTALLED_APPS,
@@ -38,12 +38,11 @@ class SettingsUnitTest(testutil.TestCase):
 
     def test_apply_settings_adds_exception_middleware(self):
         settings.apply_settings(self.settings)
-        for middleware_name in settings._MIDDLEWARE_CLASSES:
-            self.assertIn(middleware_name, self.settings.MIDDLEWARE_CLASSES)
+        self.assertIn('third_party_auth.middleware.ExceptionMiddleware', self.settings.MIDDLEWARE_CLASSES)
 
     def test_apply_settings_adds_fields_stored_in_session(self):
         settings.apply_settings(self.settings)
-        self.assertEqual(settings._FIELDS_STORED_IN_SESSION, self.settings.FIELDS_STORED_IN_SESSION)
+        self.assertEqual(['auth_entry', 'next'], self.settings.FIELDS_STORED_IN_SESSION)
 
     @unittest.skipUnless(testutil.AUTH_FEATURE_ENABLED, testutil.AUTH_FEATURES_KEY + ' not enabled')
     def test_apply_settings_enables_no_providers_by_default(self):
@@ -57,7 +56,6 @@ class SettingsUnitTest(testutil.TestCase):
         settings.apply_settings(self.settings)
         self.assertFalse(self.settings.SOCIAL_AUTH_RAISE_EXCEPTIONS)
 
-    @unittest.skipUnless(enterprise_enabled(), 'enterprise not enabled')
-    def test_enterprise_elements_inserted(self):
+    def test_apply_settings_turns_off_redirect_sanitization(self):
         settings.apply_settings(self.settings)
-        self.assertIn('enterprise.tpa_pipeline.handle_enterprise_logistration', self.settings.SOCIAL_AUTH_PIPELINE)
+        self.assertFalse(self.settings.SOCIAL_AUTH_SANITIZE_REDIRECTS)

@@ -3,7 +3,6 @@
 from third_party_auth.tests.specs import base
 
 
-# pylint: disable=test-inherits-tests
 class AzureADOauth2IntegrationTest(base.Oauth2IntegrationTest):
     """Integration tests for Azure Active Directory / Microsoft Account provider."""
 
@@ -35,8 +34,8 @@ class AzureADOauth2IntegrationTest(base.Oauth2IntegrationTest):
         'aud': 'abcdefgh-1234-5678-900a-0aa0a00aa0aa',
         'tid': 'abcdefgh-1234-5678-900a-0aa0a00aa0aa',
         'amr': ['pwd'],
-        'unique_name': 'email_value@example.com',
-        'upn': 'email_value@example.com',
+        'unique_name': 'user@email.com',
+        'upn': 'user@email.com',
         'family_name': 'family_name_value',
         'name': 'name_value',
         'given_name': 'given_name_value',

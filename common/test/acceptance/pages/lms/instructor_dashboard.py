@@ -21,11 +21,11 @@ class InstructorDashboardPage(CoursePage):
     def is_browser_on_page(self):
         return self.q(css='div.instructor-dashboard-wrapper-2').present
 
-    def click_help(self):
+    def get_help_element(self):
         """
-        Clicks the general Help button in the header.
+        Returns the general Help button in the header.
         """
-        self.q(css='.doc-link').first.click()
+        return self.q(css='.help-link').first
 
     def select_membership(self):
         """
@@ -119,9 +119,11 @@ class InstructorDashboardPage(CoursePage):
         return ecommerce_section
 
     def is_rescore_unsupported_message_visible(self):
-        return u'This component cannot be rescored.' in unicode(
-            self.q(css='.request-response-error').html
-        )
+        if (self.q(css='.request-response-error').present):
+            return u'This component cannot be rescored.' in unicode(
+                self.q(css='.request-response-error').html
+            )
+        return False
 
     @staticmethod
     def get_asset_path(file_name):
@@ -270,16 +272,14 @@ class CohortManagementSection(PageObject):
     select_content_group_button_css = '.cohort-management-details-association-course input.radio-yes'
     assignment_type_buttons_css = '.cohort-management-assignment-type-settings input'
 
-    def get_cohort_help_element_and_click_help(self):
+    def get_cohort_help_element(self):
         """
-        Clicks help link and returns it. Specifically, clicks 'What does it mean'
+        Returns the help element ('What does it mean')
 
         Returns:
             help_element (WebElement): help link element
         """
-        help_element = self.q(css=self.cohort_help_css).results[0]
-        help_element.click()
-        return help_element
+        return self.q(css=self.cohort_help_css).results[0]
 
     def is_browser_on_page(self):
         """
@@ -557,6 +557,8 @@ class CohortManagementSection(PageObject):
         Returns whether or not the radio button is in the selected state after the click.
         """
         radio_button = self.q(css=self._bounded_selector(self.select_content_group_button_css)).results[0]
+        if not radio_button.is_enabled():
+            return False
         radio_button.click()
         return radio_button.is_selected()
 
@@ -1088,6 +1090,27 @@ class DataDownloadPage(PageObject):
         return self.q(css='input[name=list-profiles-csv]')
 
     @property
+    def enrolled_student_profile_button(self):
+        """
+        Returns the "List enrolled students' profile information" button.
+        """
+        return self.q(css='input[name=list-profiles]')
+
+    @property
+    def enrolled_student_profile_button_present(self):
+        """
+        Checks for the presence of Enrolled Student Profile Button
+        """
+        return self.q(css='input[name=list-profiles]').present
+
+    @property
+    def generate_grading_configuration_button(self):
+        """
+        Returns the "Grading Configuration" button.
+        """
+        return self.q(css='input[name="dump-gradeconf"]')
+
+    @property
     def generate_grade_report_button(self):
         """
         Returns the "Generate Grade Report" button.
@@ -1129,12 +1152,28 @@ class DataDownloadPage(PageObject):
         """
         return self.report_download_links.map(lambda el: el.text)
 
+    @property
+    def student_profile_information(self):
+        """
+        Returns Student profile information
+        """
+        return self.q(css='#data-student-profiles-table').text
+
+    @property
+    def grading_config_text(self):
+        """
+        Returns grading configuration text
+        """
+        self.wait_for_element_visibility('#data-grade-config-text', 'Grading Configurations are visible')
+        return self.q(css='#data-grade-config-text').text[0]
+
 
 class StudentAdminPage(PageObject):
     """
     Student admin section of the Instructor dashboard.
     """
     url = None
+    PAGE_SELECTOR = 'section#student_admin'
     CONTAINER = None
 
     PROBLEM_INPUT_NAME = None
@@ -1224,6 +1263,19 @@ class StudentAdminPage(PageObject):
         Return Background Tasks History button.
         """
         return self._input_with_name(self.BACKGROUND_TASKS_BUTTON_NAME)
+
+    @property
+    def running_tasks_section(self):
+        """
+        Returns the "Pending Instructor Tasks" section.
+        """
+        return self.get_selector('div.running-tasks-container')
+
+    def get_selector(self, css_selector):
+        """
+        Makes query selector by pre-pending student admin section
+        """
+        return self.q(css=' '.join([self.PAGE_SELECTOR, css_selector]))
 
     def wait_for_task_history_table(self):
         """
@@ -1464,7 +1516,7 @@ class CertificatesPage(PageObject):
         return self.get_selector('#btn-start-generating-certificates')
 
     @property
-    def generate_certificates_disabled_button(self):  # pylint: disable=invalid-name
+    def generate_certificates_disabled_button(self):
         """
         Returns the disabled state of button
         """
@@ -1513,7 +1565,7 @@ class CertificatesPage(PageObject):
         return self.get_selector('div.certificate-invalidation-container table tr:last-child td')
 
     @property
-    def certificate_invalidation_message(self):  # pylint: disable=invalid-name
+    def certificate_invalidation_message(self):
         """
         Returns the message (error/success) in "Certificate Invalidation" section.
         """

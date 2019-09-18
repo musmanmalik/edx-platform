@@ -1,17 +1,21 @@
 """Tests the course modules and their functions"""
+from __future__ import print_function
 import ddt
 import unittest
 from datetime import datetime, timedelta
+from dateutil import parser
 
 import itertools
 from fs.memoryfs import MemoryFS
 from mock import Mock, patch
 from pytz import utc
 from xblock.runtime import KvsFieldData, DictKeyValueStore
+from django.conf import settings
+from django.test import override_settings
 
 import xmodule.course_module
 from xmodule.modulestore.xml import ImportSystem, XMLModuleStore
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.keys import CourseKey
 
 
 ORG = 'test_org'
@@ -25,6 +29,8 @@ _NEXT_WEEK = _TODAY + timedelta(days=7)
 
 
 class CourseFieldsTestCase(unittest.TestCase):
+    shard = 1
+
     def test_default_start_date(self):
         self.assertEqual(
             xmodule.course_module.CourseFields.start.default,
@@ -38,7 +44,7 @@ class DummySystem(ImportSystem):
 
         xmlstore = XMLModuleStore("data_dir", source_dirs=[],
                                   load_error_modules=load_error_modules)
-        course_id = SlashSeparatedCourseKey(ORG, COURSE, 'test_run')
+        course_id = CourseKey.from_string('/'.join([ORG, COURSE, 'test_run']))
         course_dir = "test_dir"
         error_tracker = Mock()
 
@@ -94,6 +100,7 @@ def get_dummy_course(start, announcement=None, is_new=None, advertised_start=Non
 
 class HasEndedMayCertifyTestCase(unittest.TestCase):
     """Double check the semantics around when to finalize courses."""
+    shard = 1
 
     def setUp(self):
         super(HasEndedMayCertifyTestCase, self).setUp()
@@ -142,9 +149,21 @@ class HasEndedMayCertifyTestCase(unittest.TestCase):
         self.assertFalse(self.future_noshow_certs.may_certify())
 
 
+class CourseSummaryHasEnded(unittest.TestCase):
+    """ Test for has_ended method when end date is missing timezone information. """
+    shard = 1
+
+    def test_course_end(self):
+        test_course = get_dummy_course("2012-01-01T12:00")
+        bad_end_date = parser.parse("2012-02-21 10:28:45")
+        summary = xmodule.course_module.CourseSummary(test_course.id, end=bad_end_date)
+        self.assertTrue(summary.has_ended())
+
+
 @ddt.ddt
 class IsNewCourseTestCase(unittest.TestCase):
     """Make sure the property is_new works on courses"""
+    shard = 1
 
     def setUp(self):
         super(IsNewCourseTestCase, self).setUp()
@@ -196,7 +215,7 @@ class IsNewCourseTestCase(unittest.TestCase):
         for a, b, assertion in dates:
             a_score = get_dummy_course(start=a[0], announcement=a[1], advertised_start=a[2]).sorting_score
             b_score = get_dummy_course(start=b[0], announcement=b[1], advertised_start=b[2]).sorting_score
-            print "Comparing %s to %s" % (a, b)
+            print("Comparing %s to %s" % (a, b))
             assertion(a_score, b_score)
 
     start_advertised_settings = [
@@ -248,6 +267,8 @@ class IsNewCourseTestCase(unittest.TestCase):
 
 
 class DiscussionTopicsTestCase(unittest.TestCase):
+    shard = 1
+
     def test_default_discussion_topics(self):
         d = get_dummy_course('2012-12-02T12:00')
         self.assertEqual({'General': {'id': 'i4x-test_org-test_course-course-test'}}, d.discussion_topics)
@@ -257,6 +278,7 @@ class TeamsConfigurationTestCase(unittest.TestCase):
     """
     Tests for the configuration of teams and the helper methods for accessing them.
     """
+    shard = 1
 
     def setUp(self):
         super(TeamsConfigurationTestCase, self).setUp()
@@ -325,6 +347,7 @@ class TeamsConfigurationTestCase(unittest.TestCase):
 
 class SelfPacedTestCase(unittest.TestCase):
     """Tests for self-paced courses."""
+    shard = 1
 
     def setUp(self):
         super(SelfPacedTestCase, self).setUp()
@@ -336,6 +359,8 @@ class SelfPacedTestCase(unittest.TestCase):
 
 class BypassHomeTestCase(unittest.TestCase):
     """Tests for setting which allows course home to be bypassed."""
+    shard = 1
+
     def setUp(self):
         super(BypassHomeTestCase, self).setUp()
         self.course = get_dummy_course('2012-12-02T12:00')
@@ -353,6 +378,7 @@ class CourseDescriptorTestCase(unittest.TestCase):
     class definitely isn't a comprehensive test case for CourseDescriptor, as
     writing a such a test case was out of the scope of the PR.
     """
+    shard = 1
 
     def setUp(self):
         """
@@ -396,3 +422,73 @@ class CourseDescriptorTestCase(unittest.TestCase):
         """
         expected_certificate_available_date = self.course.end + timedelta(days=2)
         self.assertEqual(expected_certificate_available_date, self.course.certificate_available_date)
+
+
+class ProctoringProviderTestCase(unittest.TestCase):
+    """
+    Tests for ProctoringProvider, including the default value, validation, and inheritance behavior.
+    """
+    shard = 1
+
+    def setUp(self):
+        """
+        Initialize dummy testing course.
+        """
+        super(ProctoringProviderTestCase, self).setUp()
+        self.proctoring_provider = xmodule.course_module.ProctoringProvider()
+
+    def test_from_json_with_platform_default(self):
+        """
+        Test that a proctoring provider value equivalent to the platform
+        default will pass validation.
+        """
+        default_provider = settings.PROCTORING_BACKENDS.get('DEFAULT')
+
+        # we expect the validated value to be equivalent to the value passed in,
+        # since there are no validation errors or missing data
+        self.assertEqual(self.proctoring_provider.from_json(default_provider), default_provider)
+
+    def test_from_json_with_invalid_provider(self):
+        """
+        Test that an invalid provider (i.e. not one configured at the platform level)
+        throws a ValueError with the correct error message.
+        """
+        provider = 'invalid-provider'
+        proctoring_provider_whitelist = [u'mock', u'mock_proctoring_without_rules']
+
+        with self.assertRaises(ValueError) as context_manager:
+            self.proctoring_provider.from_json(provider)
+        self.assertEqual(
+            context_manager.exception.args[0],
+            ['The selected proctoring provider, {}, is not a valid provider. Please select from one of {}.'
+                .format(provider, proctoring_provider_whitelist)]
+        )
+
+    def test_from_json_adds_platform_default_for_missing_provider(self):
+        """
+        Test that a value with no provider will inherit the default provider
+        from the platform defaults.
+        """
+        default_provider = 'mock'
+
+        self.assertEqual(self.proctoring_provider.from_json(None), default_provider)
+
+    @override_settings(
+        PROCTORING_BACKENDS={
+            'mock': {},
+            'mock_proctoring_without_rules': {}
+        }
+    )
+    def test_default_with_no_platform_default(self):
+        """
+        Test that, when the platform defaults are not set, the default is correct.
+        """
+        self. assertEqual(self.proctoring_provider.default, None)
+
+    @override_settings(PROCTORING_BACKENDS=None)
+    def test_default_with_no_platform_configuration(self):
+        """
+        Test that, when the platform default is not specified, the default is correct.
+        """
+        default = self.proctoring_provider.default
+        self.assertEqual(default, None)

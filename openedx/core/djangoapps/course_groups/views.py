@@ -9,33 +9,29 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.paginator import EmptyPage, Paginator
-from django.core.urlresolvers import reverse
-from django.db import transaction
+from django.urls import reverse
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
-from edx_rest_framework_extensions.authentication import JwtAuthentication
+from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
+from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
+from edx_rest_framework_extensions.paginators import NamespacedPageNumberPagination
 from opaque_keys.edx.keys import CourseKey
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
 from rest_framework import status, permissions
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 from six import text_type
 
-from courseware.courses import get_course_with_access
+from courseware.courses import get_course, get_course_with_access
 from edxmako.shortcuts import render_to_response
-from lms.djangoapps.django_comment_client.constants import TYPE_ENTRY
-from lms.djangoapps.django_comment_client.utils import get_discussion_categories_ids, get_discussion_category_map
 from util.json_request import JsonResponse, expect_json
-
-from openedx.core.lib.api.authentication import (
-    OAuth2AuthenticationAllowInactiveUser,
-    SessionAuthenticationAllowInactiveUser,
-)
-from openedx.core.lib.api.paginators import NamespacedPageNumberPagination
+from openedx.core.djangoapps.course_groups.models import CohortMembership
+from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin
+from student.auth import has_course_author_access
 from . import api, cohorts
 from .models import CourseUserGroup, CourseUserGroupPartitionGroup
 from .serializers import CohortUsersAPISerializer
@@ -170,8 +166,12 @@ def cohort_handler(request, course_key_string, cohort_id=None):
         If no cohort ID is specified, creates a new cohort and returns the JSON representation of the updated
         cohort.
     """
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_key_string)
-    course = get_course_with_access(request.user, 'staff', course_key)
+    course_key = CourseKey.from_string(course_key_string)
+    if not has_course_author_access(request.user, course_key):
+        raise Http404('The requesting user does not have course author permissions.')
+
+    course = get_course(course_key)
+
     if request.method == 'GET':
         if not cohort_id:
             all_cohorts = [
@@ -246,7 +246,7 @@ def users_in_cohort(request, course_key_string, cohort_id):
     }
     """
     # this is a string when we get it here
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_key_string)
+    course_key = CourseKey.from_string(course_key_string)
 
     get_course_with_access(request.user, 'staff', course_key)
 
@@ -280,7 +280,6 @@ def users_in_cohort(request, course_key_string, cohort_id):
                                'users': user_info})
 
 
-@transaction.non_atomic_requests
 @ensure_csrf_cookie
 @require_POST
 def add_users_to_cohort(request, course_key_string, cohort_id):
@@ -303,7 +302,7 @@ def add_users_to_cohort(request, course_key_string, cohort_id):
      Raises Http404 if the cohort cannot be found for the given course.
     """
     # this is a string when we get it here
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_key_string)
+    course_key = CourseKey.from_string(course_key_string)
     get_course_with_access(request.user, 'staff', course_key)
 
     try:
@@ -369,7 +368,7 @@ def remove_user_from_cohort(request, course_key_string, cohort_id):
      'msg': error_msg}
     """
     # this is a string when we get it here
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_key_string)
+    course_key = CourseKey.from_string(course_key_string)
     get_course_with_access(request.user, 'staff', course_key)
 
     username = request.POST.get('username')
@@ -390,13 +389,13 @@ def debug_cohort_mgmt(request, course_key_string):
     Debugging view for dev.
     """
     # this is a string when we get it here
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_key_string)
+    course_key = CourseKey.from_string(course_key_string)
     # add staff check to make sure it's safe if it's accidentally deployed.
     get_course_with_access(request.user, 'staff', course_key)
 
     context = {'cohorts_url': reverse(
         'cohorts',
-        kwargs={'course_key': course_key.to_deprecated_string()}
+        kwargs={'course_key': text_type(course_key)}
     )}
     return render_to_response('/course_groups/debug.html', context)
 
@@ -433,6 +432,7 @@ class APIPermissions(GenericAPIView):
         SessionAuthenticationAllowInactiveUser,
     )
     permission_classes = (permissions.IsAuthenticated, permissions.IsAdminUser)
+    serializer_class = Serializer
 
 
 class CohortSettings(DeveloperErrorViewMixin, APIPermissions):

@@ -6,10 +6,10 @@ import django.utils.timezone
 from django.conf import settings
 import django_extensions.db.fields
 import model_utils.fields
-from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
 import certificates.models
 import datetime
 from django.utils.timezone import utc
+from opaque_keys.edx.django.models import CourseKeyField
 
 
 class Migration(migrations.Migration):
@@ -45,8 +45,8 @@ class Migration(migrations.Migration):
                 ('modified', model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, verbose_name='modified', editable=False)),
                 ('course_id', CourseKeyField(max_length=255)),
                 ('is_regeneration', models.BooleanField(default=False)),
-                ('generated_by', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-                ('instructor_task', models.ForeignKey(to='instructor_task.InstructorTask')),
+                ('generated_by', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
+                ('instructor_task', models.ForeignKey(to='instructor_task.InstructorTask', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(

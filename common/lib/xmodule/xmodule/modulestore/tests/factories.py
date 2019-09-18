@@ -1,6 +1,7 @@
 """
 Factories for use in tests of XBlocks.
 """
+from __future__ import print_function
 
 import datetime
 import functools
@@ -15,10 +16,8 @@ from uuid import uuid4
 from factory import Factory, Sequence, lazy_attribute_sequence, lazy_attribute
 from factory.errors import CyclicDefinitionError
 from mock import patch
-from nose.tools import assert_less_equal, assert_greater_equal
-import dogstats_wrapper as dog_stats_api
 
-from opaque_keys.edx.locations import Location
+from opaque_keys.edx.locator import BlockUsageLocator
 from opaque_keys.edx.keys import UsageKey
 from xblock.core import XBlock
 from xmodule.modulestore import prefer_xmodules, ModuleStoreEnum
@@ -116,7 +115,7 @@ class CourseFactory(XModuleFactory):
         # because the factory provides a default 'number' arg, prefer the non-defaulted 'course' arg if any
         number = kwargs.pop('course', kwargs.pop('number', None))
         store = kwargs.pop('modulestore')
-        name = kwargs.get('name', kwargs.get('run', Location.clean(kwargs.get('display_name'))))
+        name = kwargs.get('name', kwargs.get('run', BlockUsageLocator.clean(kwargs.get('display_name'))))
         run = kwargs.pop('run', name)
         user_id = kwargs.pop('user_id', ModuleStoreEnum.UserID.test)
         emit_signals = kwargs.pop('emit_signals', False)
@@ -150,6 +149,7 @@ class SampleCourseFactory(CourseFactory):
         block_info_tree = kwargs.pop('block_info_tree', default_block_info_tree)
         store = kwargs.get('modulestore')
         user_id = kwargs.get('user_id', ModuleStoreEnum.UserID.test)
+
         with store.branch_setting(ModuleStoreEnum.Branch.draft_preferred, None):
             course = super(SampleCourseFactory, cls)._create(target_class, **kwargs)
 
@@ -328,8 +328,6 @@ class ItemFactory(XModuleFactory):
         :data: (optional): the data for the item
             (e.g. XML problem definition for a problem item)
 
-        :name: (optional): the name of the item
-
         :display_name: (optional): the display name of the item
 
         :metadata: (optional): dictionary of metadata attributes
@@ -394,18 +392,9 @@ class ItemFactory(XModuleFactory):
             # if we add one then we need to also add it to the policy information (i.e. metadata)
             # we should remove this once we can break this reference from the course to static tabs
             if category == 'static_tab':
-                dog_stats_api.increment(
-                    DEPRECATION_VSCOMPAT_EVENT,
-                    tags=(
-                        "location:itemfactory_create_static_tab",
-                        u"block:{}".format(location.block_type),
-                    )
-                )
-
                 course = store.get_course(location.course_key)
-                name = kwargs.pop('name', 'Static Tab')
                 course.tabs.append(
-                    CourseTab.load('static_tab', name=name, url_slug=location.name)
+                    CourseTab.load('static_tab', name='Static Tab', url_slug=location.block_id)
                 )
                 store.update_item(course, user_id)
 
@@ -596,13 +585,13 @@ def check_sum_of_calls(object_, methods, maximum_calls, minimum_calls=1, include
                         messages.append("      args: {}\n".format(args))
                         messages.append("      kwargs: {}\n\n".format(dict(kwargs)))
 
-        print "".join(messages)
+        print("".join(messages))
 
     # verify the counter actually worked by ensuring we have counted greater than (or equal to) the minimum calls
-    assert_greater_equal(call_count, minimum_calls)
+    assert call_count >= minimum_calls
 
     # now verify the number of actual calls is less than (or equal to) the expected maximum
-    assert_less_equal(call_count, maximum_calls)
+    assert call_count <= maximum_calls
 
 
 def mongo_uses_error_check(store):

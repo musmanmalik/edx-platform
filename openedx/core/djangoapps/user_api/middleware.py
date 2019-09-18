@@ -37,7 +37,7 @@ class UserTagsEventContextMiddleware(object):
             except AttributeError:
                 context['course_id'] = unicode(course_key)
 
-            if request.user.is_authenticated():
+            if request.user.is_authenticated:
                 context['course_user_tags'] = dict(
                     UserCourseTag.objects.filter(
                         user=request.user.pk,

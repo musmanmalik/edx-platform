@@ -3,7 +3,7 @@ Functionality for generating grade reports.
 """
 import logging
 import re
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from datetime import datetime
 from itertools import chain, izip, izip_longest
 from time import time
@@ -13,21 +13,23 @@ from django.conf import settings
 from lazy import lazy
 from opaque_keys.edx.keys import UsageKey
 from pytz import UTC
+from six import text_type
 
-from certificates.models import CertificateWhitelist, GeneratedCertificate, certificate_info_for_user
 from course_blocks.api import get_course_blocks
 from courseware.courses import get_course_by_id
 from courseware.user_state_client import DjangoXBlockUserStateClient
 from instructor_analytics.basic import list_problem_responses
 from instructor_analytics.csvs import format_dictlist
+from lms.djangoapps.certificates.models import CertificateWhitelist, GeneratedCertificate, certificate_info_for_user
 from lms.djangoapps.grades.context import grading_context, grading_context_for_course
-from lms.djangoapps.grades.models import PersistentCourseGrade
-from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.grades.models import PersistentCourseGrade, PersistentSubsectionGrade
+from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from lms.djangoapps.teams.models import CourseTeamMembership
-from lms.djangoapps.verify_student.models import SoftwareSecurePhotoVerification
+from lms.djangoapps.verify_student.services import IDVerificationService
 from openedx.core.djangoapps.content.block_structure.api import get_course_in_cache
 from openedx.core.djangoapps.course_groups.cohorts import bulk_cache_cohorts, get_cohort, is_course_cohorted
 from openedx.core.djangoapps.user_api.course_tag.api import BulkCourseTags
+from openedx.core.djangoapps.waffle_utils import WaffleSwitchNamespace
 from student.models import CourseEnrollment
 from student.roles import BulkRoleCache
 from xmodule.modulestore.django import modulestore
@@ -36,6 +38,10 @@ from xmodule.split_test_module import get_split_user_partitions
 
 from .runner import TaskProgress
 from .utils import upload_csv_to_report_store
+
+WAFFLE_NAMESPACE = 'instructor_task'
+WAFFLE_SWITCHES = WaffleSwitchNamespace(name=WAFFLE_NAMESPACE)
+OPTIMIZE_GET_LEARNERS_FOR_COURSE = 'optimize_get_learners_for_course'
 
 TASK_LOG = logging.getLogger('edx.celery.task')
 
@@ -108,7 +114,7 @@ class _CourseGradeReportContext(object):
         Returns an OrderedDict that maps an assignment type to a dict of
         subsection-headers and average-header.
         """
-        grading_cxt = grading_context(self.course_structure)
+        grading_cxt = grading_context(self.course, self.course_structure)
         graded_assignments_map = OrderedDict()
         for assignment_type_name, subsection_infos in grading_cxt['all_graded_subsections_by_type'].iteritems():
             graded_subsections_map = OrderedDict()
@@ -132,7 +138,8 @@ class _CourseGradeReportContext(object):
             graded_assignments_map[assignment_type_name] = {
                 'subsection_headers': graded_subsections_map,
                 'average_header': average_header,
-                'separate_subsection_avg_headers': separate_subsection_avg_headers
+                'separate_subsection_avg_headers': separate_subsection_avg_headers,
+                'grader': grading_cxt['subsection_type_graders'].get(assignment_type_name),
             }
         return graded_assignments_map
 
@@ -172,10 +179,7 @@ class _TeamBulkContext(object):
 class _EnrollmentBulkContext(object):
     def __init__(self, context, users):
         CourseEnrollment.bulk_fetch_enrollment_states(users, context.course_id)
-        self.verified_users = [
-            verified.user.id for verified in
-            SoftwareSecurePhotoVerification.verified_query().filter(user__in=users).select_related('user__id')
-        ]
+        self.verified_users = set(IDVerificationService.get_verified_user_ids(users))
 
 
 class _CourseGradeBulkContext(object):
@@ -186,6 +190,7 @@ class _CourseGradeBulkContext(object):
         bulk_cache_cohorts(context.course_id, users)
         BulkRoleCache.prefetch(users)
         PersistentCourseGrade.prefetch(context.course_id, users)
+        PersistentSubsectionGrade.prefetch(context.course_id, users)
         BulkCourseTags.prefetch(context.course_id, users)
 
 
@@ -227,7 +232,7 @@ class CourseGradeReport(object):
         Returns a list of all applicable column headers for this grade report.
         """
         return (
-            ["Student ID", "Email", "Username", "Grade"] +
+            ["Student ID", "Email", "Username"] +
             self._grades_header(context) +
             (['Cohort Name'] if context.cohorts_enabled else []) +
             [u'Experiment Group ({})'.format(partition.name) for partition in context.course_experiments] +
@@ -283,7 +288,7 @@ class CourseGradeReport(object):
         Returns the applicable grades-related headers for this report.
         """
         graded_assignments = context.graded_assignments
-        grades_header = []
+        grades_header = ["Grade"]
         for assignment_info in graded_assignments.itervalues():
             if assignment_info['separate_subsection_avg_headers']:
                 grades_header.extend(assignment_info['subsection_headers'].itervalues())
@@ -298,34 +303,100 @@ class CourseGradeReport(object):
             args = [iter(iterable)] * chunk_size
             return izip_longest(*args, fillvalue=fillvalue)
 
-        users = CourseEnrollment.objects.users_enrolled_in(context.course_id, include_inactive=True)
-        users = users.select_related('profile__allow_certificate')
-        return grouper(users)
+        def users_for_course(course_id):
+            """
+            Get all the enrolled users in a course.
 
-    def _user_grade_results(self, course_grade, context):
+            This method fetches & loads the enrolled user objects at once which may cause
+            out-of-memory errors in large courses. This method will be removed when
+            `OPTIMIZE_GET_LEARNERS_FOR_COURSE` waffle flag is removed.
+            """
+            users = CourseEnrollment.objects.users_enrolled_in(course_id, include_inactive=True)
+            users = users.select_related('profile')
+            return grouper(users)
+
+        def users_for_course_v2(course_id):
+            """
+            Get all the enrolled users in a course chunk by chunk.
+
+            This generator method fetches & loads the enrolled user objects on demand which in chunk
+            size defined. This method is a workaround to avoid out-of-memory errors.
+            """
+            filter_kwargs = {
+                'courseenrollment__course_id': course_id,
+            }
+
+            user_ids_list = get_user_model().objects.filter(**filter_kwargs).values_list('id', flat=True).order_by('id')
+            user_chunks = grouper(user_ids_list)
+            for user_ids in user_chunks:
+                user_ids = [user_id for user_id in user_ids if user_id is not None]
+                min_id = min(user_ids)
+                max_id = max(user_ids)
+                users = get_user_model().objects.filter(
+                    id__gte=min_id,
+                    id__lte=max_id,
+                    **filter_kwargs
+                ).select_related('profile')
+                yield users
+
+        task_log_message = u'{}, Task type: {}'.format(context.task_info_string, context.action_name)
+        if WAFFLE_SWITCHES.is_enabled(OPTIMIZE_GET_LEARNERS_FOR_COURSE):
+            TASK_LOG.info(u'%s, Creating Course Grade with optimization', task_log_message)
+            return users_for_course_v2(context.course_id)
+
+        TASK_LOG.info(u'%s, Creating Course Grade without optimization', task_log_message)
+        batch_users = users_for_course(context.course_id)
+        return batch_users
+
+    def _user_grades(self, course_grade, context):
         """
         Returns a list of grade results for the given course_grade corresponding
         to the headers for this report.
         """
         grade_results = []
         for assignment_type, assignment_info in context.graded_assignments.iteritems():
-            for subsection_location in assignment_info['subsection_headers']:
-                try:
-                    subsection_grade = course_grade.graded_subsections_by_format[assignment_type][subsection_location]
-                except KeyError:
-                    grade_result = u'Not Available'
-                else:
-                    if subsection_grade.graded_total.first_attempted is not None:
-                        grade_result = subsection_grade.graded_total.earned / subsection_grade.graded_total.possible
-                    else:
-                        grade_result = u'Not Attempted'
-                grade_results.append([grade_result])
-            if assignment_info['separate_subsection_avg_headers']:
-                assignment_average = course_grade.grader_result['grade_breakdown'].get(assignment_type, {}).get(
-                    'percent'
-                )
+
+            subsection_grades, subsection_grades_results = self._user_subsection_grades(
+                course_grade,
+                assignment_info['subsection_headers'],
+            )
+            grade_results.extend(subsection_grades_results)
+
+            assignment_average = self._user_assignment_average(course_grade, subsection_grades, assignment_info)
+            if assignment_average is not None:
                 grade_results.append([assignment_average])
+
         return [course_grade.percent] + _flatten(grade_results)
+
+    def _user_subsection_grades(self, course_grade, subsection_headers):
+        """
+        Returns a list of grade results for the given course_grade corresponding
+        to the headers for this report.
+        """
+        subsection_grades = []
+        grade_results = []
+        for subsection_location in subsection_headers:
+            subsection_grade = course_grade.subsection_grade(subsection_location)
+            if subsection_grade.attempted_graded:
+                grade_result = subsection_grade.percent_graded
+            else:
+                grade_result = u'Not Attempted'
+            grade_results.append([grade_result])
+            subsection_grades.append(subsection_grade)
+        return subsection_grades, grade_results
+
+    def _user_assignment_average(self, course_grade, subsection_grades, assignment_info):
+        if assignment_info['separate_subsection_avg_headers']:
+            if assignment_info['grader']:
+                if course_grade.attempted:
+                    subsection_breakdown = [
+                        {'percent': subsection_grade.percent_graded}
+                        for subsection_grade in subsection_grades
+                    ]
+                    assignment_average, _ = assignment_info['grader'].total_with_drops(subsection_breakdown)
+                else:
+                    assignment_average = 0.0
+                return assignment_average
 
     def _user_cohort_group_names(self, user, context):
         """
@@ -364,9 +435,8 @@ class CourseGradeReport(object):
         given user.
         """
         enrollment_mode = CourseEnrollment.enrollment_mode_for_user(user, context.course_id)[0]
-        verification_status = SoftwareSecurePhotoVerification.verification_status_for_user(
+        verification_status = IDVerificationService.verification_status_for_user(
             user,
-            context.course_id,
             enrollment_mode,
             user_is_verified=user.id in bulk_enrollments.verified_users,
         )
@@ -379,6 +449,7 @@ class CourseGradeReport(object):
         is_whitelisted = user.id in bulk_certs.whitelisted_user_ids
         certificate_info = certificate_info_for_user(
             user,
+            context.course_id,
             course_grade.letter_grade,
             is_whitelisted,
             bulk_certs.certificates_by_user.get(user.id),
@@ -414,11 +485,11 @@ class CourseGradeReport(object):
             ):
                 if not course_grade:
                     # An empty gradeset means we failed to grade a student.
-                    error_rows.append([user.id, user.username, error.message])
+                    error_rows.append([user.id, user.username, text_type(error)])
                 else:
                     success_rows.append(
                         [user.id, user.email, user.username] +
-                        self._user_grade_results(course_grade, context) +
+                        self._user_grades(course_grade, context) +
                         self._user_cohort_group_names(user, context) +
                         self._user_experiment_group_names(user, context) +
                         self._user_team_names(user, bulk_context.teams) +
@@ -447,7 +518,8 @@ class ProblemGradeReport(object):
         # as the keys.  It is structured in this way to keep the values related.
         header_row = OrderedDict([('id', 'Student ID'), ('email', 'Email'), ('username', 'Username')])
 
-        graded_scorable_blocks = cls._graded_scorable_blocks_to_header(course_id)
+        course = get_course_by_id(course_id)
+        graded_scorable_blocks = cls._graded_scorable_blocks_to_header(course)
 
         # Just generate the static fields for now.
         rows = [list(header_row.values()) + ['Enrollment Status', 'Grade'] + _flatten(graded_scorable_blocks.values())]
@@ -458,13 +530,12 @@ class ProblemGradeReport(object):
         # whether each user is currently enrolled in the course.
         CourseEnrollment.bulk_fetch_enrollment_states(enrolled_students, course_id)
 
-        course = get_course_by_id(course_id)
         for student, course_grade, error in CourseGradeFactory().iter(enrolled_students, course):
             student_fields = [getattr(student, field_name) for field_name in header_row]
             task_progress.attempted += 1
 
             if not course_grade:
-                err_msg = error.message
+                err_msg = text_type(error)
                 # There was an error grading this student.
                 if not err_msg:
                     err_msg = u'Unknown error'
@@ -502,13 +573,13 @@ class ProblemGradeReport(object):
         return task_progress.update_task_state(extra_meta={'step': 'Uploading CSV'})
 
     @classmethod
-    def _graded_scorable_blocks_to_header(cls, course_key):
+    def _graded_scorable_blocks_to_header(cls, course):
         """
         Returns an OrderedDict that maps a scorable block's id to its
         headers in the final report.
         """
         scorable_blocks_map = OrderedDict()
-        grading_context = grading_context_for_course(course_key)
+        grading_context = grading_context_for_course(course)
         for assignment_type_name, subsection_infos in grading_context['all_graded_subsections_by_type'].iteritems():
             for subsection_index, subsection_info in enumerate(subsection_infos, start=1):
                 for scorable_block in subsection_info['scored_descendants']:
@@ -561,15 +632,15 @@ class ProblemResponses(object):
             Tuple[str, List[str], UsageKey]: tuple of a block's display name, path, and
                 usage key
         """
-        display_name = course_blocks.get_xblock_field(root, 'display_name')
+        name = course_blocks.get_xblock_field(root, 'display_name') or root.category
         if path is None:
-            path = [display_name]
+            path = [name]
 
-        yield display_name, path, root
+        yield name, path, root
 
         for block in course_blocks.get_children(root):
-            display_name = course_blocks.get_xblock_field(block, 'display_name')
-            for result in cls._build_problem_list(course_blocks, block, path + [display_name]):
+            name = course_blocks.get_xblock_field(block, 'display_name') or block.category
+            for result in cls._build_problem_list(course_blocks, block, path + [name]):
                 yield result
 
     @classmethod

@@ -2,8 +2,8 @@
 
 import os
 from unittest import TestCase
+from uuid import uuid4
 
-import paver.easy
 from paver import tasks
 from paver.easy import BuildFailure
 
@@ -63,47 +63,38 @@ class MockEnvironment(tasks.Environment):
             self.messages.append(unicode(output))
 
 
-def fail_on_eslint(arg):
+def fail_on_eslint(*args, **kwargs):
     """
-    For our tests, we need the call for diff-quality running pep8 reports to fail, since that is what
-    is going to fail when we pass in a percentage ("p") requirement.
+    For our tests, we need the call for diff-quality running eslint reports
+    to fail, since that is what is going to fail when we pass in a
+    percentage ("p") requirement.
     """
-    if "eslint" in arg:
-        # Essentially mock diff-quality exiting with 1
-        paver.easy.sh("exit 1")
+    if "eslint" in args[0]:
+        raise BuildFailure('Subprocess return code: 1')
     else:
-        return
+        if kwargs.get('capture', False):
+            return uuid4().hex
+        else:
+            return
 
 
-def fail_on_pylint(arg):
+def fail_on_npm_install(*args, **kwargs):  # pylint: disable=unused-argument
     """
-    For our tests, we need the call for diff-quality running pep8 reports to fail, since that is what
+    For our tests, we need the call for diff-quality running pycodestyle reports to fail, since that is what
     is going to fail when we pass in a percentage ("p") requirement.
     """
-    if "pylint" in arg:
-        # Essentially mock diff-quality exiting with 1
-        paver.easy.sh("exit 1")
-    else:
-        return
-
-
-def fail_on_npm_install(arg):
-    """
-    For our tests, we need the call for diff-quality running pep8 reports to fail, since that is what
-    is going to fail when we pass in a percentage ("p") requirement.
-    """
-    if "npm install" in arg:
+    if ["npm", "install", "--verbose"] == args[0]:
         raise BuildFailure('Subprocess return code: 1')
     else:
         return
 
 
-def unexpected_fail_on_npm_install(arg):
+def unexpected_fail_on_npm_install(*args, **kwargs):  # pylint: disable=unused-argument
     """
-    For our tests, we need the call for diff-quality running pep8 reports to fail, since that is what
+    For our tests, we need the call for diff-quality running pycodestyle reports to fail, since that is what
     is going to fail when we pass in a percentage ("p") requirement.
     """
-    if "npm install" in arg:
+    if ["npm", "install", "--verbose"] == args[0]:
         raise BuildFailure('Subprocess return code: 50')
     else:
         return
