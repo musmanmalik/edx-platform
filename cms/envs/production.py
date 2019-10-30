@@ -527,6 +527,19 @@ MICROSITE_DATABASE_TEMPLATE_CACHE_TTL = ENV_TOKENS.get(
 # OpenID Connect issuer ID. Normally the URL of the authentication endpoint.
 OAUTH_OIDC_ISSUER = ENV_TOKENS['OAUTH_OIDC_ISSUER']
 
+##### edx solutions apps for McKA #####
+if FEATURES.get('EDX_SOLUTIONS_API'):
+    INSTALLED_APPS += (
+        'course_metadata',
+        'edx_solutions_api_integration',
+        'social_engagement',
+        'gradebook',
+        'progress',
+        'edx_solutions_projects',
+        'edx_solutions_organizations',
+        'mobileapps',
+    )
+
 #### JWT configuration ####
 JWT_AUTH.update(ENV_TOKENS.get('JWT_AUTH', {}))
 JWT_AUTH.update(AUTH_TOKENS.get('JWT_AUTH', {}))

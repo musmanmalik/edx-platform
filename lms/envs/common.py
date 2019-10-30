@@ -1269,8 +1269,8 @@ MIDDLEWARE_CLASSES = [
     'django_sites_extensions.middleware.RedirectMiddleware',
 
     # Instead of SessionMiddleware, we use a more secure version
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    #'openedx.core.djangoapps.safe_sessions.middleware.SafeSessionMiddleware',
+    #'django.contrib.sessions.middleware.SessionMiddleware',
+    'openedx.core.djangoapps.safe_sessions.middleware.SafeSessionMiddleware',
 
     # Instead of AuthenticationMiddleware, we use a cached backed version
     #'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -3644,12 +3644,6 @@ FERNET_KEYS = [
 # Maximum number of rows to fetch in XBlockUserStateClient calls. Adjust for performance
 USER_STATE_BATCH_SIZE = 5000
 
-############## Plugin Django Apps #########################
-
-from openedx.core.djangoapps.plugins import plugin_apps, plugin_settings, constants as plugin_constants
-INSTALLED_APPS.extend(plugin_apps.get_apps(plugin_constants.ProjectType.LMS))
-plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_constants.SettingsType.COMMON)
-
 ############### Settings for Completion ############################
 COMPLETION_BY_VIEWING_DELAY_MS = 5000
 # Once a user has watched this percentage of a video, mark it as complete:
@@ -3670,3 +3664,9 @@ USER_STATE_BATCH_SIZE = 5000
 
 # Max no. of bad requests after which ratelimitier backend will block IP's access
 RATE_LIMIT_BACKEND_MAX_REQUESTS = 30
+
+############## Plugin Django Apps #########################
+
+from openedx.core.djangoapps.plugins import plugin_apps, plugin_settings, constants as plugin_constants
+INSTALLED_APPS.extend(plugin_apps.get_apps(plugin_constants.ProjectType.LMS))
+plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_constants.SettingsType.COMMON)

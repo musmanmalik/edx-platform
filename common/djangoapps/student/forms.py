@@ -17,6 +17,11 @@ from django.forms import widgets
 from django.utils.http import int_to_base36
 from django.utils.translation import ugettext_lazy as _
 
+from edx_ace import ace
+from edx_ace.recipient import Recipient
+from openedx.core.djangoapps.ace_common.template_context import get_base_template_context
+from openedx.core.djangoapps.lang_pref import LANGUAGE_KEY
+from openedx.core.djangolib.markup import HTML, Text
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.theming.helpers import get_current_site
 from openedx.core.djangoapps.user_api import accounts as accounts_settings

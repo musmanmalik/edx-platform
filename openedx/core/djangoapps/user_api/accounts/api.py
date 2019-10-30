@@ -29,7 +29,9 @@ from util.model_utils import emit_setting_changed_event
 from util.password_policy_validators import validate_password, normalize_password
 from lms.lib.comment_client.user import User as CCUser
 from lms.lib.comment_client.utils import CommentClientRequestError
-from edx_notifications.lib import admin as notification_admin
+# TODO: this needs to be fixed by opencraft as they have added this method in their fork
+# this is a temporarily fix to run ironwood rebase
+#from edx_notifications.lib import admin as notification_admin
 
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.user_api import errors, accounts, forms, helpers
@@ -898,8 +900,7 @@ def retire_user_comments(user):
         if e.status_code != 404:
             raise
 
-
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
+@helpers.intercept_errors(errors.UserAPIInternalError, ignore_errors=[errors.UserAPIRequestError])
 def delete_users(users):
     """
     Delete the users and their data in related records.
@@ -932,12 +933,17 @@ def delete_users(users):
 
     # Delete notifications
     user_ids = users.values_list('id', flat=True)
-    notification_admin.purge_user_data(user_ids)
 
-    # Delete notifications that mention the users, e.g. group work
-    for username in usernames:
-        payload = '"action_username": "{}"'.format(username)
-        notification_admin.purge_notifications_with_payload(payload)
+    #Note: The following lines are commented to resolve errors during ironwood rebase
+    #This change has been added by OC as they are using their own version of edx-notifications
+    #which is yet to be merged in master of edx-notifications
+
+    # notification_admin.purge_user_data(user_ids)
+    #
+    # # Delete notifications that mention the users, e.g. group work
+    # for username in usernames:
+    #     payload = '"action_username": "{}"'.format(username)
+    #     notification_admin.purge_notifications_with_payload(payload)
 
     # Finally delete user and related models
     for user in users.exclude(email__in=failed):

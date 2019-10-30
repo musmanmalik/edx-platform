@@ -142,10 +142,10 @@ if settings.FEATURES.get('ENABLE_MOBILE_REST_API'):
 
 # EDX SOLUTIONS API
 if settings.FEATURES.get('EDX_SOLUTIONS_API'):
-    urlpatterns += (
+    urlpatterns += [
         url(r'^api/server/', include('edx_solutions_api_integration.urls')),
         url(r'^api/completion/v0/', include('completion_aggregator.api.v0.urls'))
-    )
+    ]
 
 # COMPLETION
 

@@ -829,6 +829,19 @@ ECOMMERCE_SERVICE_WORKER_USERNAME = ENV_TOKENS.get(
     ECOMMERCE_SERVICE_WORKER_USERNAME
 )
 
+##### edx solutions apps for McKA #####
+if FEATURES.get('EDX_SOLUTIONS_API'):
+    INSTALLED_APPS += (
+        'course_metadata',
+        'edx_solutions_api_integration',
+        'social_engagement',
+        'gradebook',
+        'progress',
+        'edx_solutions_projects',
+        'edx_solutions_organizations',
+        'mobileapps',
+    )
+
 ##### Custom Courses for EdX #####
 if FEATURES.get('CUSTOM_COURSES_EDX'):
     INSTALLED_APPS += ['lms.djangoapps.ccx', 'openedx.core.djangoapps.ccxcon.apps.CCXConnectorConfig']

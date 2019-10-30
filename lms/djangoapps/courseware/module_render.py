@@ -10,7 +10,7 @@ import textwrap
 from collections import OrderedDict
 from functools import partial
 from datetime import datetime
-from django.utils.timezone import UTC
+from django.utils.timezone import utc as UTC
 
 from completion.models import BlockCompletion
 from completion import waffle as completion_waffle
