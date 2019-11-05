@@ -946,6 +946,7 @@ CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 
 HIGH_PRIORITY_QUEUE = 'edx.core.high'
 DEFAULT_PRIORITY_QUEUE = 'edx.core.default'
+LOW_PRIORITY_QUEUE = 'edx.core.low'
 
 CELERY_QUEUE_HA_POLICY = 'all'
 
@@ -956,6 +957,7 @@ CELERY_DEFAULT_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
 
 CELERY_QUEUES = {
     HIGH_PRIORITY_QUEUE: {},
+    LOW_PRIORITY_QUEUE: {},
     DEFAULT_PRIORITY_QUEUE: {}
 }
 
@@ -1173,9 +1175,10 @@ INSTALLED_APPS = [
     # Waffle related utilities
     'openedx.core.djangoapps.waffle_utils',
 
+    # TODO: IRONWOOD REBASE: Added above in openedx
     # Completion
-    'completion',
-    'completion_aggregator',
+    #'completion',
+    #'completion_aggregator',
 
     # Profile image
     'openedx.core.djangoapps.profile_images',
@@ -1600,7 +1603,7 @@ COURSE_CATALOG_API_URL = None
 ############################# Persistent Grades ####################################
 
 # Queue to use for updating persistent grades
-RECALCULATE_GRADES_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
+RECALCULATE_GRADES_ROUTING_KEY = LOW_PRIORITY_QUEUE
 
 # Queue to use for updating grades due to grading policy change
 POLICY_CHANGE_GRADES_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
@@ -1614,7 +1617,7 @@ POLICY_CHANGE_TASK_RATE_LIMIT = '300/h'
 RECALCULATE_SOCIAL_ENGAGEMENT_ROUTING_KEY = LOW_PRIORITY_QUEUE
 
 ############## Settings for CourseGraph ############################
-COURSEGRAPH_JOB_QUEUE = DEFAULT_PRIORITY_QUEUE
+COURSEGRAPH_JOB_QUEUE = LOW_PRIORITY_QUEUE
 
 ########## Settings for video transcript migration tasks ############
 VIDEO_TRANSCRIPT_MIGRATIONS_JOB_QUEUE = DEFAULT_PRIORITY_QUEUE

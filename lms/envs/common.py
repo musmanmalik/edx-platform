@@ -2323,12 +2323,10 @@ INSTALLED_APPS = [
     # edx-drf-extensions
     'csrf.apps.CsrfAppConfig',  # Enables frontend apps to retrieve CSRF tokens.
 
+    # ToDO: not needed after ironwood rebase.
     #  Completion
-    'completion',
-    'completion_aggregator',
-
-    # User Manager API
-    'user_manager',
+    #'completion',
+    #'completion_aggregator',
 
     # Profile image
     'openedx.core.djangoapps.profile_images',
@@ -2903,10 +2901,10 @@ OPTIONAL_APPS = [
     ('poll', None),
     ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
-    ('diagnostic_feedback', None),
+    ('diagnostic_feedback.apps.DiagnosticFeedbackConfig', None),
 
     # edx-ora2
-    ('submissions', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
+    ('submissions', None),
     ('openassessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('openassessment.assessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('openassessment.fileupload', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),

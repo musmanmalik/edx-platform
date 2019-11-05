@@ -4,9 +4,8 @@ from __future__ import unicode_literals
 from django.db import migrations, models
 import django.utils.timezone
 from django.conf import settings
-import django_extensions.db.fields
 import model_utils.fields
-import certificates.models
+from lms.djangoapps.certificates.models import template_assets_path
 import datetime
 from django.utils.timezone import utc
 from opaque_keys.edx.django.models import CourseKeyField
@@ -24,11 +23,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='certificatewhitelist',
             name='created',
-            field=django_extensions.db.fields.CreationDateTimeField(
-                auto_now_add=True,
-                verbose_name='created',
-                default=datetime.datetime(2016, 9, 15, 6, 54, 3, 634153, tzinfo=utc)
-            ),
+            field=model_utils.fields.AutoCreatedField(default=datetime.datetime(2016, 9, 15, 6, 54, 3, 634153, tzinfo=utc), verbose_name='created', editable=False),
             preserve_default=False,
         ),
         migrations.AddField(
@@ -74,7 +69,7 @@ class Migration(migrations.Migration):
                 ('created', model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, verbose_name='created', editable=False)),
                 ('modified', model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, verbose_name='modified', editable=False)),
                 ('description', models.CharField(help_text='Description of the asset.', max_length=255, null=True, blank=True)),
-                ('asset', models.FileField(help_text='Asset file. It could be an image or css file.', max_length=255, upload_to=certificates.models.template_assets_path)),
+                ('asset', models.FileField(help_text='Asset file. It could be an image or css file.', max_length=255, upload_to=template_assets_path)),
             ],
             options={
                 'get_latest_by': 'created',

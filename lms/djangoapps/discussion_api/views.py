@@ -45,10 +45,8 @@ from django_comment_client.utils import available_division_schemes
 from django_comment_common.models import Role
 from django_comment_common.utils import get_course_discussion_settings, set_course_discussion_settings
 from instructor.access import update_forum_role
-from openedx.core.lib.api.authentication import (
-    OAuth2AuthenticationAllowInactiveUser,
-    SessionAuthenticationAllowInactiveUser,
-)
+from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
+from openedx.core.lib.api.authentication import OAuth2AuthenticationAllowInactiveUser
 from openedx.core.lib.api.parsers import MergePatchParser
 from openedx.core.lib.api.view_utils import DeveloperErrorViewMixin, view_auth_classes
 from openedx.core.djangoapps.user_api.accounts.permissions import CanRetireUser
