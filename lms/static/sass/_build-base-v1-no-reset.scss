@@ -2,5 +2,10 @@
 @import 'bourbon/bourbon'; // lib - bourbon
 
 // base - utilities
-@import 'base/variables';
+@import 'lms/theme/variables';
+@import 'bootstrap/variables';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins/breakpoints';
+@import '../variables';
+@import 'lms/theme/variables-v1';
 @import 'base/mixins';
