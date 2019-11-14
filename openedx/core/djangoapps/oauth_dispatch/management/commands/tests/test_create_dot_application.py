@@ -8,15 +8,14 @@ import ddt
 from django.core.management import call_command
 from django.test import TestCase
 from oauth2_provider.models import get_application_model
+from openedx.core.djangolib.testing.utils import skip_unless_lms
 
 from student.tests.factories import UserFactory
-
-from ..create_dot_application import Command
-
 
 Application = get_application_model()
 
 
+@skip_unless_lms
 @ddt.ddt
 class TestCreateDotApplication(TestCase):
     """
@@ -59,7 +58,7 @@ class TestCreateDotApplication(TestCase):
             call_args.append('--client-secret')
             call_args.append(client_secret)
 
-        call_command(Command(), *call_args)
+        call_command('create_dot_application', *call_args)
 
         apps = Application.objects.filter(name='testing_application')
         self.assertEqual(1, len(apps))
@@ -77,6 +76,6 @@ class TestCreateDotApplication(TestCase):
 
         # When called a second time with the same arguments, the command should
         # exit gracefully without creating a second application.
-        call_command(Command(), *call_args)
+        call_command('create_dot_application', *call_args)
         apps = Application.objects.filter(name='testing_application')
         self.assertEqual(1, len(apps))
