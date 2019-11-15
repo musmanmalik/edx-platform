@@ -2946,6 +2946,10 @@ for app_name, insert_before in OPTIONAL_APPS:
     except (IndexError, ValueError):
         INSTALLED_APPS.append(app_name)
 
+### ADVANCED_SECURITY_CONFIG
+# Empty by default
+ADVANCED_SECURITY_CONFIG = {}
+
 ### External auth usage -- prefixes for ENROLLMENT_DOMAIN
 SHIBBOLETH_DOMAIN_PREFIX = 'shib:'
 OPENID_DOMAIN_PREFIX = 'openid:'

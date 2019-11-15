@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('student', '0018_remove_password_history'),
+        ('student', '0017_accountrecovery'),
     ]
 
     operations = [
