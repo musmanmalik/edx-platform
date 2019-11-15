@@ -42,4 +42,4 @@ git+https://github.com/edx-solutions/discussion-edx-platform-extensions.git@shaf
 git+https://github.com/edx-solutions/organizations-edx-platform-extensions.git@shafqat/django-upgrade-1.11
 git+https://github.com/edx-solutions/course-edx-platform-extensions.git@shafqat/django-upgrade-1.11
 git+https://github.com/edx-solutions/api-integration.git@shafqat/ironwood-rebase
--e git+https://github.com/mckinseyacademy/xblock-diagnosticfeedback.git@shafqat/rebase-ironwood
+git+https://github.com/mckinseyacademy/xblock-diagnosticfeedback.git@shafqat/rebase-ironwood
