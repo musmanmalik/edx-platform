@@ -2904,7 +2904,7 @@ OPTIONAL_APPS = [
     ('diagnostic_feedback.apps.DiagnosticFeedbackConfig', None),
 
     # edx-ora2
-    ('submissions', None),
+    ('submissions', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('openassessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('openassessment.assessment', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('openassessment.fileupload', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),

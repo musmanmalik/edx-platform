@@ -1305,7 +1305,7 @@ MAX_FAILED_LOGIN_ATTEMPTS_LOCKOUT_PERIOD_SECS = 15 * 60
 OPTIONAL_APPS = (
     ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
-    ('diagnostic_feedback', None),
+    ('diagnostic_feedback.apps.DiagnosticFeedbackConfig', None),
 
     # edx-ora2
     ('submissions', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
