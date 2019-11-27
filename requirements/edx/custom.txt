@@ -19,11 +19,11 @@ git+https://github.com/edx-solutions/xblock-group-project.git@0.1.2#egg=xblock-g
 -e git+https://github.com/OfficeDev/xblock-officemix.git@86238f5968a08db005717dbddc346808f1ed3716#egg=xblock-officemix
 -e git+https://github.com/open-craft/xblock-chat.git@v0.2.3#egg=xblock-chat==0.2.3
 -e git+https://github.com/open-craft/xblock-eoc-journal.git@v0.3.0#egg=xblock-eoc-journal==0.3.0
--e git+https://github.com/open-craft/xblock-group-project-v2.git@0.5.1#egg=xblock-group-project-v2==0.5.1
+-e git+https://github.com/open-craft/xblock-group-project-v2.git@0.6.0#egg=xblock-group-project-v2==0.6.0
 -e git+https://github.com/open-craft/xblock-virtualreality.git@v0.1.1#egg=xblock-virtualreality==0.1.1
 git+https://github.com/edx-solutions/progress-edx-platform-extensions.git@1.0.8#egg=progress-edx-platform-extensions==1.0.8
 git+https://github.com/mckinseyacademy/openedx-user-manager-api@v1.1.0#egg=openedx-user-manager-api==1.1.0
-openedx-completion-aggregator==1.5.23
+openedx-completion-aggregator==1.5.24
 
 # TODO: [IRONWOOD REBASE] Commented below temorarily and added our branch to make platform work.
 #git+https://github.com/edx-solutions/gradebook-edx-platform-extensions.git@1.1.14#egg=gradebook-edx-platform-extensions==1.1.14
