@@ -3290,7 +3290,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
         """
         ex_status = 503
         ex_reason = 'Slow Down'
-        url = reverse('list_report_downloads', kwargs={'course_id': text_type(self.course.id)})
+        url = reverse('api_instructor:list_report_downloads', kwargs={'course_id': text_type(self.course.id)})
         with patch('openedx.core.storage.S3ReportStorage.listdir', side_effect=BotoServerError(ex_status, ex_reason)):
             response = self.client.post(url, {})
         mock_error.assert_called_with(
