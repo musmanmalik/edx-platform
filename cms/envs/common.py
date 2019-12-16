@@ -1305,6 +1305,7 @@ MAX_FAILED_LOGIN_ATTEMPTS_LOCKOUT_PERIOD_SECS = 15 * 60
 OPTIONAL_APPS = (
     ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
+    # TODO : ironwood rebase - Fix this before merging ironwood into master
     ('diagnostic_feedback.apps.DiagnosticFeedbackConfig', None),
 
     # edx-ora2
@@ -1476,7 +1477,7 @@ DEPRECATED_BLOCK_TYPES = ['peergrading', 'combinedopenended']
 ################################### EDX-NOTIFICATIONS SUBSYSTEM ######################################
 
 INSTALLED_APPS += (
-    'edx_notifications',
+    'edx_notifications.apps.EdxNotificationsConfig',
     'edx_notifications.server.web',
 )
 
