@@ -14,7 +14,6 @@ git+https://github.com/edx-solutions/xblock-group-project.git@0.1.2#egg=xblock-g
 -e git+https://github.com/edx-solutions/xblock-adventure.git@v0.1.1#egg=xblock-adventure==0.1.1
 -e git+https://github.com/open-craft/xblock-poll.git@v1.8.6#egg=xblock-poll==1.8.6
 #-e git+https://github.com/open-craft/edx-notifications.git@9930a7069dd496e3229145d0dee8f750c9d1d7cc#egg=edx-notifications==0.8.4
--e git+https://github.com/edx/edx-notifications.git@8cf2740f6dc504938377531adf94ce91ff42dcb1#egg=edx-notifications==0.8.3
 -e git+https://github.com/open-craft/problem-builder.git@v3.3.8#egg=xblock-problem-builder==3.3.8
 -e git+https://github.com/OfficeDev/xblock-officemix.git@86238f5968a08db005717dbddc346808f1ed3716#egg=xblock-officemix
 -e git+https://github.com/open-craft/xblock-chat.git@v0.2.3#egg=xblock-chat==0.2.3
@@ -34,6 +33,7 @@ openedx-completion-aggregator==2.0.0
 #git+https://github.com/edx-solutions/course-edx-platform-extensions.git@v2.0.0#egg=course-edx-platform-extensions==2.0.0
 #git+https://github.com/edx-solutions/api-integration.git@v3.1.5#egg=api-integration==3.1.5
 #-e git+https://github.com/mckinseyacademy/xblock-diagnosticfeedback.git@v0.2.4#egg=xblock-diagnostic-feedback==0.2.4
+#-e git+https://github.com/edx/edx-notifications.git@8cf2740f6dc504938377531adf94ce91ff42dcb1#egg=edx-notifications==0.8.3
 
 git+https://github.com/edx-solutions/gradebook-edx-platform-extensions.git@shafqat/ironwood-rebase
 git+https://github.com/edx-solutions/projects-edx-platform-extensions.git@shafqat/ironwood-rebase
@@ -43,3 +43,4 @@ git+https://github.com/edx-solutions/organizations-edx-platform-extensions.git@s
 git+https://github.com/edx-solutions/course-edx-platform-extensions.git@shafqat/django-upgrade-1.11
 git+https://github.com/edx-solutions/api-integration.git@shafqat/ironwood-rebase
 git+https://github.com/mckinseyacademy/xblock-diagnosticfeedback.git@shafqat/rebase-ironwood
+git+https://github.com/edx/edx-notifications.git@ihtram/ironwood-rebase

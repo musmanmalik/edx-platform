@@ -2221,6 +2221,7 @@ INSTALLED_APPS = [
 
     # Course data caching
     'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig',
+    'openedx.core.djangoapps.content.course_structures.apps.CourseStructuresConfig',
     'openedx.core.djangoapps.content.block_structure.apps.BlockStructureConfig',
     'lms.djangoapps.course_blocks',
 
@@ -2901,6 +2902,7 @@ OPTIONAL_APPS = [
     ('poll', None),
     ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
+    # TODO : ironwood rebase - Fix this before merging ironwood into master
     ('diagnostic_feedback.apps.DiagnosticFeedbackConfig', None),
 
     # edx-ora2
@@ -3349,7 +3351,7 @@ AGGREGATION_EXCLUDE_ROLES = ['observer']
 ################################### EDX-NOTIFICATIONS SUBSYSTEM ######################################
 
 INSTALLED_APPS += (
-    'edx_notifications',
+    'edx_notifications.apps.EdxNotificationsConfig',
     'edx_notifications.server.web',
 )
 
