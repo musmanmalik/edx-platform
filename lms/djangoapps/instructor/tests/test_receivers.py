@@ -11,9 +11,7 @@ from django.test.utils import override_settings
 
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, mixed_store_config
-
-from util.signals import course_deleted
-
+from xmodule.modulestore.django import SignalHandler
 from student.models import CourseAccessRole
 
 MODULESTORE_CONFIG = mixed_store_config(settings.COMMON_TEST_DATA_ROOT, {})
@@ -48,7 +46,7 @@ class InstructorReceiversTests(ModuleStoreTestCase):
         CourseAccessRole.objects.create(course_id=self.course.id, user=self.user, role='instructor')
 
         # Emit the signal
-        course_deleted.send(sender=None, course_key=self.course.id)
+        SignalHandler.course_deleted.send(sender=None, course_key=self.course.id)
 
         # Validate that the course references were removed
         self.assertEqual(CourseAccessRole.objects.filter(course_id=self.course.id).count(), 0)
