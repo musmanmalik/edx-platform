@@ -5,6 +5,7 @@ from django_comment_common import signals, models
 from edx_django_utils.cache import RequestCache
 from lms.djangoapps.discussion.signals.handlers import ENABLE_FORUM_NOTIFICATIONS_FOR_SITE_KEY
 from openedx.core.djangoapps.site_configuration.tests.factories import SiteFactory, SiteConfigurationFactory
+from social_engagement.handlers import comment_created_signal_handler
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
@@ -19,6 +20,9 @@ class SendMessageHandlerTestCase(TestCase):
         self.post.thread.course_id = 'course-v1:edX+DemoX+Demo_Course'
 
         self.site = SiteFactory.create()
+        # Custom change: Disconnect receiver for 'comment_created' signal from 'social_engagement' app
+        # as forum service api call is not mocked in that receiver
+        signals.comment_created.disconnect(comment_created_signal_handler)
 
     @mock.patch('lms.djangoapps.discussion.signals.handlers.get_current_site')
     @mock.patch('lms.djangoapps.discussion.signals.handlers.send_message')
