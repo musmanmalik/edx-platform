@@ -44,7 +44,9 @@ class MobileAPITestCase(ModuleStoreTestCase, APITestCase):
         self.course = CourseFactory.create(
             mobile_available=True,
             static_asset_path="needed_for_split",
-            end=datetime.datetime.now(pytz.UTC),
+            # Custom change: course end date is set to a future date to fulfill custom added feature flag
+            # ALLOW_STUDENT_STATE_UPDATES_ON_CLOSED_COURSE
+            end=datetime.datetime.now(pytz.UTC) + datetime.timedelta(days=1),
             certificate_available_date=datetime.datetime.now(pytz.UTC)
         )
         self.user = UserFactory.create()
