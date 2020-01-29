@@ -182,7 +182,7 @@ class RenderXBlockTestMixin(object):
                     self.assertContains(response, chrome_element)
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 10),
+        (ModuleStoreEnum.Type.mongo, 5),
         (ModuleStoreEnum.Type.split, 5),
     )
     @ddt.unpack
@@ -216,7 +216,7 @@ class RenderXBlockTestMixin(object):
         Helper method used by test_success_enrolled_staff because one test
         class using this mixin has an increased number of mongo (only) queries.
         """
-        return 9
+        return 5
 
     def test_success_unenrolled_staff(self):
         self.setup_course()
