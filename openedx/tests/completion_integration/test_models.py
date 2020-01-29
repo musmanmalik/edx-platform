@@ -61,8 +61,10 @@ class SubmitCompletionTestCase(CompletionSetUpMixin, TestCase):
         self.set_up_completion()
 
     def test_changed_value(self):
-        with self.assertNumQueries(SELECT + UPDATE + 2 * SAVEPOINT + 2 * OTHER):
+        with self.assertNumQueries(8 * SELECT + 2 * UPDATE + 2 * SAVEPOINT + 2 * OTHER):
             # OTHER = user exists, completion exists
+            # Custom change: 8 extra SQL queries on the completion_aggregator's StaleCompletion
+            # model.
             completion, isnew = models.BlockCompletion.objects.submit_completion(
                 user=self.user,
                 course_key=self.block_key.course_key,
@@ -89,7 +91,9 @@ class SubmitCompletionTestCase(CompletionSetUpMixin, TestCase):
 
     def test_new_user(self):
         newuser = UserFactory()
-        with self.assertNumQueries(SELECT + UPDATE + 4 * SAVEPOINT):
+        with self.assertNumQueries(5 * SELECT + UPDATE + 4 * SAVEPOINT + 3 * OTHER):
+            # Custom change: 7 extra SQL queries on the completion_aggregator's StaleCompletion
+            # model.
             _, isnew = models.BlockCompletion.objects.submit_completion(
                 user=newuser,
                 course_key=self.block_key.course_key,
@@ -101,7 +105,9 @@ class SubmitCompletionTestCase(CompletionSetUpMixin, TestCase):
 
     def test_new_block(self):
         newblock = UsageKey.from_string(u'block-v1:edx+test+run+type@video+block@puppers')
-        with self.assertNumQueries(SELECT + UPDATE + 4 * SAVEPOINT):
+        with self.assertNumQueries(5 * SELECT + UPDATE + 4 * SAVEPOINT + 3 * OTHER):
+            # Custom change: 7 extra SQL queries on the completion_aggregator's StaleCompletion
+            # model.
             _, isnew = models.BlockCompletion.objects.submit_completion(
                 user=self.user,
                 course_key=newblock.course_key,
