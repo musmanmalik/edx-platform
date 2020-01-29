@@ -597,7 +597,7 @@ def get_module_system_for_user(
             content_id=unicode(block.scope_ids.usage_id),
         )
 
-    def handle_grade_event(block, event):  # pylint: disable=unused-argument
+    def handle_grade_event(block, event):
         """
         Manages the workflow for recording and updating of student module grade state
         """
@@ -650,16 +650,24 @@ def get_module_system_for_user(
             course_id=course_id,
             content_id=unicode(descriptor.location)
         )
-        if completion_waffle.waffle().is_enabled(completion_waffle.ENABLE_COMPLETION_TRACKING):
+        if not completion_waffle.waffle().is_enabled(completion_waffle.ENABLE_COMPLETION_TRACKING):
+            raise Http404
+        else:
             if user_id != user.id:
                 log.warning("{} tried to submit a completion on behalf of {}".format(user, user_id))
                 return
-            BlockCompletion.objects.submit_completion(
-                user=user,
-                course_key=course_id,
-                block_key=block.scope_ids.usage_id,
-                completion=1.0,
-            )
+
+            # If blocks explicitly declare support for the new completion API,
+            # we expect them to emit 'completion' events,
+            # and we ignore the deprecated 'progress' events
+            # in order to avoid duplicate work and possibly conflicting semantics.
+            if not getattr(block, 'has_custom_completion', False):
+                BlockCompletion.objects.submit_completion(
+                    user=user,
+                    course_key=course_id,
+                    block_key=block.scope_ids.usage_id,
+                    completion=1.0,
+                )
 
     def rebind_noauth_module_to_user(module, real_user):
         """
