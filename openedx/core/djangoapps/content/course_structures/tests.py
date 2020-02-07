@@ -2,7 +2,6 @@
 Course Structure Content sub-application test cases
 """
 import json
-from nose.plugins.attrib import attr
 from opaque_keys.edx.django.models import UsageKey
 
 from xmodule.modulestore.django import SignalHandler
@@ -11,6 +10,7 @@ from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from openedx.core.djangoapps.content.course_structures.models import CourseStructure
 from openedx.core.djangoapps.content.course_structures.signals import listen_for_course_publish
 from openedx.core.djangoapps.content.course_structures.tasks import _generate_course_structure, update_course_structure
+from openedx.core.lib.tests import attr
 
 
 class SignalDisconnectTestMixin(object):
