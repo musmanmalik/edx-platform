@@ -20,7 +20,7 @@ git+https://github.com/edx-solutions/xblock-group-project.git@0.1.2#egg=xblock-g
 -e git+https://github.com/open-craft/xblock-eoc-journal.git@v0.3.0#egg=xblock-eoc-journal==0.3.0
 -e git+https://github.com/open-craft/xblock-group-project-v2.git@0.6.0#egg=xblock-group-project-v2==0.6.0
 -e git+https://github.com/open-craft/xblock-virtualreality.git@v0.1.1#egg=xblock-virtualreality==0.1.1
-git+https://github.com/edx-solutions/progress-edx-platform-extensions.git@1.0.8#egg=progress-edx-platform-extensions==1.0.8
+#git+https://github.com/edx-solutions/progress-edx-platform-extensions.git@1.0.8#egg=progress-edx-platform-extensions==1.0.8
 git+https://github.com/mckinseyacademy/openedx-user-manager-api@v1.1.0#egg=openedx-user-manager-api==1.1.0
 openedx-completion-aggregator==2.0.0
 
@@ -35,12 +35,13 @@ openedx-completion-aggregator==2.0.0
 #-e git+https://github.com/mckinseyacademy/xblock-diagnosticfeedback.git@v0.2.4#egg=xblock-diagnostic-feedback==0.2.4
 #-e git+https://github.com/edx/edx-notifications.git@8cf2740f6dc504938377531adf94ce91ff42dcb1#egg=edx-notifications==0.8.3
 
-git+https://github.com/edx-solutions/gradebook-edx-platform-extensions.git@shafqat/ironwood-rebase
-git+https://github.com/edx-solutions/projects-edx-platform-extensions.git@shafqat/ironwood-rebase
-git+https://github.com/edx-solutions/mobileapps-edx-platform-extensions.git@shafqat/django-upgrade-1.11
-git+https://github.com/edx-solutions/discussion-edx-platform-extensions.git@shafqat/ironwood-rebase
-git+https://github.com/edx-solutions/organizations-edx-platform-extensions.git@shafqat/django-upgrade-1.11
-git+https://github.com/edx-solutions/course-edx-platform-extensions.git@shafqat/django-upgrade-1.11
-git+https://github.com/edx-solutions/api-integration.git@shafqat/ironwood-rebase
+git+https://github.com/edx-solutions/gradebook-edx-platform-extensions.git@rebase-ironwood
+git+https://github.com/edx-solutions/projects-edx-platform-extensions.git@rebase-ironwood
+git+https://github.com/edx-solutions/mobileapps-edx-platform-extensions.git@rebase-ironwood
+git+https://github.com/edx-solutions/discussion-edx-platform-extensions.git@rebase-ironwood
+git+https://github.com/edx-solutions/organizations-edx-platform-extensions.git@rebase-ironwood
+git+https://github.com/edx-solutions/course-edx-platform-extensions.git@rebase-ironwood
+git+https://github.com/edx-solutions/api-integration.git@rebase-ironwood
 git+https://github.com/mckinseyacademy/xblock-diagnosticfeedback.git@shafqat/rebase-ironwood
-git+https://github.com/edx/edx-notifications.git@ihtram/ironwood-rebase
+git+https://github.com/edx-solutions/progress-edx-platform-extensions.git@attiya/ironwood-rebase
+-e git+https://github.com/edx/edx-notifications.git@rebase-ironwood#egg=edx-notifications==0.9.0
