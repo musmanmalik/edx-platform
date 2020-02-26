@@ -150,9 +150,10 @@ def wrap_xblock(
     else:
         template_context['js_init_parameters'] = ""
 
-    if isinstance(block, (XModule, XModuleDescriptor)):
-        # Add the webpackified asset tags
-        add_webpack_to_fragment(frag, class_name)
+    # TODO: IRONWOOD - need to check if below works otherwise remove the below commented code.
+    # if isinstance(block, (XModule, XModuleDescriptor)):
+    #     # Add the webpackified asset tags
+    #     add_webpack_to_fragment(frag, class_name)
 
     return wrap_fragment(frag, render_to_string('xblock_wrapper.html', template_context))
 

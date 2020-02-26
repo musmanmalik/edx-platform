@@ -32,6 +32,8 @@
             'js/groups/views/cohorts_dashboard_factory',
             'js/discussions_management/views/discussions_dashboard_factory',
             'js/header_factory',
+            'js/learner_dashboard/program_details_factory',
+            'js/learner_dashboard/program_list_factory',
             'js/student_account/logistration_factory',
             'js/student_account/views/account_settings_factory',
             'js/student_account/views/finish_auth_factory',

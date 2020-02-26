@@ -271,7 +271,8 @@ def shim_xmodule_js(block, fragment):
         fragment.initialize_js('XBlockToXModuleShim')
         fragment.json_init_args = {'xmodule-type': block.js_module_name}
 
-        add_webpack_to_fragment(fragment, 'XModuleShim')
+        # TODO: IRONWOOD - need to check if below works otherwise remove the below commented code.
+        #add_webpack_to_fragment(fragment, 'XModuleShim')
 
 
 class XModuleFields(object):
