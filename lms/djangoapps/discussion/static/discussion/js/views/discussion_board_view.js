@@ -96,6 +96,7 @@
                     selectedTopicList.removeClass('is-focused');
                     this.$('.forum-nav-browse-menu-wrapper').hide();
                     this.$('.forum-nav-thread-list-wrapper').show();
+                    this.$('.forum-nav-filter-main-control').focus();
                     if (this.selectedTopicId !== 'undefined') {
                         this.$('.forum-nav-browse-filter-input').attr('aria-activedescendant', this.selectedTopicId);
                     }

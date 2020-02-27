@@ -1,5 +1,5 @@
 <form class="forum-new-post-form">
-    <h<%- startHeader %> class="thread-title"><%- gettext("Add a Post") %></h<%- startHeader %>>
+    <h<%- startHeader %> class="thread-title" tabindex= "-1"><%- gettext("Add a Post") %></h<%- startHeader %>>
 
     <% if (mode === 'inline') { %>
         <button class="btn btn-outline-primary btn-default add-post-cancel">
@@ -39,7 +39,7 @@
                 <%- gettext("Add a clear and descriptive title to encourage participation. (Required)") %>
             </div>
             <div>
-                <input id='discussion-forum-title' aria-describedby="field_help_title" type="text" class="js-post-title field-input" name="title">
+                <input id='discussion-forum-title' type="text" class="js-post-title field-input" name="title">
             </div>
         </label>
     </div>

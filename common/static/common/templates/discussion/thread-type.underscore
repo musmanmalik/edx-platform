@@ -7,7 +7,7 @@
         </span>
     </legend>
     <div class="field-help" id="field_help_post_type">
-        <%- gettext("Questions raise issues that need answers. Discussions share ideas and start conversations. (Required)") %>
+        <%- gettext("Questions raise issues that need answers. Discussions share ideas and start conversations.") %>
     </div>
     <div class="field-label">
         <label for="<%= form_id %>-post-type-question" class="post-type-label">

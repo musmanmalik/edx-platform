@@ -223,6 +223,8 @@
             this.toggleDiscussionBtn.addClass('shown');
             this.toggleDiscussionBtn.find('.button-text').text(gettext('Hide Discussion'));
             this.showed = true;
+            $('.new-post-btn').focusout();
+            $('.thread-title').focus();
         },
 
         onNewPostCreated: function() {
@@ -243,6 +245,11 @@
             if (keyCode === this.escKey) {
                 this.$('section.discussion').find('.cancel').trigger('click');
             }
+        }
+    });
+    $(document).on('click', '.discussion-show.btn', function() {
+        if ($('.add_post_btn_container').hasClass('is-hidden') && $(this).hasClass('shown')) {
+            $('.thread-title').focus();
         }
     });
 }).call(window);
