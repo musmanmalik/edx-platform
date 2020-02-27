@@ -191,13 +191,20 @@ Mostly adapted from math.stackexchange.com: http://cdn.sstatic.net/js/mathjax-ed
                                          .append($("<div>")
                                          .attr("id", "wmd-preview" + _append)
                                          .addClass("wmd-panel wmd-preview"));
+        var for_label;
+        if (wmdInputId.endsWith("undefined")) {
+          for_label = gettext("Your question or idea");
+        }
+        else {
+          for_label = gettext("Add a response:");
+        }
         $wmdPanel = $("<div>").addClass("wmd-panel")
                               .append($("<div>")
                               .addClass("wmd-button-bar" + _append))
                               .append($("<label>")
                               .addClass("sr")
                               .attr("for", wmdInputId)
-                              .text(gettext("Your question or idea (required)")))
+                              .text(for_label))
                               .append($("<textarea>")
                               .addClass("wmd-input")
                               .attr("id", wmdInputId)
