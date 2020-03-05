@@ -1911,6 +1911,7 @@ CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 HIGH_PRIORITY_QUEUE = 'edx.core.high'
 DEFAULT_PRIORITY_QUEUE = 'edx.core.default'
 HIGH_MEM_QUEUE = 'edx.core.high_mem'
+LOW_PRIORITY_QUEUE = 'edx.core.low'
 
 CELERY_QUEUE_HA_POLICY = 'all'
 
