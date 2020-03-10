@@ -2903,8 +2903,7 @@ OPTIONAL_APPS = [
     ('poll', None),
     ('problem_builder', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
     ('edx_sga', None),
-    # TODO : ironwood rebase - Fix this before merging ironwood into master
-    #('diagnostic_feedback.apps.DiagnosticFeedbackConfig', None),
+    ('diagnostic_feedback', None),
 
     # edx-ora2
     ('submissions', 'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig'),
