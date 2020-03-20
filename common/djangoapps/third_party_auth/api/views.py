@@ -196,6 +196,24 @@ class UserView(BaseUserView):
             id_kind = u'username'
         return self.identifier(id_kind, self.kwargs[u'username'])
 
+    def is_unprivileged_query(self, request, identifier):
+        """
+        Return True if a non-superuser requests information about another user.
+
+        Params must be a dict that includes only one of 'username' or 'email'
+        """
+        if identifier.kind not in self.identifier_kinds:
+            # This is already checked before we get here, so raise a 500 error
+            # if the check fails.
+            raise ValueError("Identifier kind {} not in {}".format(identifier.kind, self.identifier_kinds))
+
+        # Custom change to support username and email from superuser.
+        if self.kwargs[u'username'] not in {request.user.username, getattr(request.user, 'email', object())}:
+            if not request.user.is_superuser and not ApiKeyHeaderPermission().has_permission(request, self):
+                # The user does not have elevated permissions.
+                return True
+        return False
+
 
 # TODO: When removing deprecated UserView, rename this view to UserView.
 class UserViewV2(BaseUserView):
