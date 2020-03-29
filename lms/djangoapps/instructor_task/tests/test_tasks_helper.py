@@ -515,7 +515,7 @@ class TestProblemResponsesReport(TestReportMixin, InstructorTaskModuleTestCase):
         student_data, _ = ProblemResponses._build_student_data(
             user_id=self.instructor.id,
             course_key=self.course.id,
-            usage_key_str=str(self.course.location),
+            usage_key_str_list=[str(self.course.location)],
         )
 
         self.assertEquals(len(student_data), 4)
@@ -535,12 +535,12 @@ class TestProblemResponsesReport(TestReportMixin, InstructorTaskModuleTestCase):
             student_data, _ = ProblemResponses._build_student_data(
                 user_id=self.instructor.id,
                 course_key=self.course.id,
-                usage_key_str=str(problem.location),
+                usage_key_str_list=[str(problem.location)],
             )
         self.assertEquals(len(student_data), 1)
         self.assertDictContainsSubset({
             'username': 'student',
-            'location': 'Problem1',
+            'location': 'test_course > Section > Subsection > Problem1',
             'block_key': 'i4x://edx/1.23x/problem/Problem1',
             'title': 'Problem1',
         }, student_data[0])
@@ -564,7 +564,7 @@ class TestProblemResponsesReport(TestReportMixin, InstructorTaskModuleTestCase):
         student_data, _ = ProblemResponses._build_student_data(
             user_id=self.instructor.id,
             course_key=self.course.id,
-            usage_key_str=str(self.course.location),
+            usage_key_str_list=[str(self.course.location)],
         )
         self.assertEquals(len(student_data), 2)
         self.assertDictContainsSubset({
@@ -595,7 +595,7 @@ class TestProblemResponsesReport(TestReportMixin, InstructorTaskModuleTestCase):
         student_data, _ = ProblemResponses._build_student_data(
             user_id=self.instructor.id,
             course_key=self.course.id,
-            usage_key_str=str(self.course.location),
+            usage_key_str_list=[str(self.course.location)],
         )
         self.assertEquals(len(student_data), 1)
         self.assertDictContainsSubset({
@@ -626,14 +626,14 @@ class TestProblemResponsesReport(TestReportMixin, InstructorTaskModuleTestCase):
         ProblemResponses._build_student_data(
             user_id=self.instructor.id,
             course_key=self.course.id,
-            usage_key_str=str(problem.location),
+            usage_key_str_list=[str(problem.location)],
         )
         mock_generate_report_data.assert_called_with(ANY, ANY)
         mock_list_problem_responses.assert_called_with(self.course.id, ANY, ANY)
 
     def test_success(self):
         task_input = {
-            'problem_location': str(self.course.location),
+            'problem_locations': str(self.course.location),
             'user_id': self.instructor.id
         }
         with patch('lms.djangoapps.instructor_task.tasks_helper.runner._get_current_task'):
