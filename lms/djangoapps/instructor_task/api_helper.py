@@ -62,6 +62,20 @@ def _task_is_running(course_id, task_type, task_key):
     return len(running_tasks) > 0
 
 
+def _get_running_task_id(course_id, task_type, task_key):
+    """Returns task_id for running task with task_key, course_id"""
+
+    # Filtering out a task till the last day
+    last_day = datetime.date.today() - datetime.timedelta(days=1)
+    running_tasks = InstructorTask.objects.filter(
+        course_id=course_id, task_type=task_type, task_key=task_key, created__gt=last_day
+    )
+    # exclude states that are "ready" (i.e. not "running", e.g. failure, success, revoked):
+    for state in READY_STATES:
+        running_tasks = running_tasks.exclude(task_state=state)
+    return running_tasks.first().task_id if len(running_tasks) > 0 else None
+
+
 def _reserve_task(course_id, task_type, task_key, task_input, requester):
     """
     Creates a database entry to indicate that a task is in progress.
@@ -80,8 +94,12 @@ def _reserve_task(course_id, task_type, task_key, task_input, requester):
 
     if _task_is_running(course_id, task_type, task_key):
         log.warning("Duplicate task found for task_type %s and task_key %s", task_type, task_key)
+
+        task_id = _get_running_task_id(course_id, task_type, task_key)
         error_message = generate_already_running_error_message(task_type)
-        raise AlreadyRunningError(error_message)
+        error = AlreadyRunningError(error_message)
+        setattr(error, 'running_task_id', task_id)
+        raise error
 
     try:
         most_recent_id = InstructorTask.objects.latest('id').id

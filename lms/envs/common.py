@@ -3665,3 +3665,8 @@ RATE_LIMIT_BACKEND_MAX_REQUESTS = 30
 from openedx.core.djangoapps.plugins import plugin_apps, plugin_settings, constants as plugin_constants
 INSTALLED_APPS.extend(plugin_apps.get_apps(plugin_constants.ProjectType.LMS))
 plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_constants.SettingsType.COMMON)
+
+############### Settings for Assets access by using an access token ###############
+ASSETS_ACCESS_BY_TOKEN = True
+ASSETS_TOKEN_ENCRYPTION_KEY = 'secret'
+ASSETS_TOKEN_TTL = 600
