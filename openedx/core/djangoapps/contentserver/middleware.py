@@ -18,7 +18,7 @@ from six import text_type
 from student.models import CourseEnrollment
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY
-from django.utils.importlib import import_module
+from importlib import import_module
 
 from xmodule.assetstore.assetmgr import AssetManager
 from xmodule.contentstore.content import StaticContent, XASSET_LOCATION_TAG
