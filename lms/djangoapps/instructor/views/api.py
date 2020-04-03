@@ -1050,13 +1050,13 @@ class ProblemResponseReport(DeveloperErrorViewMixin, APIView):
             )
             success_status = SUCCESS_MESSAGE_TEMPLATE.format(report_type=report_type)
             return JsonResponse({"status": success_status, "task_id": task.task_id})
-        except AlreadyRunningError:
+        except AlreadyRunningError as e:
             already_running_status = _(
                 "A problem responses report generation task is already in progress. "
                 "Check the 'Pending Tasks' table for the status of the task. "
                 "When completed, the report will be available for download in the table below."
             )
-            return JsonResponse({"status": already_running_status})
+            return JsonResponse({"status": already_running_status, "task_id": getattr(e, 'running_task_id', None)})
 
 
 @require_POST
