@@ -432,7 +432,7 @@ def remove_user_from_cohort(cohort, username_or_email):
         membership = CohortMembership.objects.get(course_user_group=cohort, user=user)
         course_key = membership.course_id
         membership.delete()
-        COHORT_MEMBERSHIP_UPDATED.send(sender=None, user=user, course_key=course_key)
+        COHORT_MEMBERSHIP_UPDATED.send(sender=None, user=user, course_key=unicode(course_key))
     except CohortMembership.DoesNotExist:
         raise ValueError("User {} was not present in cohort {}".format(username_or_email, cohort))
 
@@ -477,7 +477,7 @@ def add_user_to_cohort(cohort, username_or_email_or_user):
         cache = RequestCache(COHORT_CACHE_NAMESPACE).data
         cache_key = _cohort_cache_key(user.id, membership.course_id)
         cache[cache_key] = membership.course_user_group
-        COHORT_MEMBERSHIP_UPDATED.send(sender=None, user=user, course_key=membership.course_id)
+        COHORT_MEMBERSHIP_UPDATED.send(sender=None, user=user, course_key=unicode(membership.course_id))
         return user, getattr(previous_cohort, 'name', None), False
     except User.DoesNotExist as ex:
         # If username_or_email is an email address, store in database.
