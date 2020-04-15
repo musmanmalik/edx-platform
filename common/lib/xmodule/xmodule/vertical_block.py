@@ -74,6 +74,7 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
 
         child_context['child_of_vertical'] = True
         is_child_of_vertical = context.get('child_of_vertical', False)
+        fragment.add_javascript_url(self.runtime.STATIC_URL + 'bundles/commons.js')
 
         # pylint: disable=no-member
         for child in child_blocks:
@@ -106,11 +107,7 @@ class VerticalBlock(SequenceFields, XModuleFields, StudioEditableBlock, XmlParse
 
         fragment.add_content(self.system.render_template('vert_module.html', fragment_context))
 
-        fragment.add_javascript_url(self.runtime.STATIC_URL + 'bundles/commons.js')
-        fragment.add_javascript_url(self.runtime.STATIC_URL + 'bundles/CompletionOnViewService.js')
-        fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/vertical_student_view.js'))
-        # TODO: IRONWOOD - need to check if below works otherwise remove the below commented code.
-        #add_webpack_to_fragment(fragment, 'VerticalStudentView')
+        add_webpack_to_fragment(fragment, 'VerticalStudentView')
         fragment.initialize_js('VerticalStudentView')
 
         return fragment
