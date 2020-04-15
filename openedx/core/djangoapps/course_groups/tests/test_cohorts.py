@@ -626,7 +626,7 @@ class TestCohorts(ModuleStoreTestCase):
         second_cohort = CohortFactory(course_id=course.id, name="SecondCohort")
 
         def check_and_reset_signal():
-            mock_signal.send.assert_called_with(sender=None, user=course_user, course_key=self.toy_course_key)
+            mock_signal.send.assert_called_with(sender=None, user=course_user, course_key=unicode(self.toy_course_key))
             mock_signal.reset_mock()
 
         # Success cases
