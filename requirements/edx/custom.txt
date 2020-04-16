@@ -23,7 +23,7 @@ git+https://github.com/edx-solutions/xblock-group-project.git@0.1.2#egg=xblock-g
 -e git+https://github.com/open-craft/xblock-virtualreality.git@v0.1.1#egg=xblock-virtualreality==0.1.1
 
 git+https://github.com/mckinseyacademy/openedx-user-manager-api@v1.2.0#egg=openedx-user-manager-api==1.2.0
-git+https://github.com/open-craft/openedx-completion-aggregator.git@paulo/fix-cohort-handler#egg=openedx-completion-aggregator=2.0.1
+git+https://github.com/open-craft/openedx-completion-aggregator.git@paulo/fix-cohort-handler#egg=openedx-completion-aggregator==2.0.1
 
 git+https://github.com/edx-solutions/gradebook-edx-platform-extensions.git@rebase-ironwood
 git+https://github.com/edx-solutions/projects-edx-platform-extensions.git@rebase-ironwood
