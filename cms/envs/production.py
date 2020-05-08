@@ -6,6 +6,7 @@ This is the default template for our main set of AWS servers.
 # want to import all variables from base settings files
 # pylint: disable=wildcard-import, unused-wildcard-import
 
+import importlib
 import json
 import os
 
@@ -233,7 +234,7 @@ DEFAULT_SITE_THEME = ENV_TOKENS.get('DEFAULT_SITE_THEME', DEFAULT_SITE_THEME)
 ENABLE_COMPREHENSIVE_THEMING = ENV_TOKENS.get('ENABLE_COMPREHENSIVE_THEMING', ENABLE_COMPREHENSIVE_THEMING)
 
 #Timezone overrides
-TIME_ZONE = ENV_TOKENS.get('TIME_ZONE', TIME_ZONE)
+TIME_ZONE = ENV_TOKENS.get('CELERY_TIMEZONE', CELERY_TIMEZONE)
 
 # Push to LMS overrides
 GIT_REPO_EXPORT_DIR = ENV_TOKENS.get('GIT_REPO_EXPORT_DIR', '/edx/var/edxapp/export_course_repos')
@@ -270,6 +271,17 @@ PLATFORM_DESCRIPTION = ENV_TOKENS.get('PLATFORM_DESCRIPTION') or PLATFORM_DESCRI
 STUDIO_NAME = ENV_TOKENS.get('STUDIO_NAME') or STUDIO_NAME
 STUDIO_SHORT_NAME = ENV_TOKENS.get('STUDIO_SHORT_NAME') or STUDIO_SHORT_NAME
 
+# Modules having these categories would be excluded from progress calculations
+PROGRESS_DETACHED_APPS = ['group_project_v2']
+for app in PROGRESS_DETACHED_APPS:
+    try:
+        app_config = importlib.import_module('.app_config', app)
+    except ImportError:
+        continue
+
+    detached_module_categories = getattr(app_config, 'PROGRESS_DETACHED_CATEGORIES', [])
+    PROGRESS_DETACHED_CATEGORIES.extend(detached_module_categories)
+
 # Event Tracking
 if "TRACKING_IGNORE_URL_PATTERNS" in ENV_TOKENS:
     TRACKING_IGNORE_URL_PATTERNS = ENV_TOKENS.get("TRACKING_IGNORE_URL_PATTERNS")
@@ -293,7 +305,6 @@ if FEATURES.get('AUTH_USE_CAS'):
     MIDDLEWARE_CLASSES.append('django_cas.middleware.CASMiddleware')
     CAS_ATTRIBUTE_CALLBACK = ENV_TOKENS.get('CAS_ATTRIBUTE_CALLBACK', None)
     if CAS_ATTRIBUTE_CALLBACK:
-        import importlib
         CAS_USER_DETAILS_RESOLVER = getattr(
             importlib.import_module(CAS_ATTRIBUTE_CALLBACK['module']),
             CAS_ATTRIBUTE_CALLBACK['function']
@@ -512,6 +523,16 @@ XBLOCK_SETTINGS = ENV_TOKENS.get('XBLOCK_SETTINGS', {})
 XBLOCK_SETTINGS.setdefault("VideoDescriptor", {})["licensing_enabled"] = FEATURES.get("LICENSING", False)
 XBLOCK_SETTINGS.setdefault("VideoModule", {})['YOUTUBE_API_KEY'] = AUTH_TOKENS.get('YOUTUBE_API_KEY', YOUTUBE_API_KEY)
 
+##### EDX-NOTIFICATIONS ######
+NOTIFICATION_CLICK_LINK_URL_MAPS = ENV_TOKENS.get('NOTIFICATION_CLICK_LINK_URL_MAPS', NOTIFICATION_CLICK_LINK_URL_MAPS)
+NOTIFICATION_STORE_PROVIDER = ENV_TOKENS.get('NOTIFICATION_STORE_PROVIDER', NOTIFICATION_STORE_PROVIDER)
+NOTIFICATION_CHANNEL_PROVIDERS = ENV_TOKENS.get('NOTIFICATION_CHANNEL_PROVIDERS', NOTIFICATION_CHANNEL_PROVIDERS)
+NOTIFICATION_CHANNEL_PROVIDER_TYPE_MAPS = ENV_TOKENS.get(
+    'NOTIFICATION_CHANNEL_PROVIDER_TYPE_MAPS',
+    NOTIFICATION_CHANNEL_PROVIDER_TYPE_MAPS
+)
+NOTIFICATION_MAX_LIST_SIZE = ENV_TOKENS.get('NOTIFICATION_MAX_LIST_SIZE', NOTIFICATION_MAX_LIST_SIZE)
+
 ################# MICROSITE ####################
 # microsite specific configurations.
 MICROSITE_CONFIGURATION = ENV_TOKENS.get('MICROSITE_CONFIGURATION', {})
@@ -619,6 +640,28 @@ RETIREMENT_STATES = ENV_TOKENS.get('RETIREMENT_STATES', RETIREMENT_STATES)
 
 ############## Settings for Course Enrollment Modes ######################
 COURSE_ENROLLMENT_MODES = ENV_TOKENS.get('COURSE_ENROLLMENT_MODES', COURSE_ENROLLMENT_MODES)
+
+########################## Parental controls config  #######################
+
+# The age at which a learner no longer requires parental consent, or None
+# if parental consent is never required.
+PARENTAL_CONSENT_AGE_LIMIT = ENV_TOKENS.get(
+    'PARENTAL_CONSENT_AGE_LIMIT',
+    PARENTAL_CONSENT_AGE_LIMIT
+)
+
+########################## Settings for Completion API #####################
+
+# If using openedx-completion-aggregator, large instances may find that
+# updating the aggregated completion data after each XBlock is completed
+# generates too much database activity. In that case, this should be set
+# to True, and a daily/hourly cron job should be set up to update the
+# completion aggregation data asynchronously using the run_aggregator_service
+# management command.
+COMPLETION_AGGREGATOR_ASYNC_AGGREGATION = ENV_TOKENS.get('COMPLETION_AGGREGATOR_ASYNC_AGGREGATION', False)
+
+######### Settings for Course Assets locking #########
+ASSETS_LOCKED_BY_DEFAULT = ENV_TOKENS.get('ASSETS_LOCKED_BY_DEFAULT', ASSETS_LOCKED_BY_DEFAULT)
 
 ####################### Plugin Settings ##########################
 

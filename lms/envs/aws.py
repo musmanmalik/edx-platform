@@ -260,7 +260,7 @@ ENTITLEMENTS_EXPIRATION_ROUTING_KEY = ENV_TOKENS.get('ENTITLEMENTS_EXPIRATION_RO
 # Queue to use for updating persistent social engagements
 RECALCULATE_SOCIAL_ENGAGEMENT_ROUTING_KEY = ENV_TOKENS.get(
     'RECALCULATE_SOCIAL_ENGAGEMENT_ROUTING_KEY',
-    LOW_PRIORITY_QUEUE
+    DEFAULT_PRIORITY_QUEUE
 )
 
 # Message expiry time in seconds
@@ -616,6 +616,17 @@ BLOCK_STRUCTURES_SETTINGS = ENV_TOKENS.get('BLOCK_STRUCTURES_SETTINGS', BLOCK_ST
 # upload limits
 STUDENT_FILEUPLOAD_MAX_SIZE = ENV_TOKENS.get("STUDENT_FILEUPLOAD_MAX_SIZE", STUDENT_FILEUPLOAD_MAX_SIZE)
 
+# Modules having these categories would be excluded from progress calculations
+PROGRESS_DETACHED_APPS = ['group_project_v2']
+for app in PROGRESS_DETACHED_APPS:
+    try:
+        app_config = importlib.import_module('.app_config', app)
+    except ImportError:
+        continue
+
+    detached_module_categories = getattr(app_config, 'PROGRESS_DETACHED_CATEGORIES', [])
+    PROGRESS_DETACHED_CATEGORIES.extend(detached_module_categories)
+
 # Event tracking
 TRACKING_BACKENDS.update(AUTH_TOKENS.get("TRACKING_BACKENDS", {}))
 EVENT_TRACKING_BACKENDS['tracking_logs']['OPTIONS']['backends'].update(AUTH_TOKENS.get("EVENT_TRACKING_BACKENDS", {}))
@@ -722,7 +733,7 @@ if FEATURES.get('ENABLE_THIRD_PARTY_AUTH'):
     THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS = AUTH_TOKENS.get('THIRD_PARTY_AUTH_CUSTOM_AUTH_FORMS', {})
 
     # when SSO is enabled via SCORM shell we need allow frames from SCORM cloud
-    THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL = ENV_TOKENS.get('THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL')
+    THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL = ENV_TOKENS.get('THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL', [])
 
     # Whether to allow unprivileged users to discover SSO providers for arbitrary usernames.
     ALLOW_UNPRIVILEGED_SSO_PROVIDER_QUERY = ENV_TOKENS.get('ALLOW_UNPRIVILEGED_SSO_PROVIDER_QUERY', False)
@@ -751,6 +762,9 @@ API_ALLOWED_IP_ADDRESSES = ENV_TOKENS.get('API_ALLOWED_IP_ADDRESSES')
 
 ##### ADVANCED_SECURITY_CONFIG #####
 ADVANCED_SECURITY_CONFIG = ENV_TOKENS.get('ADVANCED_SECURITY_CONFIG', {})
+
+##### SET THE LIST OF ALLOWED IP ADDRESSES FOR THE API ######
+API_ALLOWED_IP_ADDRESSES = ENV_TOKENS.get('API_ALLOWED_IP_ADDRESSES')
 
 ##### GOOGLE ANALYTICS IDS #####
 GOOGLE_ANALYTICS_ACCOUNT = AUTH_TOKENS.get('GOOGLE_ANALYTICS_ACCOUNT')
@@ -1210,18 +1224,6 @@ COURSE_ENROLLMENT_MODES = ENV_TOKENS.get('COURSE_ENROLLMENT_MODES', COURSE_ENROL
 ############## Settings for Writable Gradebook  #########################
 WRITABLE_GRADEBOOK_URL = ENV_TOKENS.get('WRITABLE_GRADEBOOK_URL', WRITABLE_GRADEBOOK_URL)
 
-############################### Plugin Settings ###############################
-
-# This is at the bottom because it is going to load more settings after base settings are loaded
-from openedx.core.djangoapps.plugins import plugin_settings, constants as plugin_constants  # pylint: disable=wrong-import-order, wrong-import-position
-plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_constants.SettingsType.AWS)
-
-########################## Derive Any Derived Settings  #######################
-
-derive_settings(__name__)
-
-logging.warn('DEPRECATION WARNING: aws.py has been deprecated, you should use production.py instead.')
-
 ########################## Parental controls config  #######################
 
 # The age at which a learner no longer requires parental consent, or None
@@ -1256,3 +1258,15 @@ RATE_LIMIT_BACKEND_MAX_REQUESTS = ENV_TOKENS.get(
 ASSETS_ACCESS_BY_TOKEN = AUTH_TOKENS.get('ASSETS_ACCESS_BY_TOKEN', ASSETS_ACCESS_BY_TOKEN)
 ASSETS_TOKEN_ENCRYPTION_KEY = AUTH_TOKENS.get('ASSETS_TOKEN_ENCRYPTION_KEY', ASSETS_TOKEN_ENCRYPTION_KEY)
 ASSETS_TOKEN_TTL = AUTH_TOKENS.get('ASSETS_TOKEN_TTL', ASSETS_TOKEN_TTL)
+
+############################### Plugin Settings ###############################
+
+# This is at the bottom because it is going to load more settings after base settings are loaded
+from openedx.core.djangoapps.plugins import plugin_settings, constants as plugin_constants  # pylint: disable=wrong-import-order, wrong-import-position
+plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.LMS, plugin_constants.SettingsType.AWS)
+
+########################## Derive Any Derived Settings  #######################
+
+derive_settings(__name__)
+
+logging.warn('DEPRECATION WARNING: aws.py has been deprecated, you should use production.py instead.')

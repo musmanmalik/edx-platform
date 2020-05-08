@@ -738,6 +738,11 @@ USAGE_ID_PATTERN = r'(?P<usage_id>(?:i4x://?[^/]+/[^/]+/[^/]+/[^@]+(?:@[^/]+)?)|
 USERNAME_REGEX_PARTIAL = r'[\w .@_+-]+'
 USERNAME_PATTERN = r'(?P<username>{regex})'.format(regex=USERNAME_REGEX_PARTIAL)
 
+
+# Verticals having children with any of these categories would be excluded from progress calculations
+PROGRESS_DETACHED_VERTICAL_CATEGORIES = ['discussion-course', 'group-project', 'gp-v2-project', 'eoc-journal']
+# Modules having these categories would be excluded from progress calculations
+PROGRESS_DETACHED_CATEGORIES = PROGRESS_DETACHED_VERTICAL_CATEGORIES + ['discussion-forum']
 ############################## HEARTBEAT ######################################
 
 # Checks run in normal mode by the heartbeat djangoapp
@@ -1902,7 +1907,6 @@ CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 HIGH_PRIORITY_QUEUE = 'edx.core.high'
 DEFAULT_PRIORITY_QUEUE = 'edx.core.default'
 HIGH_MEM_QUEUE = 'edx.core.high_mem'
-LOW_PRIORITY_QUEUE = 'edx.core.low'
 
 CELERY_QUEUE_HA_POLICY = 'all'
 
@@ -2315,11 +2319,6 @@ INSTALLED_APPS = [
 
     # edx-drf-extensions
     'csrf.apps.CsrfAppConfig',  # Enables frontend apps to retrieve CSRF tokens.
-
-    # ToDO: not needed after ironwood rebase.
-    #  Completion
-    #'completion',
-    #'completion_aggregator',
 
     # Profile image
     'openedx.core.djangoapps.profile_images',
@@ -3341,10 +3340,10 @@ AUDIT_CERT_CUTOFF_DATE = None
 AGGREGATION_EXCLUDE_ROLES = ['observer']
 ################################### EDX-NOTIFICATIONS SUBSYSTEM ######################################
 
-INSTALLED_APPS += (
+INSTALLED_APPS += [
     'edx_notifications.apps.EdxNotificationsConfig',
     'edx_notifications.server.web',
-)
+]
 
 NOTIFICATION_STORE_PROVIDER = {
     "class": "edx_notifications.stores.sql.store_provider.SQLNotificationStoreProvider",
@@ -3639,6 +3638,8 @@ FERNET_KEYS = [
 # Maximum number of rows to fetch in XBlockUserStateClient calls. Adjust for performance
 USER_STATE_BATCH_SIZE = 5000
 
+# Max no. of bad requests after which ratelimitier backend will block IP's access
+RATE_LIMIT_BACKEND_MAX_REQUESTS = 30
 ############### Settings for Completion ############################
 COMPLETION_BY_VIEWING_DELAY_MS = 5000
 # Once a user has watched this percentage of a video, mark it as complete:
@@ -3652,13 +3653,6 @@ COMPLETION_AGGREGATOR_BLOCK_TYPES = {
     'sequential',
     'vertical',
 }
-
-############### Settings for user-state-client ##################
-# Maximum number of rows to fetch in XBlockUserStateClient calls. Adjust for performance
-USER_STATE_BATCH_SIZE = 5000
-
-# Max no. of bad requests after which ratelimitier backend will block IP's access
-RATE_LIMIT_BACKEND_MAX_REQUESTS = 30
 
 ############## Plugin Django Apps #########################
 
