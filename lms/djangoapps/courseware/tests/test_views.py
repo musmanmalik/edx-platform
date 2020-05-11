@@ -13,7 +13,6 @@ from crum import set_current_request
 from markupsafe import escape
 
 import ddt
-import pytest
 from completion.test_utils import CompletionWaffleTestMixin
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -2519,7 +2518,6 @@ class TestIndexViewCompleteOnView(ModuleStoreTestCase, CompletionWaffleTestMixin
         self.assertNotIn('data-mark-completed-on-view-after-delay', response.content)
 
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
-    @pytest.mark.skip(reason='Failing due to custom change. To be fixed later.')
     def test_completion_service_enabled(self, default_store):
 
         self.override_waffle_switch(True)
@@ -2546,8 +2544,12 @@ class TestIndexViewCompleteOnView(ModuleStoreTestCase, CompletionWaffleTestMixin
         self.assertEqual(json.loads(response.content), {'result': "ok"})
 
         response = self.client.get(self.section_1_url)
-        self.assertIn('data-mark-completed-on-view-after-delay', response.content)
-        self.assertEquals(response.content.count("data-mark-completed-on-view-after-delay"), 1)
+
+        # Custom change: The assertion value is changed to 'assertNotIn' as all html xblocks in a vertical are
+        # marked as completed while rendering them.
+        # custom change PR: https://github.com/edx-solutions/edx-platform/pull/159
+        self.assertNotIn('data-mark-completed-on-view-after-delay', response.content)
+        self.assertEquals(response.content.count("data-mark-completed-on-view-after-delay"), 0)
 
         request = self.request_factory.post(
             '/',
