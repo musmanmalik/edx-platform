@@ -61,6 +61,7 @@ from lms.envs.common import (
     ORGANIZATION_LOGO_IMAGE_DEFAULT_FILENAME, ORGANIZATION_HEADER_BG_IMAGE_SIZES_MAP,
     ORGANIZATION_HEADER_BG_IMAGE_KEY_PREFIX, ORGANIZATION_LOGO_IMAGE_KEY_PREFIX,
     IMAGE_DEFAULT_FILE_EXTENSION,
+    PROGRESS_DETACHED_VERTICAL_CATEGORIES, PROGRESS_DETACHED_CATEGORIES,
     # The following setting is included as it is used to check whether to
     # display credit eligibility table on the CMS or not.
     ENABLE_CREDIT_ELIGIBILITY, YOUTUBE_API_KEY,
@@ -229,6 +230,9 @@ FEATURES = {
 
     # Prevent concurrent logins per user
     'PREVENT_CONCURRENT_LOGINS': False,
+
+    # Turn off Advanced Security by default
+    'ADVANCED_SECURITY': False,
 
     # Turn off Video Upload Pipeline through Studio, by default
     'ENABLE_VIDEO_UPLOAD_PIPELINE': False,
@@ -949,7 +953,6 @@ CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 
 HIGH_PRIORITY_QUEUE = 'edx.core.high'
 DEFAULT_PRIORITY_QUEUE = 'edx.core.default'
-LOW_PRIORITY_QUEUE = 'edx.core.low'
 
 CELERY_QUEUE_HA_POLICY = 'all'
 
@@ -960,7 +963,6 @@ CELERY_DEFAULT_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
 
 CELERY_QUEUES = {
     HIGH_PRIORITY_QUEUE: {},
-    LOW_PRIORITY_QUEUE: {},
     DEFAULT_PRIORITY_QUEUE: {}
 }
 
@@ -1179,11 +1181,6 @@ INSTALLED_APPS = [
     # Waffle related utilities
     'openedx.core.djangoapps.waffle_utils',
 
-    # TODO: IRONWOOD REBASE: Added above in openedx
-    # Completion
-    #'completion',
-    #'completion_aggregator',
-
     # Profile image
     'openedx.core.djangoapps.profile_images',
 
@@ -1203,7 +1200,6 @@ INSTALLED_APPS = [
     'openedx.features.course_duration_limits',
     'openedx.features.content_type_gating',
     'experiments',
-
 ]
 
 
@@ -1611,7 +1607,7 @@ COURSE_CATALOG_API_URL = None
 ############################# Persistent Grades ####################################
 
 # Queue to use for updating persistent grades
-RECALCULATE_GRADES_ROUTING_KEY = LOW_PRIORITY_QUEUE
+RECALCULATE_GRADES_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
 
 # Queue to use for updating grades due to grading policy change
 POLICY_CHANGE_GRADES_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
@@ -1622,10 +1618,10 @@ POLICY_CHANGE_TASK_RATE_LIMIT = '300/h'
 ####################### Persistent Social Engagement ##############################
 
 # Queue to use for updating persistent social engagements
-RECALCULATE_SOCIAL_ENGAGEMENT_ROUTING_KEY = LOW_PRIORITY_QUEUE
+RECALCULATE_SOCIAL_ENGAGEMENT_ROUTING_KEY = DEFAULT_PRIORITY_QUEUE
 
 ############## Settings for CourseGraph ############################
-COURSEGRAPH_JOB_QUEUE = LOW_PRIORITY_QUEUE
+COURSEGRAPH_JOB_QUEUE = DEFAULT_PRIORITY_QUEUE
 
 ########## Settings for video transcript migration tasks ############
 VIDEO_TRANSCRIPT_MIGRATIONS_JOB_QUEUE = DEFAULT_PRIORITY_QUEUE
@@ -1668,6 +1664,11 @@ ZENDESK_CUSTOM_FIELDS = {}
 # (0.0 = 0%, 1.0 = 100%)
 COMPLETION_VIDEO_COMPLETE_PERCENTAGE = 0.95
 
+# Max no. of bad requests after which ratelimitier backend will block IP's access
+RATE_LIMIT_BACKEND_MAX_REQUESTS = 30
+
+######### Settings for Course Assets locking #########
+ASSETS_LOCKED_BY_DEFAULT = True
 
 ############## Installed Django Apps #########################
 
@@ -1679,6 +1680,3 @@ plugin_settings.add_plugins(__name__, plugin_constants.ProjectType.CMS, plugin_c
 # setting for the FileWrapper class used to iterate over the export file data.
 # See: https://docs.python.org/2/library/wsgiref.html#wsgiref.util.FileWrapper
 COURSE_EXPORT_DOWNLOAD_CHUNK_SIZE = 8192
-
-# Max no. of bad requests after which ratelimitier backend will block IP's access
-RATE_LIMIT_BACKEND_MAX_REQUESTS = 30
