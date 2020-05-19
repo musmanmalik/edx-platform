@@ -61,12 +61,6 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
         ),
-        # ToDO: This needs to be removed and after ironwood rebasing, its added in 0000_initial migration.
-        # migrations.AddField(
-        #     model_name='softwaresecurephotoverification',
-        #     name='copy_id_photo_from',
-        #     field=models.ForeignKey(blank=True, to='verify_student.SoftwareSecurePhotoVerification', null=True),
-        # ),
         migrations.AddField(
             model_name='historicalverificationdeadline',
             name='deadline_is_explicit',

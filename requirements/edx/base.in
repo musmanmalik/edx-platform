@@ -13,7 +13,6 @@
 -r ../edx-sandbox/shared.txt  # Dependencies which are also used by code sandboxes
 -r github.in              # Forks and other dependencies not yet on PyPI
 -r local.in               # Packages in edx-platform which have their own setup.py
-#-r custom.txt             # Packages for solutions fork
 -r paver.txt              # Requirements for running paver commands
 
 # Please follow these guidelines whenever you change this file:
@@ -35,8 +34,9 @@ boto==2.39.0                        # Deprecated version of the AWS SDK; we shou
 boto3==1.4.8                        # Amazon Web Services SDK for Python
 botocore==1.8.17                    # via boto3, s3transfer
 celery==3.1.25                      # Asynchronous task execution library
+coverage==4.4                       # Code coverage testing for Python
 defusedxml==0.4.1                   # XML bomb protection for common XML parsers
-Django==1.11.26                     # Web application framework
+Django==1.11.29                     # Web application framework
 django-babel-underscore             # underscore template extractor for django-babel (internationalization utilities)
 django-config-models>=0.2.2         # Configuration models for Django allowing config management with auditing
 django-cors-headers==2.1.0          # Used to allow to configure CORS headers for cross-domain requests
@@ -110,6 +110,7 @@ newrelic                            # New Relic agent for performance monitoring
 nodeenv==1.1.1                      # Utility for managing Node.js environments; we use this for deployments and testing
 numpy==1.6.2                        # Fast numeric array computation, used in some problem types
 oauthlib                            # OAuth specification support for authenticating via LTI or other Open edX services
+pa11ycrawler                        # Python crawler (using Scrapy) that uses Pa11y to check accessibility of pages as it crawls
 pdfminer                            # Used in shoppingcart for extracting/parsing pdf text
 piexif==1.0.2                       # Exif image metadata manipulation, used in the profile_images app
 Pillow                              # Image manipulation library; used for course assets, profile images, invoice PDFs, etc.
