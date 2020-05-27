@@ -5,7 +5,6 @@ import datetime
 import json
 import re
 
-import pytest
 from completion import waffle
 from completion.models import BlockCompletion
 from completion.test_utils import CompletionWaffleTestMixin
@@ -293,6 +292,8 @@ class TestCourseOutlineResumeCourse(SharedModuleStoreTestCase, CompletionWaffleT
     positives.
 
     """
+    ENABLED_SIGNALS = ['course_published']
+
     @classmethod
     def setUpClass(cls):
         """
@@ -487,7 +488,6 @@ class TestCourseOutlineResumeCourse(SharedModuleStoreTestCase, CompletionWaffleT
         content = pq(response.content)
         self.assertTrue(content('.action-resume-course').attr('href').endswith('/sequential/' + sequential2.url_name))
 
-    @pytest.mark.skip(reason='Failing due to custom change. To be fixed later.')
     def test_resume_course_deleted_sequentials(self):
         """
         Tests resume course when the last completed sequential is deleted and
