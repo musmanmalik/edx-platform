@@ -378,6 +378,10 @@ def update_course_run_asset(course_key, upload_file):
     if _check_thumbnail_uploaded(thumbnail_content):
         content.thumbnail_location = thumbnail_location
 
+    # lock assets by default
+    if settings.ASSETS_LOCKED_BY_DEFAULT:
+        setattr(content, 'locked', True)
+
     contentstore().save(content)
     del_cached_content(content.location)
 
