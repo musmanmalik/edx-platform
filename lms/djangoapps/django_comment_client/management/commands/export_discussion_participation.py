@@ -86,8 +86,8 @@ class Command(BaseCommand):
 
     args = "<course_id> <output_file_location>"
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             '--thread-type',
             action='store',
             type='choice',
@@ -96,7 +96,7 @@ class Command(BaseCommand):
             default=None,
             help='Filter threads, comments and replies by thread type'
         ),
-        make_option(
+        parser.add_argument(
             '--end-date',
             action='store',
             type='string',
@@ -104,19 +104,18 @@ class Command(BaseCommand):
             default=None,
             help='Include threads, comments and replies created before the supplied date (iso8601 format)'
         ),
-        make_option(
+        parser.add_argument(
             '--all',
             action='store_true',
             dest=ALL_PARAMETER,
             default=False,
         ),
-        make_option(
+        parser.add_argument(
             '--cohorted_only',
             action='store_true',
             dest=COHORTED_ONLY_PARAMETER,
             default=False,
         )
-    )
 
     def _get_filter_string_representation(self, options):
         """ Builds human-readable filter parameters representation """
@@ -263,7 +262,8 @@ class Extractor(object):
                 DiscussionExportFields.LAST_NAME: user.last_name,
             }
             stats = social_stats.get(user_id, self._make_social_stats())
-            result.append(utils.merge_dict(user_record, stats))
+            user_record.update(stats)
+            result.append(user_record)
         return result
 
     def extract(self, course_key, end_date=None, thread_type=None, thread_ids=None):

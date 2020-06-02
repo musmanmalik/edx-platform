@@ -37,11 +37,11 @@ if [ "$CIRCLE_NODE_TOTAL" == "1" ] ; then
     echo "via the CircleCI UI and adjust scripts/circle-ci-tests.sh to match."
 
     echo "Running tests for common/lib/ and pavelib/"
-    paver test_lib --with-flaky --cov-args="-p" --with-xunitmp || EXIT=1
+    paver test_lib --cov-args="-p" || EXIT=1
     echo "Running python tests for Studio"
-    paver test_system -s cms --with-flaky --cov-args="-p" --with-xunitmp || EXIT=1
+    paver test_system -s cms --cov-args="-p" || EXIT=1
     echo "Running python tests for lms"
-    paver test_system -s lms --with-flaky --cov-args="-p" --with-xunitmp || EXIT=1
+    paver test_system -s lms --cov-args="-p" || EXIT=1
 
     exit $EXIT
 else
@@ -51,47 +51,49 @@ else
             echo "Finding fixme's and storing report..."
             paver find_fixme > fixme.log || { cat fixme.log; EXIT=1; }
 
-            echo "Finding pep8 violations and storing report..."
+            echo "Finding PEP 8 violations and storing report..."
             paver run_pep8 > pep8.log || { cat pep8.log; EXIT=1; }
 
             echo "Finding pylint violations and storing in report..."
             # HACK: we need to print something to the console, otherwise circleci
             # fails and aborts the job because nothing is displayed for > 10 minutes.
-            paver run_pylint -l $PYLINT_THRESHOLD | tee pylint.log || EXIT=1
+            paver run_pylint -l $LOWER_PYLINT_THRESHOLD:$UPPER_PYLINT_THRESHOLD | tee pylint.log || EXIT=1
 
-            mkdir -p reports
-            PATH=$PATH:node_modules/.bin
+            #mkdir -p reports
+            #PATH=$PATH:node_modules/.bin
 
-            echo "Finding ESLint violations and storing report..."
-            paver run_eslint -l $ESLINT_THRESHOLD > eslint.log || { cat eslint.log; EXIT=1; }
+            #echo "Finding ESLint violations and storing report..."
+            #paver run_eslint -l $ESLINT_THRESHOLD > eslint.log || { cat eslint.log; EXIT=1; }
+
+            #echo "Finding Stylelint violations and storing report..."
+            #paver run_stylelint -l $STYLELINT_THRESHOLD > stylelint.log || { cat stylelint.log; EXIT=1; }
 
             # Run quality task. Pass in the 'fail-under' percentage to diff-quality
-            paver run_quality -p 100 || EXIT=1
+            #paver run_quality -p 100 || EXIT=1
 
-            echo "Running code complexity report (python)."
-            paver run_complexity > reports/code_complexity.log || echo "Unable to calculate code complexity. Ignoring error."
+            #echo "Running code complexity report (python)."
+            #paver run_complexity > reports/code_complexity.log || echo "Unable to calculate code complexity. Ignoring error."
 
             exit $EXIT
             ;;
 
         1)  # run all of the lms unit tests
-            paver test_system -s lms --with-flaky --cov-args="-p" --with-xunitmp --disable-migrations
+            paver test_system -s lms --cov-args="-p" --disable-migrations
             ;;
 
         2)  # run all of the cms unit tests
-            paver test_system -s cms --with-flaky --cov-args="-p" --with-xunitmp --disable-migrations
+            paver test_system -s cms --cov-args="-p" --disable-migrations
             ;;
 
         3)  # run the commonlib and solutions apps unit tests
-            paver test_lib --extra_args="--with-flaky" --cov_args="-p" --with-xunitmp
-            paver test_system -s lms -t edx_solutions_api_integration --with-xunitmp --disable-migrations
-            paver test_system -s lms -t edx_solutions_organizations --with-xunitmp --disable-migrations
-            paver test_system -s lms -t edx_solutions_projects --with-xunitmp --disable-migrations
-            paver test_system -s lms -t gradebook --with-xunitmp --disable-migrations
-            paver test_system -s lms -t progress --with-xunitmp --disable-migrations
-            paver test_system -s lms -t social_engagement --with-xunitmp --disable-migrations
-            paver test_system -s lms -t course_metadata --with-xunitmp --disable-migrations
-            paver test_system -s lms -t mobileapps --with-xunitmp --disable-migrations
+            paver test_lib
+            paver test_system -s lms --pyargs -t edx_solutions_api_integration --disable-migrations
+            paver test_system -s lms --pyargs -t edx_solutions_organizations --disable-migrations
+            paver test_system -s lms --pyargs -t edx_solutions_projects --disable-migrations
+            paver test_system -s lms --pyargs -t gradebook --disable-migrations
+            paver test_system -s lms --pyargs -t social_engagement --disable-migrations
+            paver test_system -s lms --pyargs -t course_metadata --disable-migrations
+            paver test_system -s lms --pyargs -t mobileapps --disable-migrations
             ;;
 
         *)

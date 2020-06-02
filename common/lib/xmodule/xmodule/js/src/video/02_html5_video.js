@@ -44,8 +44,11 @@ function(_) {
          *                            // video format of the source. Supported
          *                            // video formats are: 'mp4', 'webm', and
          *                            // 'ogg'.
+         *        poster:             Video poster URL
          *
-         *          events: {         // Object's properties identify the
+         *        browserIsSafari:    Flag to tell if current browser is Safari
+         *
+         *        events: {           // Object's properties identify the
          *                            // events that the API fires, and the
          *                            // functions (event listeners) that the
          *                            // API will call when those events occur.
@@ -91,6 +94,38 @@ function(_) {
             lastSource.on('error', this.onError.bind(this));
             this.videoEl.on('error', this.onError.bind(this));
         }
+
+        Player.prototype.showPlayButton = function() {
+            this.videoOverlayEl.removeClass('is-hidden');
+        };
+
+        Player.prototype.hidePlayButton = function() {
+            this.videoOverlayEl.addClass('is-hidden');
+        };
+
+        Player.prototype.showLoading = function() {
+            this.el
+                .removeClass('is-initialized')
+                .find('.spinner')
+                .removeAttr('tabindex')
+                .attr({'aria-hidden': 'false'});
+        };
+
+        Player.prototype.hideLoading = function() {
+            this.el
+                .addClass('is-initialized')
+                .find('.spinner')
+                .attr({'aria-hidden': 'false', tabindex: -1});
+        };
+
+        Player.prototype.updatePlayerLoadingState = function(state) {
+            if (state === 'show') {
+                this.hidePlayButton();
+                this.showLoading();
+            } else if (state === 'hide') {
+                this.hideLoading();
+            }
+        };
 
         Player.prototype.callStateChangeCallback = function() {
             if ($.isFunction(this.config.events.onStateChange)) {
@@ -208,11 +243,15 @@ function(_) {
             this.videoEl.remove();
         };
 
+        Player.prototype.onReady = function() {
+            this.config.events.onReady(null);
+            this.showPlayButton();
+        };
+
         Player.prototype.onLoadedMetadata = function() {
             this.playerState = HTML5Video.PlayerState.PAUSED;
             if ($.isFunction(this.config.events.onReady)) {
-                this.config.events.onReady(null);
-                this.videoOverlayEl.removeClass('is-hidden');
+                this.onReady();
             }
         };
 
@@ -231,7 +270,7 @@ function(_) {
         Player.prototype.onPause = function() {
             this.playerState = HTML5Video.PlayerState.PAUSED;
             this.callStateChangeCallback();
-            this.videoOverlayEl.removeClass('is-hidden');
+            this.showPlayButton();
         };
 
         Player.prototype.onEnded = function() {
@@ -318,6 +357,11 @@ function(_) {
 
             if (/iP(hone|od)/i.test(isTouch[0])) {
                 this.videoEl.prop('controls', true);
+            }
+
+            // Set video poster
+            if (this.config.poster) {
+                this.videoEl.prop('poster', this.config.poster);
             }
 
             // Place the <video> element on the page.

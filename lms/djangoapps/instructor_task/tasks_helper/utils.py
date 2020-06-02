@@ -16,6 +16,7 @@ UPDATE_STATUS_SKIPPED = 'skipped'
 def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD'):
     """
     Upload data as a CSV using ReportStore.
+
     Arguments:
         rows: CSV data in the following format (first column may be a
             header):
@@ -25,6 +26,7 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name
             ]
         csv_name: Name of the resulting CSV
         course_id: ID of the course
+
     Returns:
         report_name: string - Name of the generated report
     """

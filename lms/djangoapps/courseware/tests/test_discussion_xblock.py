@@ -11,13 +11,13 @@ import uuid
 
 import ddt
 import mock
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from web_fragments.fragment import Fragment
 from xblock.field_data import DictFieldData
-from xblock.fragment import Fragment
 
 from course_api.blocks.tests.helpers import deserialize_usage_key
 from courseware.module_render import get_module_for_descriptor_internal
-from lms.djangoapps.courseware.tests import XModuleRenderingTestBase
+from lms.djangoapps.courseware.tests.helpers import XModuleRenderingTestBase
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xblock_discussion import DiscussionXBlock, loader
 from xmodule.modulestore import ModuleStoreEnum
@@ -31,6 +31,7 @@ class TestDiscussionXBlock(XModuleRenderingTestBase):
     Base class for tests
     """
 
+    shard = 4
     PATCH_DJANGO_USER = True
 
     def setUp(self):
@@ -57,7 +58,7 @@ class TestDiscussionXBlock(XModuleRenderingTestBase):
         self.block.xmodule_runtime = mock.Mock()
 
         if self.PATCH_DJANGO_USER:
-            self.django_user_canary = object()
+            self.django_user_canary = UserFactory()
             self.django_user_mock = self.add_patcher(
                 mock.patch.object(DiscussionXBlock, "django_user", new_callable=mock.PropertyMock)
             )
@@ -84,6 +85,7 @@ class TestGetDjangoUser(TestDiscussionXBlock):
     Tests for the django_user property.
     """
 
+    shard = 4
     PATCH_DJANGO_USER = False
 
     def setUp(self):
@@ -121,6 +123,7 @@ class TestViews(TestDiscussionXBlock):
     """
     Tests for student_view and author_view.
     """
+    shard = 4
 
     def setUp(self):
         """
@@ -207,6 +210,7 @@ class TestTemplates(TestDiscussionXBlock):
     """
     Tests rendering of templates.
     """
+    shard = 4
 
     def test_has_permission(self):
         """
@@ -252,6 +256,7 @@ class TestXBlockInCourse(SharedModuleStoreTestCase):
     """
     Test the discussion xblock as rendered in the course and course API.
     """
+    shard = 4
 
     @classmethod
     def setUpClass(cls):
@@ -259,7 +264,7 @@ class TestXBlockInCourse(SharedModuleStoreTestCase):
         Set up a user, course, and discussion XBlock for use by tests.
         """
         super(TestXBlockInCourse, cls).setUpClass()
-        cls.user = UserFactory.create()
+        cls.user = UserFactory()
         cls.course = ToyCourseFactory.create()
         cls.course_key = cls.course.id
         cls.course_usage_key = cls.store.make_course_usage_key(cls.course_key)
@@ -362,8 +367,8 @@ class TestXBlockInCourse(SharedModuleStoreTestCase):
         }
         response = self.client.get(url, query_params)
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['root'], unicode(self.course_usage_key))  # pylint: disable=no-member
-        for block_key_string, block_data in response.data['blocks'].iteritems():  # pylint: disable=no-member
+        self.assertEquals(response.data['root'], unicode(self.course_usage_key))
+        for block_key_string, block_data in response.data['blocks'].iteritems():
             block_key = deserialize_usage_key(block_key_string, self.course_key)
             self.assertEquals(block_data['id'], block_key_string)
             self.assertEquals(block_data['type'], block_key.block_type)
@@ -375,13 +380,14 @@ class TestXBlockQueryLoad(SharedModuleStoreTestCase):
     """
     Test the number of queries executed when rendering the XBlock.
     """
+    shard = 4
 
     def test_permissions_query_load(self):
         """
         Tests that the permissions queries are cached when rendering numerous discussion XBlocks.
         """
-        user = UserFactory.create()
-        course = ToyCourseFactory.create()
+        user = UserFactory()
+        course = ToyCourseFactory()
         course_key = course.id
         course_usage_key = self.store.make_course_usage_key(course_key)
         discussions = []
@@ -400,7 +406,7 @@ class TestXBlockQueryLoad(SharedModuleStoreTestCase):
         # * django_comment_client_role
         # * django_comment_client_permission
         # * lms_xblock_xblockasidesconfig
-        num_queries = 3
+        num_queries = 2
         for discussion in discussions:
             discussion_xblock = get_module_for_descriptor_internal(
                 user=user,

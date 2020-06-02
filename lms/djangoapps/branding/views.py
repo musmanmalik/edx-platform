@@ -5,7 +5,8 @@ import urllib
 from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 from django.utils import translation
@@ -44,13 +45,13 @@ def get_course_enrollments(user):
 
 
 @ensure_csrf_cookie
+@transaction.non_atomic_requests
 @cache_if_anonymous()
 def index(request):
-    '''
+    """
     Redirects to main page -- info page if user authenticated, or marketing if not
-    '''
-
-    if request.user.is_authenticated():
+    """
+    if request.user.is_authenticated:
         # Only redirect to dashboard if user has
         # courses in his/her dashboard. Otherwise UX is a bit cryptic.
         # In this case, we want to have the user stay on a course catalog
@@ -233,7 +234,7 @@ def footer(request):
                 "image": "http://example.com/openedx.png"
             },
             "logo_image": "http://example.com/static/images/logo.png",
-            "copyright": "EdX, Open edX and their respective logos are trademarks or registered trademarks of edX Inc."
+            "copyright": "edX, Open edX and their respective logos are registered trademarks of edX Inc."
         }
 
 

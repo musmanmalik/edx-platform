@@ -1,9 +1,11 @@
 """
 Tests use cases related to LMS Entrance Exam behavior, such as gated content access (TOC)
 """
+from django.urls import reverse
+from mock import Mock, patch
+from crum import set_current_request
 
 from capa.tests.response_xml_factory import MultipleChoiceResponseXMLFactory
-
 from courseware.entrance_exams import (
     course_has_entrance_exam,
     get_entrance_exam_content,
@@ -14,13 +16,10 @@ from courseware.model_data import FieldDataCache
 from courseware.module_render import get_module, handle_xblock_callback, toc_for_course
 from courseware.tests.factories import InstructorFactory, StaffFactory, UserFactory, RequestFactoryNoCsrf
 from courseware.tests.helpers import LoginEnrollmentTestCase
-from django.core.urlresolvers import reverse
 from milestones.tests.utils import MilestonesTestCaseMixin
-from mock import Mock, patch
-from nose.plugins.attrib import attr
 from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from openedx.core.djangolib.testing.utils import get_mock_request
-from openedx.features.course_experience import COURSE_OUTLINE_PAGE_FLAG
+from openedx.features.course_experience import COURSE_OUTLINE_PAGE_FLAG, UNIFIED_COURSE_TAB_FLAG
 from student.models import CourseEnrollment
 from student.tests.factories import AnonymousUserFactory, CourseEnrollmentFactory
 from util.milestones_helpers import (
@@ -36,7 +35,6 @@ from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
 
-@attr(shard=2)
 @patch.dict('django.conf.settings.FEATURES', {'ENTRANCE_EXAMS': True})
 class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTestCaseMixin):
     """
@@ -45,6 +43,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
     Creates a test course from scratch. The tests below are designed to execute
     workflows regardless of the feature flag settings.
     """
+    shard = 2
+
     @patch.dict('django.conf.settings.FEATURES', {'ENTRANCE_EXAMS': True})
     def setUp(self):
         """
@@ -140,8 +140,9 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
         self.course.entrance_exam_id = unicode(self.entrance_exam.scope_ids.usage_id)
 
         self.anonymous_user = AnonymousUserFactory()
+        self.addCleanup(set_current_request, None)
         self.request = get_mock_request(UserFactory())
-        modulestore().update_item(self.course, self.request.user.id)  # pylint: disable=no-member
+        modulestore().update_item(self.course, self.request.user.id)
 
         self.client.login(username=self.request.user.username, password="test")
         CourseEnrollment.enroll(self.request.user, self.course.id)
@@ -233,8 +234,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
         expected_url = reverse('courseware_section',
                                kwargs={
                                    'course_id': unicode(self.course.id),
-                                   'chapter': self.entrance_exam.location.name,
-                                   'section': self.exam_1.location.name
+                                   'chapter': self.entrance_exam.location.block_id,
+                                   'section': self.exam_1.location.block_id
                                })
         resp = self.client.get(url)
         self.assertRedirects(resp, expected_url, status_code=302, target_status_code=200)
@@ -248,8 +249,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
         expected_url = reverse('courseware_section',
                                kwargs={
                                    'course_id': unicode(self.course.id),
-                                   'chapter': self.chapter.location.name,
-                                   'section': self.welcome.location.name
+                                   'chapter': self.chapter.location.block_id,
+                                   'section': self.welcome.location.block_id
                                })
         resp = self.client.get(url)
         self.assertRedirects(resp, expected_url, status_code=302, target_status_code=200)
@@ -265,8 +266,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
         expected_url = reverse('courseware_section',
                                kwargs={
                                    'course_id': unicode(self.course.id),
-                                   'chapter': self.entrance_exam.location.name,
-                                   'section': self.exam_1.location.name
+                                   'chapter': self.entrance_exam.location.block_id,
+                                   'section': self.exam_1.location.block_id
                                })
         resp = self.client.get(url)
         self.assertRedirects(resp, expected_url, status_code=302, target_status_code=200)
@@ -296,8 +297,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
             'courseware_section',
             kwargs={
                 'course_id': unicode(self.course.id),
-                'chapter': self.entrance_exam.location.name,
-                'section': self.exam_1.location.name,
+                'chapter': self.entrance_exam.location.block_id,
+                'section': self.exam_1.location.block_id,
             }
         )
         resp = self.client.get(url)
@@ -311,7 +312,7 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
         """
         minimum_score_pct = 29
         self.course.entrance_exam_minimum_score_pct = float(minimum_score_pct) / 100
-        modulestore().update_item(self.course, self.request.user.id)  # pylint: disable=no-member
+        modulestore().update_item(self.course, self.request.user.id)
 
         # answer the problem so it results in only 20% correct.
         answer_entrance_exam_problem(self.course, self.request, self.problem_1, value=1, max_value=5)
@@ -320,8 +321,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
             'courseware_section',
             kwargs={
                 'course_id': unicode(self.course.id),
-                'chapter': self.entrance_exam.location.name,
-                'section': self.exam_1.location.name
+                'chapter': self.entrance_exam.location.block_id,
+                'section': self.exam_1.location.block_id
             }
         )
         resp = self.client.get(url)
@@ -346,8 +347,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
             'courseware_section',
             kwargs={
                 'course_id': unicode(self.course.id),
-                'chapter': self.chapter.location.name,
-                'section': self.chapter_subsection.location.name
+                'chapter': self.chapter.location.block_id,
+                'section': self.chapter_subsection.location.block_id
             }
         )
         resp = self.client.get(url)
@@ -366,8 +367,8 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
             'courseware_section',
             kwargs={
                 'course_id': unicode(self.course.id),
-                'chapter': self.entrance_exam.location.name,
-                'section': self.exam_1.location.name
+                'chapter': self.entrance_exam.location.block_id,
+                'section': self.exam_1.location.block_id
             }
         )
 
@@ -450,11 +451,12 @@ class EntranceExamTestCases(LoginEnrollmentTestCase, ModuleStoreTestCase, Milest
         expected_url = reverse('courseware_section',
                                kwargs={
                                    'course_id': unicode(self.course.id),
-                                   'chapter': self.entrance_exam.location.name,
-                                   'section': self.exam_1.location.name
+                                   'chapter': self.entrance_exam.location.block_id,
+                                   'section': self.exam_1.location.block_id
                                })
         self.assertRedirects(response, expected_url, status_code=302, target_status_code=200)
 
+    @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
     def test_courseinfo_page_access_without_passing_entrance_exam(self):
         """
         Test courseware access page without passing entrance exam

@@ -92,7 +92,7 @@ class Command(BaseCommand):
         if theme_dirs:
             available_themes = {}
             for theme_dir in theme_dirs:
-                available_themes.update({t.theme_dir_name: t for t in get_themes(theme_dir)})
+                available_themes.update({t.theme_dir_name: t for t in get_themes([theme_dir])})
         else:
             theme_dirs = get_theme_base_dirs()
             available_themes = {t.theme_dir_name: t for t in get_themes()}
@@ -131,7 +131,7 @@ class Command(BaseCommand):
         if options.get("themes", None) and not is_comprehensive_theming_enabled():
             # log a warning message to let the user know that asset compilation for themes is skipped
             self.stdout.write(
-                self.style.WARNING(  # pylint: disable=no-member
+                self.style.WARNING(
                     "Skipping theme asset compilation: enable theming to process themed assets"
                 ),
             )

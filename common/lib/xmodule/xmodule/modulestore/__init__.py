@@ -5,7 +5,6 @@ that are stored in a database an accessible using their Location as an identifie
 
 import logging
 import re
-import json
 import datetime
 
 from pytz import UTC
@@ -22,10 +21,14 @@ from xblock.plugin import default_select
 from .exceptions import InvalidLocationError, InsufficientSpecificationError
 from xmodule.errortracker import make_error_tracker
 from xmodule.assetstore import AssetMetadata
-from opaque_keys.edx.keys import CourseKey, UsageKey, AssetKey
+from opaque_keys.edx.keys import CourseKey, AssetKey
 from opaque_keys.edx.locations import Location  # For import backwards compatibility
 from xblock.runtime import Mixologist
 from xblock.core import XBlock
+
+# The below import is not used within this module, but ir is still needed becuase
+# other modules are imorting EdxJSONEncoder from here
+from openedx.core.lib.json_utils import EdxJSONEncoder  # pylint: disable=unused-import
 
 log = logging.getLogger('edx.modulestore')
 
@@ -34,8 +37,8 @@ new_contract('AssetKey', AssetKey)
 new_contract('AssetMetadata', AssetMetadata)
 new_contract('XBlock', XBlock)
 
-LIBRARY_ROOT = 'library.xml'
-COURSE_ROOT = 'course.xml'
+LIBRARY_ROOT = u'library.xml'
+COURSE_ROOT = u'course.xml'
 
 # List of names of computed fields on xmodules that are of type usage keys.
 # This list can be used to determine which fields need to be stripped of
@@ -602,7 +605,7 @@ class ModuleStoreAssetBase(object):
 
     @contract(
         course_key='CourseKey', asset_type='None | basestring',
-        start='int | None', maxresults='int | None', sort='tuple(str,(int,>=1,<=2))|None'
+        start='int | None', maxresults='int | None', sort='tuple(str,int) | None'
     )
     def get_all_asset_metadata(self, course_key, asset_type, start=0, maxresults=-1, sort=None, **kwargs):
         """
@@ -1430,27 +1433,3 @@ def prefer_xmodules(identifier, entry_points):
         return default_select(identifier, from_xmodule)
     else:
         return default_select(identifier, entry_points)
-
-
-class EdxJSONEncoder(json.JSONEncoder):
-    """
-    Custom JSONEncoder that handles `Location` and `datetime.datetime` objects.
-
-    `Location`s are encoded as their url string form, and `datetime`s as
-    ISO date strings
-    """
-    def default(self, obj):
-        if isinstance(obj, (CourseKey, UsageKey)):
-            return unicode(obj)
-        elif isinstance(obj, Location):
-            return obj.dict()
-        elif isinstance(obj, datetime.datetime):
-            if obj.tzinfo is not None:
-                if obj.utcoffset() is None:
-                    return obj.isoformat() + 'Z'
-                else:
-                    return obj.isoformat()
-            else:
-                return obj.isoformat()
-        else:
-            return super(EdxJSONEncoder, self).default(obj)

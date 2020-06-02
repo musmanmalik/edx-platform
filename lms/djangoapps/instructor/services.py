@@ -10,8 +10,8 @@ from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
 
 import lms.djangoapps.instructor.enrollment as enrollment
-from commerce.signals import create_zendesk_ticket
 from courseware.models import StudentModule
+from lms.djangoapps.commerce.utils import create_zendesk_ticket
 from lms.djangoapps.instructor.views.tools import get_student_from_identifier
 from student import auth
 from student.roles import CourseStaffRole
@@ -88,7 +88,7 @@ class InstructorService(object):
         """
         return auth.user_has_role(user, CourseStaffRole(CourseKey.from_string(course_id)))
 
-    def send_support_notification(self, course_id, exam_name, student_username, review_status):
+    def send_support_notification(self, course_id, exam_name, student_username, review_status, review_url=None):
         """
         Creates a Zendesk ticket for an exam attempt review from the proctoring system.
         Currently, it sends notifications for 'Suspicious" status, but additional statuses can be supported
@@ -103,15 +103,17 @@ class InstructorService(object):
         if course.create_zendesk_tickets:
             requester_name = "edx-proctoring"
             email = "edx-proctoring@edx.org"
-            subject = _("Proctored Exam Review: {review_status}").format(review_status=review_status)
+            subject = _(u"Proctored Exam Review: {review_status}").format(review_status=review_status)
             body = _(
-                "A proctored exam attempt for {exam_name} in {course_name} by username: {student_username} "
-                "was reviewed as {review_status} by the proctored exam review provider."
+                u"A proctored exam attempt for {exam_name} in {course_name} by username: {student_username} "
+                "was reviewed as {review_status} by the proctored exam review provider.\n"
+                "Review link: {review_url}"
             ).format(
                 exam_name=exam_name,
                 course_name=course.display_name,
                 student_username=student_username,
-                review_status=review_status
+                review_status=review_status,
+                review_url=review_url or u'not available',
             )
             tags = ["proctoring"]
             create_zendesk_ticket(requester_name, email, subject, body, tags)

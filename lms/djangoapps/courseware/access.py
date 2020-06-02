@@ -13,22 +13,30 @@ Note: The access control logic in this file does NOT check for enrollment in
 import logging
 from datetime import datetime
 
-import pytz
-from ccx_keys.locator import CCXLocator
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.utils.timezone import UTC
+from pytz import UTC
 from opaque_keys.edx.keys import CourseKey, UsageKey
+from six import text_type
 from xblock.core import XBlock
 
-from courseware.access_response import MilestoneError, MobileAvailabilityError, VisibilityError
+from courseware.access_response import (
+    MilestoneAccessError,
+    MobileAvailabilityError,
+    VisibilityError,
+)
 from courseware.access_utils import (
     ACCESS_DENIED,
     ACCESS_GRANTED,
     adjust_start_date,
     check_start_date,
     debug,
-    in_preview_mode
+    in_preview_mode,
+    check_course_open_for_learner,
+)
+from courseware.access_response import (
+    NoAllowedPartitionGroupsError,
+    IncorrectPartitionGroupError,
 )
 from courseware.masquerade import get_masquerade_role, is_masquerading_as_student
 from lms.djangoapps.ccx.custom_exception import CCXLocatorValidationException
@@ -36,6 +44,7 @@ from lms.djangoapps.ccx.models import CustomCourseForEdX
 from mobile_api.models import IgnoreMobileAvailableFlagConfig
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.external_auth.models import ExternalAuthMap
+from openedx.features.course_duration_limits.access import check_course_expired
 from student import auth
 from student.models import CourseEnrollmentAllowed
 from student.roles import (
@@ -173,32 +182,7 @@ def has_staff_access_to_preview_mode(user, course_key):
     return has_admin_access_to_course or is_masquerading_as_student(user, course_key)
 
 
-def _can_access_descriptor_with_start_date(user, descriptor, course_key):  # pylint: disable=invalid-name
-    """
-    Checks if a user has access to a descriptor based on its start date.
-
-    If there is no start date specified, grant access.
-    Else, check if we're past the start date.
-
-    Note:
-        We do NOT check whether the user is staff or if the descriptor
-        is detached... it is assumed both of these are checked by the caller.
-
-    Arguments:
-        user (User): the user whose descriptor access we are checking.
-        descriptor (AType): the descriptor for which we are checking access,
-            where AType is CourseDescriptor, CourseOverview, or any other class
-            that represents a descriptor and has the attributes .location, .id,
-            .start, and .days_early_for_beta.
-
-    Returns:
-        AccessResponse: The result of this access check. Possible results are
-            ACCESS_GRANTED or a StartDateError.
-    """
-    return check_start_date(user, descriptor.days_early_for_beta, descriptor.start, course_key)
-
-
-def _can_view_courseware_with_prerequisites(user, course):  # pylint: disable=invalid-name
+def _can_view_courseware_with_prerequisites(user, course):
     """
     Checks if a user has access to a course based on its prerequisites.
 
@@ -222,7 +206,7 @@ def _can_view_courseware_with_prerequisites(user, course):  # pylint: disable=in
     return (
         _is_prerequisites_disabled()
         or _has_staff_access_to_descriptor(user, course, course.id)
-        or user.is_anonymous()
+        or user.is_anonymous
         or _has_fulfilled_prerequisites(user, [course.id])
     )
 
@@ -271,7 +255,7 @@ def _can_enroll_courselike(user, courselike):
 
     # If using a registration method to restrict enrollment (e.g., Shibboleth)
     if settings.FEATURES.get('RESTRICT_ENROLL_BY_REG_METHOD') and enrollment_domain:
-        if user is not None and user.is_authenticated() and \
+        if user is not None and user.is_authenticated and \
                 ExternalAuthMap.objects.filter(user=user, external_domain=enrollment_domain):
             debug("Allow: external_auth of " + enrollment_domain)
             reg_method_ok = True
@@ -281,11 +265,19 @@ def _can_enroll_courselike(user, courselike):
         reg_method_ok = True
 
     # If the user appears in CourseEnrollmentAllowed paired with the given course key,
-    # they may enroll. Note that as dictated by the legacy database schema, the filter
-    # call includes a `course_id` kwarg which requires a CourseKey.
-    if user is not None and user.is_authenticated():
-        if CourseEnrollmentAllowed.objects.filter(email=user.email, course_id=course_key):
+    # they may enroll, except if the CEA has already been used by a different user.
+    # Note that as dictated by the legacy database schema, the filter call includes
+    # a `course_id` kwarg which requires a CourseKey.
+    if user is not None and user.is_authenticated:
+        cea = CourseEnrollmentAllowed.objects.filter(email=user.email, course_id=course_key).first()
+        if cea and cea.valid_for_user(user):
             return ACCESS_GRANTED
+        elif cea:
+            debug("Deny: CEA was already consumed by a different user {} and can't be used again by {}".format(
+                cea.user.id,
+                user.id,
+            ))
+            return ACCESS_DENIED
 
     if _has_staff_access_to_descriptor(user, courselike, course_key):
         return ACCESS_GRANTED
@@ -294,9 +286,9 @@ def _can_enroll_courselike(user, courselike):
         debug("Deny: invitation only")
         return ACCESS_DENIED
 
-    now = datetime.now(UTC())
-    enrollment_start = courselike.enrollment_start or datetime.min.replace(tzinfo=pytz.UTC)
-    enrollment_end = courselike.enrollment_end or datetime.max.replace(tzinfo=pytz.UTC)
+    now = datetime.now(UTC)
+    enrollment_start = courselike.enrollment_start or datetime.min.replace(tzinfo=UTC)
+    enrollment_end = courselike.enrollment_end or datetime.max.replace(tzinfo=UTC)
     if reg_method_ok and enrollment_start < now < enrollment_end:
         debug("Allow: in enrollment period")
         return ACCESS_GRANTED
@@ -331,15 +323,52 @@ def _has_access_course(user, action, courselike):
 
         NOTE: this is not checking whether user is actually enrolled in the course.
         """
-        response = (
-            _visible_to_nonstaff_users(courselike) and
-            _can_access_descriptor_with_start_date(user, courselike, courselike.id)
-        )
+        # N.B. I'd love a better way to handle this pattern, without breaking the
+        # shortcircuiting logic. Maybe AccessResponse needs to grow a
+        # fluent interface?
+        #
+        # return (
+        #     _visible_to_nonstaff_users(courselike).and(
+        #         check_course_open_for_learner, user, courselike
+        #     ).and(
+        #         _can_view_courseware_with_prerequisites, user, courselike
+        #     )
+        # ).or(
+        #     _has_staff_access_to_descriptor, user, courselike, courselike.id
+        # )
+        visible_to_nonstaff = _visible_to_nonstaff_users(courselike)
+        if not visible_to_nonstaff:
+            staff_access = _has_staff_access_to_descriptor(user, courselike, courselike.id)
+            if staff_access:
+                return staff_access
+            else:
+                return visible_to_nonstaff
 
-        return (
-            ACCESS_GRANTED if (response or _has_staff_access_to_descriptor(user, courselike, courselike.id))
-            else response
-        )
+        open_for_learner = check_course_open_for_learner(user, courselike)
+        if not open_for_learner:
+            staff_access = _has_staff_access_to_descriptor(user, courselike, courselike.id)
+            if staff_access:
+                return staff_access
+            else:
+                return open_for_learner
+
+        view_with_prereqs = _can_view_courseware_with_prerequisites(user, courselike)
+        if not view_with_prereqs:
+            staff_access = _has_staff_access_to_descriptor(user, courselike, courselike.id)
+            if staff_access:
+                return staff_access
+            else:
+                return view_with_prereqs
+
+        has_not_expired = check_course_expired(user, courselike)
+        if not has_not_expired:
+            staff_access = _has_staff_access_to_descriptor(user, courselike, courselike.id)
+            if staff_access:
+                return staff_access
+            else:
+                return has_not_expired
+
+        return ACCESS_GRANTED
 
     def can_enroll():
         """
@@ -379,8 +408,6 @@ def _has_access_course(user, action, courselike):
 
     checkers = {
         'load': can_load,
-        'view_courseware_with_prerequisites':
-            lambda: _can_view_courseware_with_prerequisites(user, courselike),
         'load_mobile': lambda: can_load() and _can_load_course_on_mobile(user, courselike),
         'enroll': can_enroll,
         'see_exists': see_exists,
@@ -425,11 +452,6 @@ def _has_group_access(descriptor, user, course_key):
     # use merged_group_access which takes group access on the block's
     # parents / ancestors into account
     merged_access = descriptor.merged_group_access
-    # check for False in merged_access, which indicates that at least one
-    # partition's group list excludes all students.
-    if False in merged_access.values():
-        log.warning("Group access check excludes all students, access will be denied.", exc_info=True)
-        return ACCESS_DENIED
 
     # resolve the partition IDs in group_access to actual
     # partition objects, skipping those which contain empty group directives.
@@ -440,6 +462,13 @@ def _has_group_access(descriptor, user, course_key):
     for partition_id, group_ids in merged_access.items():
         try:
             partition = descriptor._get_user_partition(partition_id)  # pylint: disable=protected-access
+
+            # check for False in merged_access, which indicates that at least one
+            # partition's group list excludes all students.
+            if group_ids is False:
+                log.warning("Group access check excludes all students, access will be denied.", exc_info=True)
+                return NoAllowedPartitionGroupsError(partition)
+
             if partition.active:
                 if group_ids is not None:
                     partitions.append(partition)
@@ -466,19 +495,34 @@ def _has_group_access(descriptor, user, course_key):
         log.warning("Error looking up referenced user partition group, access will be denied.", exc_info=True)
         return ACCESS_DENIED
 
-    # look up the user's group for each partition
-    user_groups = {}
+    # finally: check that the user has a satisfactory group assignment
+    # for each partition.
+
+    # missing_groups is the list of groups that the user is NOT in but would NEED to be in order to be granted access.
+    # For each partition there are group(s) of users that are granted access to this content.
+    # Below, we loop through each partition and check if the user belongs to one of the appropriate group(s). If they do
+    # not that group is added to their list of missing_groups.
+    # If missing_groups is empty, the user is granted access.
+    # If missing_groups is NOT empty, we generate an error based on one of the particular groups they are missing.
+    missing_groups = []
     for partition, groups in partition_groups:
-        user_groups[partition.id] = partition.scheme.get_group_for_user(
+        user_group = partition.scheme.get_group_for_user(
             course_key,
             user,
             partition,
         )
+        if user_group not in groups:
+            missing_groups.append((partition, user_group, groups))
 
-    # finally: check that the user has a satisfactory group assignment
-    # for each partition.
-    if not all(user_groups.get(partition.id) in groups for partition, groups in partition_groups):
-        return ACCESS_DENIED
+    if missing_groups:
+        partition, user_group, allowed_groups = missing_groups[0]
+        return IncorrectPartitionGroupError(
+            partition=partition,
+            user_group=user_group,
+            allowed_groups=allowed_groups,
+            user_message=partition.access_denied_message(descriptor, user, user_group, allowed_groups),
+            user_fragment=partition.access_denied_fragment(descriptor, user, user_group, allowed_groups),
+        )
 
     # all checks passed.
     return ACCESS_GRANTED
@@ -507,19 +551,20 @@ def _has_access_descriptor(user, action, descriptor, course_key=None):
         # access to this content, then deny access. The problem with calling _has_staff_access_to_descriptor
         # before this method is that _has_staff_access_to_descriptor short-circuits and returns True
         # for staff users in preview mode.
-        if not _has_group_access(descriptor, user, course_key):
-            return ACCESS_DENIED
+        group_access_response = _has_group_access(descriptor, user, course_key)
+        if not group_access_response:
+            return group_access_response
 
         # If the user has staff access, they can load the module and checks below are not needed.
-        if _has_staff_access_to_descriptor(user, descriptor, course_key):
-            return ACCESS_GRANTED
+        staff_access_response = _has_staff_access_to_descriptor(user, descriptor, course_key)
+        if staff_access_response:
+            return staff_access_response
 
         return (
             _visible_to_nonstaff_users(descriptor) and
-            _can_access_descriptor_with_milestones(user, descriptor, course_key) and
             (
                 _has_detached_class_tag(descriptor) or
-                _can_access_descriptor_with_start_date(user, descriptor, course_key)
+                check_start_date(user, descriptor.days_early_for_beta, descriptor.start, course_key)
             )
         )
 
@@ -630,7 +675,7 @@ def _dispatch(table, action, user, obj):
         debug("%s user %s, object %s, action %s",
               'ALLOWED' if result else 'DENIED',
               user,
-              obj.location.to_deprecated_string() if isinstance(obj, XBlock) else str(obj),
+              text_type(obj.location) if isinstance(obj, XBlock) else str(obj),
               action)
         return result
 
@@ -638,7 +683,7 @@ def _dispatch(table, action, user, obj):
         type(obj), action))
 
 
-def _adjust_start_date_for_beta_testers(user, descriptor, course_key):  # pylint: disable=invalid-name
+def _adjust_start_date_for_beta_testers(user, descriptor, course_key):
     """
     If user is in a beta test group, adjust the start date by the appropriate number of
     days.
@@ -682,7 +727,7 @@ def _has_access_to_course(user, access_level, course_key):
 
     access_level = string, either "staff" or "instructor"
     """
-    if user is None or (not user.is_authenticated()):
+    if user is None or (not user.is_authenticated):
         debug("Deny: no user or anon user")
         return ACCESS_DENIED
 
@@ -731,7 +776,7 @@ def administrative_accesses_to_course_for_user(user, course_key):
     return global_staff, staff_access, instructor_access
 
 
-def _has_instructor_access_to_descriptor(user, descriptor, course_key):  # pylint: disable=invalid-name
+def _has_instructor_access_to_descriptor(user, descriptor, course_key):
     """Helper method that checks whether the user has staff access to
     the course of the location.
 
@@ -794,7 +839,7 @@ def _has_fulfilled_all_milestones(user, course_id):
         course_id: ID of the course to check
         user_id: ID of the user to check
     """
-    return MilestoneError() if any_unfulfilled_milestones(course_id, user.id) else ACCESS_GRANTED
+    return MilestoneAccessError() if any_unfulfilled_milestones(course_id, user.id) else ACCESS_GRANTED
 
 
 def _has_fulfilled_prerequisites(user, course_id):
@@ -806,7 +851,7 @@ def _has_fulfilled_prerequisites(user, course_id):
         user: user to check
         course_id: ID of the course to check
     """
-    return MilestoneError() if get_pre_requisite_courses_not_completed(user, course_id) else ACCESS_GRANTED
+    return MilestoneAccessError() if get_pre_requisite_courses_not_completed(user, course_id) else ACCESS_GRANTED
 
 
 def _has_catalog_visibility(course, visibility_type):

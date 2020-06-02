@@ -30,7 +30,7 @@ from contracts import contract, new_contract
 from django.db import DatabaseError, IntegrityError, transaction
 from opaque_keys.edx.asides import AsideUsageKeyV1, AsideUsageKeyV2
 from opaque_keys.edx.block_types import BlockTypeKeyV1
-from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.keys import CourseKey
 from xblock.core import XBlockAside
 from xblock.exceptions import InvalidScopeError, KeyValueMultiSaveError
 from xblock.fields import Scope, UserScope
@@ -728,7 +728,7 @@ class FieldDataCache(object):
         """
         Add all `descriptors` to this FieldDataCache.
         """
-        if self.user.is_authenticated():
+        if self.user.is_authenticated:
             self.scorable_locations.update(desc.location for desc in descriptors if desc.has_score)
             for scope, fields in self._fields_to_cache(descriptors).items():
                 if scope not in self.cache:
@@ -815,7 +815,7 @@ class FieldDataCache(object):
         Raises: KeyError if key isn't found in the cache
         """
 
-        if key.scope.user == UserScope.ONE and not self.user.is_anonymous():
+        if key.scope.user == UserScope.ONE and not self.user.is_anonymous:
             # If we're getting user data, we expect that the key matches the
             # user we were constructed for.
             assert key.user_id == self.user.id
@@ -842,7 +842,7 @@ class FieldDataCache(object):
         by_scope = defaultdict(dict)
         for key, value in kv_dict.iteritems():
 
-            if key.scope.user == UserScope.ONE and not self.user.is_anonymous():
+            if key.scope.user == UserScope.ONE and not self.user.is_anonymous:
                 # If we're getting user data, we expect that the key matches the
                 # user we were constructed for.
                 assert key.user_id == self.user.id
@@ -875,7 +875,7 @@ class FieldDataCache(object):
         if self.read_only:
             return
 
-        if key.scope.user == UserScope.ONE and not self.user.is_anonymous():
+        if key.scope.user == UserScope.ONE and not self.user.is_anonymous:
             # If we're getting user data, we expect that the key matches the
             # user we were constructed for.
             assert key.user_id == self.user.id
@@ -896,7 +896,7 @@ class FieldDataCache(object):
         Returns: bool
         """
 
-        if key.scope.user == UserScope.ONE and not self.user.is_anonymous():
+        if key.scope.user == UserScope.ONE and not self.user.is_anonymous:
             # If we're getting user data, we expect that the key matches the
             # user we were constructed for.
             assert key.user_id == self.user.id
@@ -916,7 +916,7 @@ class FieldDataCache(object):
 
         Returns: datetime if there was a modified date, or None otherwise
         """
-        if key.scope.user == UserScope.ONE and not self.user.is_anonymous():
+        if key.scope.user == UserScope.ONE and not self.user.is_anonymous:
             # If we're getting user data, we expect that the key matches the
             # user we were constructed for.
             assert key.user_id == self.user.id
@@ -960,7 +960,7 @@ class ScoresClient(object):
         # attached to them (since old mongo identifiers don't include runs).
         # So we have to add that info back in before we put it into our lookup.
         self._locations_to_scores.update({
-            UsageKey.from_string(location).map_into_course(self.course_key): self.Score(correct, total, created)
+            location.map_into_course(self.course_key): self.Score(correct, total, created)
             for location, correct, total, created
             in scores_qset.values_list('module_state_key', 'grade', 'max_grade', 'created')
         })

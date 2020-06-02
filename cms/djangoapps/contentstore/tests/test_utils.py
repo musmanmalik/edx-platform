@@ -3,7 +3,7 @@ import collections
 from datetime import datetime, timedelta
 
 from django.test import TestCase
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.locator import CourseLocator
 from pytz import UTC
 
 from contentstore import utils
@@ -21,26 +21,26 @@ class LMSLinksTestCase(TestCase):
 
     def lms_link_test(self):
         """ Tests get_lms_link_for_item. """
-        course_key = SlashSeparatedCourseKey('mitX', '101', 'test')
+        course_key = CourseLocator('mitX', '101', 'test')
         location = course_key.make_usage_key('vertical', 'contacting_us')
         link = utils.get_lms_link_for_item(location, False)
-        self.assertEquals(link, "//localhost:8000/courses/mitX/101/test/jump_to/i4x://mitX/101/vertical/contacting_us")
+        self.assertEquals(link, "//localhost:8000/courses/course-v1:mitX+101+test/jump_to/block-v1:mitX+101+test+type@vertical+block@contacting_us")
 
         # test preview
         link = utils.get_lms_link_for_item(location, True)
         self.assertEquals(
             link,
-            "//preview.localhost/courses/mitX/101/test/jump_to/i4x://mitX/101/vertical/contacting_us"
+            "//preview.localhost/courses/course-v1:mitX+101+test/jump_to/block-v1:mitX+101+test+type@vertical+block@contacting_us"
         )
 
         # now test with the course' location
         location = course_key.make_usage_key('course', 'test')
         link = utils.get_lms_link_for_item(location)
-        self.assertEquals(link, "//localhost:8000/courses/mitX/101/test/jump_to/i4x://mitX/101/course/test")
+        self.assertEquals(link, "//localhost:8000/courses/course-v1:mitX+101+test/jump_to/block-v1:mitX+101+test+type@course+block@test")
 
     def lms_link_for_certificate_web_view_test(self):
         """ Tests get_lms_link_for_certificate_web_view. """
-        course_key = SlashSeparatedCourseKey('mitX', '101', 'test')
+        course_key = CourseLocator('mitX', '101', 'test')
         dummy_user = ModuleStoreEnum.UserID.test
         mode = 'professional'
 
@@ -387,7 +387,7 @@ class GroupVisibilityTest(CourseTestCase):
     def test_no_visibility_set(self):
         """ Tests when group_access has not been set on anything. """
 
-        def verify_all_components_visible_to_all():  # pylint: disable=invalid-name
+        def verify_all_components_visible_to_all():
             """ Verifies when group_access has not been set on anything. """
             for item in (self.sequential, self.vertical, self.html, self.problem):
                 self.assertFalse(utils.has_children_visible_to_specific_partition_groups(item))
@@ -430,7 +430,7 @@ class GetUserPartitionInfoTest(ModuleStoreTestCase):
         """Create a dummy course. """
         super(GetUserPartitionInfoTest, self).setUp()
         self.course = CourseFactory()
-        self.block = ItemFactory.create(category="problem", parent_location=self.course.location)  # pylint: disable=no-member
+        self.block = ItemFactory.create(category="problem", parent_location=self.course.location)
 
         # Set up some default partitions
         self._set_partitions([
@@ -512,6 +512,31 @@ class GetUserPartitionInfoTest(ModuleStoreTestCase):
             "name": "Deleted Group",
             "selected": True,
             "deleted": True
+        })
+
+    def test_singular_deleted_group(self):
+        """
+        Verify that a partition with only one deleted group is
+        shown in the partition info with the group marked as deleted
+        """
+        self._set_partitions([
+            UserPartition(
+                id=0,
+                name="Cohort user partition",
+                scheme=UserPartition.get_scheme("cohort"),
+                description="Cohorted user partition",
+                groups=[],
+            ),
+        ])
+        self._set_group_access({0: [1]})
+        partitions = self._get_partition_info()
+        groups = partitions[0]["groups"]
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0], {
+            "id": 1,
+            "name": "Deleted Group",
+            "selected": True,
+            "deleted": True,
         })
 
     def test_filter_by_partition_scheme(self):

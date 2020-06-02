@@ -1,11 +1,12 @@
 """
 User Partitions Transformer
 """
+from lms.djangoapps.courseware.access import has_access
 from openedx.core.djangoapps.content.block_structure.transformer import (
     BlockStructureTransformer,
     FilteringTransformerMixin
 )
-from xmodule.partitions.partitions_service import get_all_partitions_for_course
+from xmodule.partitions.partitions_service import get_user_partition_groups, get_all_partitions_for_course
 
 from .split_test import SplitTestTransformer
 from .utils import get_field_on_block
@@ -70,19 +71,21 @@ class UserPartitionTransformer(FilteringTransformerMixin, BlockStructureTransfor
             block_structure.set_transformer_block_field(block_key, cls, 'merged_group_access', merged_group_access)
 
     def transform_block_filters(self, usage_info, block_structure):
+        user = usage_info.user
         result_list = SplitTestTransformer().transform_block_filters(usage_info, block_structure)
 
         user_partitions = block_structure.get_transformer_data(self, 'user_partitions')
         if not user_partitions:
             return [block_structure.create_universal_filter()]
 
-        user_groups = _get_user_partition_groups(
-            usage_info.course_key, user_partitions, usage_info.user
-        )
+        user_groups = get_user_partition_groups(usage_info.course_key, user_partitions, user, 'id')
         group_access_filter = block_structure.create_removal_filter(
-            lambda block_key: not block_structure.get_transformer_block_field(
-                block_key, self, 'merged_group_access'
-            ).check_group_access(user_groups)
+            lambda block_key: not (
+                has_access(user, 'staff', block_key) or
+                block_structure.get_transformer_block_field(block_key, self, 'merged_group_access').check_group_access(
+                    user_groups
+                )
+            )
         )
 
         result_list.append(group_access_filter)
@@ -235,30 +238,3 @@ class _MergedGroupAccess(object):
 
         # The user has access for every partition, grant access.
         return True
-
-
-def _get_user_partition_groups(course_key, user_partitions, user):
-    """
-    Collect group ID for each partition in this course for this user.
-
-    Arguments:
-        course_key (CourseKey)
-        user_partitions (list[UserPartition])
-        user (User)
-
-    Returns:
-        dict[int: Group]: Mapping from user partitions to the group to
-            which the user belongs in each partition. If the user isn't
-            in a group for a particular partition, then that partition's
-            ID will not be in the dict.
-    """
-    partition_groups = {}
-    for partition in user_partitions:
-        group = partition.scheme.get_group_for_user(
-            course_key,
-            user,
-            partition,
-        )
-        if group is not None:
-            partition_groups[partition.id] = group
-    return partition_groups

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=no-member
 """Tests for the teams API at the HTTP request level."""
 import itertools
 from contextlib import contextmanager
@@ -35,6 +34,7 @@ COURSE_KEY2 = CourseKey.from_string('edx/history/2')
 @ddt.ddt
 class TeamMembershipTest(SharedModuleStoreTestCase):
     """Tests for the TeamMembership model."""
+    shard = 4
 
     def setUp(self):
         """
@@ -117,18 +117,19 @@ class TeamMembershipTest(SharedModuleStoreTestCase):
 @ddt.ddt
 class TeamSignalsTest(EventTestMixin, SharedModuleStoreTestCase):
     """Tests for handling of team-related signals."""
+    shard = 4
 
-    SIGNALS_LIST = (
-        thread_created,
-        thread_edited,
-        thread_deleted,
-        thread_voted,
-        comment_created,
-        comment_edited,
-        comment_deleted,
-        comment_voted,
-        comment_endorsed
-    )
+    SIGNALS = {
+        'thread_created': thread_created,
+        'thread_edited': thread_edited,
+        'thread_deleted': thread_deleted,
+        'thread_voted': thread_voted,
+        'comment_created': comment_created,
+        'comment_edited': comment_edited,
+        'comment_deleted': comment_deleted,
+        'comment_voted': comment_voted,
+        'comment_endorsed': comment_endorsed,
+    }
 
     DISCUSSION_TOPIC_ID = 'test_topic'
 
@@ -161,8 +162,8 @@ class TeamSignalsTest(EventTestMixin, SharedModuleStoreTestCase):
         team_membership_last_activity = self.team_membership.last_activity_at
         yield
         # Reload team and team membership from the database in order to pick up changes
-        team = CourseTeam.objects.get(id=self.team.id)  # pylint: disable=maybe-no-member
-        team_membership = CourseTeamMembership.objects.get(id=self.team_membership.id)  # pylint: disable=maybe-no-member
+        team = CourseTeam.objects.get(id=self.team.id)
+        team_membership = CourseTeamMembership.objects.get(id=self.team_membership.id)
         if should_update:
             self.assertGreater(team.last_activity_at, team_last_activity)
             self.assertGreater(team_membership.last_activity_at, team_membership_last_activity)
@@ -180,34 +181,37 @@ class TeamSignalsTest(EventTestMixin, SharedModuleStoreTestCase):
 
     @ddt.data(
         *itertools.product(
-            SIGNALS_LIST,
+            SIGNALS.keys(),
             (('user', True), ('moderator', False))
         )
     )
     @ddt.unpack
     @patch('lms.lib.comment_client.thread.Thread.__getattr__')
-    def test_signals(self, signal, (user, should_update), mock_func):
+    def test_signals(self, signal_name, (user, should_update), mock_func):
         """Test that `last_activity_at` is correctly updated when team-related
         signals are sent.
         """
         with self.assert_last_activity_updated(should_update):
             user = getattr(self, user)
+            signal = self.SIGNALS[signal_name]
             mock_func.return_value = user.id
             signal.send(sender=None, user=user, post=self.mock_comment())
 
-    @ddt.data(thread_voted, comment_voted)
-    def test_vote_others_post(self, signal):
+    @ddt.data('thread_voted', 'comment_voted')
+    def test_vote_others_post(self, signal_name):
         """Test that voting on another user's post correctly fires a
         signal."""
         with self.assert_last_activity_updated(True):
+            signal = self.SIGNALS[signal_name]
             signal.send(sender=None, user=self.user, post=self.mock_comment(user=self.moderator))
 
-    @ddt.data(*SIGNALS_LIST)
+    @ddt.data(*SIGNALS.keys())
     @patch('lms.lib.comment_client.thread.Thread.__getattr__')
-    def test_signals_course_context(self, signal, mock_func):
+    def test_signals_course_context(self, signal_name, mock_func):
         """Test that `last_activity_at` is not updated when activity takes
         place in discussions outside of a team.
         """
         with self.assert_last_activity_updated(False):
+            signal = self.SIGNALS[signal_name]
             mock_func.return_value = self.user.id
             signal.send(sender=None, user=self.user, post=self.mock_comment(context='course'))

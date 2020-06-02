@@ -1,6 +1,7 @@
 """
 Helper functions for bok_choy test tasks
 """
+from __future__ import print_function
 import httplib
 import os
 import subprocess
@@ -30,24 +31,25 @@ def start_servers(options):
     """
     Start the servers we will run tests on, returns PIDs for servers.
     """
-    coveragerc = options.get('coveragerc', Env.BOK_CHOY_COVERAGERC)
+    coveragerc = options.get('coveragerc', None)
 
     def start_server(cmd, logfile, cwd=None):
         """
         Starts a single server.
         """
-        print cmd, logfile
+        print(cmd, logfile)
         run_background_process(cmd, out_log=logfile, err_log=logfile, cwd=cwd)
 
     for service, info in Env.BOK_CHOY_SERVERS.iteritems():
         address = "0.0.0.0:{}".format(info['port'])
-        cmd = (
-            "DEFAULT_STORE={default_store} "
-            "coverage run --rcfile={coveragerc} -m "
+        cmd = ("DEFAULT_STORE={default_store} ").format(default_store=options.default_store)
+        if coveragerc:
+            cmd += ("coverage run --rcfile={coveragerc} -m ").format(coveragerc=coveragerc)
+        else:
+            cmd += "python -m "
+        cmd += (
             "manage {service} --settings {settings} runserver "
             "{address} --traceback --noreload".format(
-                default_store=options.default_store,
-                coveragerc=coveragerc,
                 service=service,
                 settings=Env.SETTINGS,
                 address=address,
@@ -114,7 +116,7 @@ def wait_for_test_servers():
                 "red",
                 "Could not contact {} test server".format(service)
             )
-            print msg
+            print(msg)
             sys.exit(1)
 
 
@@ -171,7 +173,7 @@ def check_mongo():
     """
     if not is_mongo_running():
         msg = colorize('red', "Mongo is not running locally.")
-        print msg
+        print(msg)
         sys.exit(1)
 
 
@@ -183,7 +185,7 @@ def check_memcache():
     """
     if not is_memcache_running():
         msg = colorize('red', "Memcache is not running locally.")
-        print msg
+        print(msg)
         sys.exit(1)
 
 
@@ -198,7 +200,7 @@ def check_mysql():
         return
     if not is_mysql_running():
         msg = colorize('red', "MySQL is not running locally.")
-        print msg
+        print(msg)
         sys.exit(1)
 
 

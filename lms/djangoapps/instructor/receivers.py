@@ -3,12 +3,11 @@ Signal handlers supporting various gradebook use cases
 """
 from django.dispatch import receiver
 
-from util.signals import course_deleted
-
+from xmodule.modulestore.django import SignalHandler
 from student.models import CourseAccessRole
 
 
-@receiver(course_deleted)
+@receiver(SignalHandler.course_deleted)
 def on_course_deleted(sender, **kwargs):  # pylint: disable=W0613
     """
     Listens for a 'course_deleted' signal and when observed

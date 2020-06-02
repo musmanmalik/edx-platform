@@ -1,6 +1,8 @@
 """
 UserPartitionScheme for enrollment tracks.
 """
+import logging
+
 from course_modes.models import CourseMode
 from courseware.masquerade import (
     get_course_masquerade,
@@ -12,6 +14,9 @@ from opaque_keys.edx.keys import CourseKey
 from openedx.core.djangoapps.verified_track_content.models import VerifiedTrackCohortedCourse
 from student.models import CourseEnrollment
 from xmodule.partitions.partitions import Group, UserPartition
+
+LOGGER = logging.getLogger(__name__)
+
 
 # These IDs must be less than 100 so that they do not overlap with Groups in
 # CohortUserPartition or RandomUserPartitionScheme
@@ -40,25 +45,17 @@ class EnrollmentTrackUserPartition(UserPartition):
             return []
 
         return [
-            Group(ENROLLMENT_GROUP_IDS[mode.slug], unicode(mode.name))
+            Group(ENROLLMENT_GROUP_IDS[mode.slug]["id"], unicode(mode.name))
             for mode in CourseMode.modes_for_course(course_key, include_expired=True)
         ]
-
-    def from_json(self):
-        """
-        Because this partition is dynamic, `from_json` is not supported.
-        `to_json` is supported, but shouldn't be used to persist this partition
-        within the course itself (used by Studio for sending data to front-end code)
-
-        Calling this method will raise a TypeError.
-        """
-        raise TypeError("Because EnrollmentTrackUserPartition is a dynamic partition, 'from_json' is not supported.")
 
 
 class EnrollmentTrackPartitionScheme(object):
     """
     This scheme uses learner enrollment tracks to map learners into partition groups.
     """
+
+    read_only = True
 
     @classmethod
     def get_group_for_user(cls, course_key, user, user_partition, **kwargs):  # pylint: disable=unused-argument
@@ -89,10 +86,13 @@ class EnrollmentTrackPartitionScheme(object):
                 modes=CourseMode.modes_for_course(course_key, include_expired=True, only_selectable=False),
             )
             if course_mode and CourseMode.is_credit_mode(course_mode):
-                course_mode = CourseMode.verified_mode_for_course(course_key)
+                # We want the verified track even if the upgrade deadline has passed, since we
+                # are determining what content to show the user, not whether the user can enroll
+                # in the verified track.
+                course_mode = CourseMode.verified_mode_for_course(course_key, include_expired=True)
             if not course_mode:
                 course_mode = CourseMode.DEFAULT_MODE
-            return Group(ENROLLMENT_GROUP_IDS[course_mode.slug], unicode(course_mode.name))
+            return Group(ENROLLMENT_GROUP_IDS[course_mode.slug]["id"], unicode(course_mode.name))
         else:
             return None
 

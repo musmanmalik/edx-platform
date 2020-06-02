@@ -4,32 +4,36 @@ from contextlib import contextmanager
 from functools import wraps
 
 import ddt
+from datetime import datetime
+from datetime import timedelta
 from config_models.models import cache
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import RequestFactory, TestCase
 from django.test.utils import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 from mock import patch
-from nose.plugins.attrib import attr
+from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import CourseLocator
+import pytz
 
-from certificates import api as certs_api
-from certificates.models import (
+from lms.djangoapps.certificates import api as certs_api
+from lms.djangoapps.certificates.models import (
     CertificateGenerationConfiguration,
     CertificateStatuses,
     ExampleCertificate,
     GeneratedCertificate,
     certificate_status_for_student
 )
-from certificates.queue import XQueueAddToQueueError, XQueueCertInterface
-from certificates.tests.factories import CertificateInvalidationFactory, GeneratedCertificateFactory
+from lms.djangoapps.certificates.queue import XQueueAddToQueueError, XQueueCertInterface
+from lms.djangoapps.certificates.tests.factories import CertificateInvalidationFactory, GeneratedCertificateFactory
 from course_modes.models import CourseMode
 from course_modes.tests.factories import CourseModeFactory
 from courseware.tests.factories import GlobalStaffFactory
 from lms.djangoapps.grades.tests.utils import mock_passing_grade
 from microsite_configuration import microsite
+from openedx.core.lib.tests import attr
 from student.models import CourseEnrollment
 from student.tests.factories import UserFactory
 from util.testing import EventTestMixin
@@ -80,6 +84,7 @@ class WebCertificateTestMixin(object):
 
 
 @attr(shard=1)
+@ddt.ddt
 class CertificateDownloadableStatusTests(WebCertificateTestMixin, ModuleStoreTestCase):
     """Tests for the `certificate_downloadable_status` helper function. """
     ENABLED_SIGNALS = ['course_published']
@@ -92,7 +97,10 @@ class CertificateDownloadableStatusTests(WebCertificateTestMixin, ModuleStoreTes
         self.course = CourseFactory.create(
             org='edx',
             number='verified',
-            display_name='Verified Course'
+            display_name='Verified Course',
+            end=datetime.now(pytz.UTC),
+            self_paced=False,
+            certificate_available_date=datetime.now(pytz.UTC) - timedelta(days=2)
         )
 
         self.request_factory = RequestFactory()
@@ -192,11 +200,37 @@ class CertificateDownloadableStatusTests(WebCertificateTestMixin, ModuleStoreTes
                 'is_generating': False,
                 'is_unverified': False,
                 'download_url': '/certificates/user/{user_id}/course/{course_id}'.format(
-                    user_id=self.student.id,  # pylint: disable=no-member
+                    user_id=self.student.id,
                     course_id=self.course.id,
                 ),
                 'uuid': cert_status['uuid']
             }
+        )
+
+    @ddt.data(
+        (False, timedelta(days=2), False),
+        (False, -timedelta(days=2), True),
+        (True, timedelta(days=2), True)
+    )
+    @ddt.unpack
+    @patch.dict(settings.FEATURES, {'CERTIFICATES_HTML_VIEW': True})
+    def test_cert_api_return(self, self_paced, cert_avail_delta, cert_downloadable_status):
+        """
+        Test 'downloadable status'
+        """
+        cert_avail_date = datetime.now(pytz.UTC) + cert_avail_delta
+        self.course.self_paced = self_paced
+        self.course.certificate_available_date = cert_avail_date
+        self.course.save()
+
+        CourseEnrollment.enroll(self.student, self.course.id, mode='honor')
+        self._setup_course_certificate()
+        with mock_passing_grade():
+            certs_api.generate_user_certificates(self.student, self.course.id)
+
+        self.assertEqual(
+            certs_api.certificate_downloadable_status(self.student, self.course.id)['is_downloadable'],
+            cert_downloadable_status
         )
 
 
@@ -326,6 +360,7 @@ class CertificateGetTests(SharedModuleStoreTestCase):
         cls.student = UserFactory()
         cls.student_no_cert = UserFactory()
         cls.uuid = uuid.uuid4().hex
+        cls.nonexistent_course_id = CourseKey.from_string('course-v1:some+fake+course')
         cls.web_cert_course = CourseFactory.create(
             org='edx',
             number='verified_1',
@@ -357,6 +392,12 @@ class CertificateGetTests(SharedModuleStoreTestCase):
             download_url='www.gmail.com',
             grade="0.99",
             verify_uuid=cls.uuid,
+        )
+        # certificate for a course that will be deleted
+        GeneratedCertificateFactory.create(
+            user=cls.student,
+            course_id=cls.nonexistent_course_id,
+            status=CertificateStatuses.downloadable
         )
 
     @classmethod
@@ -429,7 +470,7 @@ class CertificateGetTests(SharedModuleStoreTestCase):
             kwargs=dict(certificate_uuid=self.uuid)
         )
         cert_url = certs_api.get_certificate_url(
-            user_id=self.student.id,  # pylint: disable=no-member
+            user_id=self.student.id,
             course_id=self.web_cert_course.id,
             uuid=self.uuid
         )
@@ -438,13 +479,13 @@ class CertificateGetTests(SharedModuleStoreTestCase):
         expected_url = reverse(
             'certificates:html_view',
             kwargs={
-                "user_id": str(self.student.id),  # pylint: disable=no-member
+                "user_id": str(self.student.id),
                 "course_id": unicode(self.web_cert_course.id),
             }
         )
 
         cert_url = certs_api.get_certificate_url(
-            user_id=self.student.id,  # pylint: disable=no-member
+            user_id=self.student.id,
             course_id=self.web_cert_course.id
         )
         self.assertEqual(expected_url, cert_url)
@@ -455,11 +496,22 @@ class CertificateGetTests(SharedModuleStoreTestCase):
         Test the get_certificate_url with a pdf cert course
         """
         cert_url = certs_api.get_certificate_url(
-            user_id=self.student.id,  # pylint: disable=no-member
+            user_id=self.student.id,
             course_id=self.pdf_cert_course.id,
             uuid=self.uuid
         )
         self.assertEqual('www.gmail.com', cert_url)
+
+    def test_get_certificate_with_deleted_course(self):
+        """
+        Test the case when there is a certificate but the course was deleted.
+        """
+        self.assertIsNone(
+            certs_api.get_certificate_for_user(
+                self.student.username,
+                self.nonexistent_course_id
+            )
+        )
 
 
 @attr(shard=1)
@@ -471,7 +523,7 @@ class GenerateUserCertificatesTest(EventTestMixin, WebCertificateTestMixin, Modu
     ENABLED_SIGNALS = ['course_published']
 
     def setUp(self):  # pylint: disable=arguments-differ
-        super(GenerateUserCertificatesTest, self).setUp('certificates.api.tracker')
+        super(GenerateUserCertificatesTest, self).setUp('lms.djangoapps.certificates.api.tracker')
 
         self.student = UserFactory.create(
             email='joe_user@edx.org',
@@ -518,8 +570,11 @@ class GenerateUserCertificatesTest(EventTestMixin, WebCertificateTestMixin, Modu
 
     def test_generate_user_certificates_with_unverified_cert_status(self):
         """
-        Generate user certificate will not raise exception in case of certificate is None.
+        Generate user certificate when the certificate is unverified
+        will trigger an update to the certificate if the user has since
+        verified.
         """
+        self._setup_course_certificate()
         # generate certificate with unverified status.
         GeneratedCertificateFactory.create(
             user=self.student,
@@ -529,9 +584,9 @@ class GenerateUserCertificatesTest(EventTestMixin, WebCertificateTestMixin, Modu
         )
 
         with mock_passing_grade():
-            with self._mock_queue(is_successful=False):
+            with self._mock_queue():
                 status = certs_api.generate_user_certificates(self.student, self.course.id)
-                self.assertEqual(status, None)
+                self.assertEqual(status, 'generating')
 
     @patch.dict(settings.FEATURES, {'CERTIFICATES_HTML_VIEW': True})
     def test_new_cert_requests_returns_generating_for_html_certificate(self):
@@ -563,7 +618,7 @@ class CertificateGenerationEnabledTest(EventTestMixin, TestCase):
     COURSE_KEY = CourseLocator(org='test', course='test', run='test')
 
     def setUp(self):  # pylint: disable=arguments-differ
-        super(CertificateGenerationEnabledTest, self).setUp('certificates.api.tracker')
+        super(CertificateGenerationEnabledTest, self).setUp('lms.djangoapps.certificates.api.tracker')
 
         # Since model-based configuration is cached, we need
         # to clear the cache before each test.
@@ -701,8 +756,11 @@ def set_microsite(domain):
             """
             Execute the function after setting up the microsite.
             """
-            microsite.set_by_domain(domain)
-            return func(request, *args, **kwargs)
+            try:
+                microsite.set_by_domain(domain)
+                return func(request, *args, **kwargs)
+            finally:
+                microsite.clear()
         return inner
     return decorator
 
@@ -717,7 +775,7 @@ class CertificatesBrandingTest(TestCase):
     @set_microsite(settings.MICROSITE_CONFIGURATION['test_site']['domain_prefix'])
     def test_certificate_header_data(self):
         """
-        Test that get_certificate_header_context from certificates api
+        Test that get_certificate_header_context from lms.djangoapps.certificates api
         returns data customized according to site branding.
         """
         # Generate certificates for the course
@@ -742,7 +800,7 @@ class CertificatesBrandingTest(TestCase):
     @set_microsite(settings.MICROSITE_CONFIGURATION['test_site']['domain_prefix'])
     def test_certificate_footer_data(self):
         """
-        Test that get_certificate_footer_context from certificates api returns
+        Test that get_certificate_footer_context from lms.djangoapps.certificates api returns
         data customized according to site branding.
         """
         # Generate certificates for the course

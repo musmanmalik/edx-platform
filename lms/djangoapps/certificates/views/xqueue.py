@@ -9,18 +9,17 @@ from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.keys import CourseKey
 
-import dogstats_wrapper as dog_stats_api
 from capa.xqueue_interface import XQUEUE_METRIC_NAME
-from certificates.api import generate_user_certificates
-from certificates.models import (
+from lms.djangoapps.certificates.api import generate_user_certificates
+from lms.djangoapps.certificates.models import (
     CertificateStatuses,
     ExampleCertificate,
     GeneratedCertificate,
     certificate_status_for_student
 )
-from util.bad_request_rate_limiter import BadRequestRateLimiter
+from util.request_rate_limiter import BadRequestRateLimiter
 from util.json_request import JsonResponse, JsonResponseBadRequest
 from xmodule.modulestore.django import modulestore
 
@@ -39,10 +38,10 @@ def request_certificate(request):
     then if and only if they pass, do they get a certificate issued.
     """
     if request.method == "POST":
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             username = request.user.username
             student = User.objects.get(username=username)
-            course_key = SlashSeparatedCourseKey.from_deprecated_string(request.POST.get('course_id'))
+            course_key = CourseKey.from_string(request.POST.get('course_id'))
             course = modulestore().get_course(course_key, depth=2)
 
             status = certificate_status_for_student(student, course_key)['status']
@@ -72,7 +71,7 @@ def update_certificate(request):
         xqueue_header = json.loads(request.POST.get('xqueue_header'))
 
         try:
-            course_key = SlashSeparatedCourseKey.from_deprecated_string(xqueue_body['course_id'])
+            course_key = CourseKey.from_string(xqueue_body['course_id'])
 
             cert = GeneratedCertificate.eligible_certificates.get(
                 user__username=xqueue_body['username'],
@@ -128,11 +127,6 @@ def update_certificate(request):
                     content_type='application/json'
                 )
 
-        dog_stats_api.increment(XQUEUE_METRIC_NAME, tags=[
-            u'action:update_certificate',
-            u'course_id:{}'.format(cert.course_id)
-        ])
-
         cert.save()
         return HttpResponse(json.dumps({'return_code': 0}),
                             content_type='application/json')
@@ -175,12 +169,12 @@ def update_example_certificate(request):
 
     if 'xqueue_body' not in request.POST:
         log.info(u"Missing parameter 'xqueue_body' for update example certificate end-point")
-        rate_limiter.tick_bad_request_counter(request)
+        rate_limiter.tick_request_counter(request)
         return JsonResponseBadRequest("Parameter 'xqueue_body' is required.")
 
     if 'xqueue_header' not in request.POST:
         log.info(u"Missing parameter 'xqueue_header' for update example certificate end-point")
-        rate_limiter.tick_bad_request_counter(request)
+        rate_limiter.tick_request_counter(request)
         return JsonResponseBadRequest("Parameter 'xqueue_header' is required.")
 
     try:
@@ -188,7 +182,7 @@ def update_example_certificate(request):
         xqueue_header = json.loads(request.POST['xqueue_header'])
     except (ValueError, TypeError):
         log.info(u"Could not decode params to example certificate end-point as JSON.")
-        rate_limiter.tick_bad_request_counter(request)
+        rate_limiter.tick_request_counter(request)
         return JsonResponseBadRequest("Parameters must be JSON-serialized.")
 
     # Attempt to retrieve the example certificate record
@@ -203,7 +197,7 @@ def update_example_certificate(request):
         # from the XQueue.  Return a 404 and increase the bad request counter
         # to protect against a DDOS attack.
         log.info(u"Could not find example certificate with uuid '%s' and access key '%s'", uuid, access_key)
-        rate_limiter.tick_bad_request_counter(request)
+        rate_limiter.tick_request_counter(request)
         raise Http404
 
     if 'error' in xqueue_body:
@@ -221,7 +215,7 @@ def update_example_certificate(request):
         # so we can display the example certificate.
         download_url = xqueue_body.get('url')
         if download_url is None:
-            rate_limiter.tick_bad_request_counter(request)
+            rate_limiter.tick_request_counter(request)
             log.warning(u"No download URL provided for example certificate with uuid '%s'.", uuid)
             return JsonResponseBadRequest(
                 "Parameter 'download_url' is required for successfully generated certificates."
