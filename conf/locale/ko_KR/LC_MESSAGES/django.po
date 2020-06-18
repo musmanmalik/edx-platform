@@ -21559,6 +21559,11 @@ msgstr "유효한 이메일이 필요합니다."
 msgid "Username should only consist of A-Z and 0-9, with no spaces."
 msgstr "사용자 이름은 공백 없이 A에서 Z까지의 알파벳 및 0에서 9까지의 숫자로만 구성되어야 합니다."
 
+#: users/views.py:778
+#, python-brace-format
+msgid "User '{username}' already exists"
+msgstr "사용자 '{username}'이(가) 이미 있습니다"
+
 #: users/views.py:511
 #, python-brace-format
 msgid "Username '{username}' or email '{email}' already exists"
