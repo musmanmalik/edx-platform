@@ -3152,15 +3152,6 @@ msgid "The more you tell us, the more quickly and helpfully we can respond!"
 msgstr ""
 
 #: common/static/bundles/SingleSupportForm.js
-#: lms/djangoapps/support/static/support/jsx/logged_in_user.jsx
-#: common/static/common/templates/discussion/new-post.underscore
-#: common/static/common/templates/discussion/thread-response.underscore
-#: common/static/common/templates/discussion/thread.underscore
-#: lms/templates/verify_student/incourse_reverify.underscore
-msgid "Submit"
-msgstr ""
-
-#: common/static/bundles/SingleSupportForm.js
 #: lms/djangoapps/support/static/support/jsx/logged_out_user.jsx
 msgid "Sign in to {platform} so we can help you better."
 msgstr ""
@@ -4253,11 +4244,6 @@ msgstr "적게"
 
 #: lms/static/js/customwmd.js
 msgid "HTML preview of post"
-msgstr ""
-
-#: lms/static/js/customwmd.js
-#: common/static/common/templates/discussion/new-post.underscore
-msgid "Your question or idea (required)"
 msgstr ""
 
 #: lms/static/js/dashboard/donation.js

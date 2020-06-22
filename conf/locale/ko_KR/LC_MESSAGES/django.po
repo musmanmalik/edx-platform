@@ -10035,13 +10035,6 @@ msgid ""
 " Make sure that you are providing a valid username or a URL that contains \""
 msgstr ""
 
-#: openedx/core/djangoapps/user_api/accounts/views.py
-#: openedx/core/djangoapps/user_authn/views/login.py
-msgid ""
-"This account has been temporarily locked due to excessive login failures. "
-"Try again later."
-msgstr ""
-
 #: lms/templates/provider_login.html
 msgid "Email or password is incorrect."
 msgstr "이메일 또는 비밀번호가 일치하지 않습니다. 다시 한번 확인하시고 로그인해 주세요. "
@@ -11850,13 +11843,6 @@ msgstr "이메일이 틀립니다"
 
 #: lms/templates/help_modal.html
 msgid "Support"
-msgstr ""
-
-#: lms/templates/help_modal.html
-msgid ""
-"For {strong_start}questions on course lectures, homework, tools, or "
-"materials for this course{strong_end}, post in the {link_start}course "
-"discussion forum{link_end}."
 msgstr ""
 
 #: lms/templates/help_modal.html
