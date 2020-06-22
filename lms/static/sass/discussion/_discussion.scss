@@ -2,83 +2,53 @@
 // ====================
 // NOTE: this file is deprecated, and we should not continue to add to this file. Use other partials as appropriate.
 
-.discussion-body, .discussion-course, div.discussion-body {
+.discussion-body {
   @include clearfix();
+
+  width: 100%;
   border: none;
   background: transparent;
   box-shadow: none;
 
-  .course-tabs .right, .discussion-course-new.right {
-    @include float(right);
+  @include media-breakpoint-up(md) {
+    display: flex;
+    flex-direction: row-reverse;
+  }
 
-    .new-post-btn {
-      //@include blue-button;
-      @include margin-right(4px);
-    }
+  .bottom-post-status {
+    padding: 30px;
+    font-size: $forum-x-large-font-size;
+    font-weight: 700;
+    color: $forum-color-copy-light;
+    text-align: center;
+  }
 
-    .new-post-icon {
-      @include margin-right(7px);
-      font-size: 16px;
-      vertical-align: middle;
-      color: $white;
+  .discussion-article {
+    position: relative;
+
+    a,
+    p {
+      word-wrap: break-word;
     }
   }
 
-  .container .discussion-body, .discussion-module, .discussion-course {
-    @include clearfix;
-    border: none;
-    background: transparent;
-    box-shadow: none;
+  .main-article.new {
+    display: none;
+    padding: ($baseline*2.5);
+  }
 
-    .sidebar ul {
-      list-style: none !important;
-      margin: 0 !important;
-      padding-left: 0 !important;
-    }
+  .discussion-reply-new {
+    @include clearfix();
+    @include transition(opacity 0.2s linear 0s);
 
-    .sr {
-      @extend %text-sr;
-    }
-
-    .wmd-panel textarea.wmd-input {
-      margin-bottom: 0px;
-    }
-
-    .bottom-post-status {
-      padding: 30px;
-      font-size: $forum-x-large-font-size;
+    h4 {
+      font-size: $forum-large-font-size;
       font-weight: 700;
-      color: $forum-color-copy-light;
-      text-align: center;
     }
+  }
 
-    .discussion-article {
-      position: relative;
-
-      a,
-      p {
-        word-wrap: break-word;
-      }
-    }
-
-    .main-article.new {
-      display: none;
-      padding: ($baseline*2.5);
-    }
-
-    .discussion-reply-new {
-      @include clearfix();
-      @include transition(opacity .2s linear 0s);
-
-      h4 {
-        font-size: $forum-large-font-size;
-        font-weight: 700;
-      }
-    }
-
-    .reply-post-control {
-      margin-top: $baseline;
-    }
+  .reply-post-control {
+    margin-top: $baseline;
   }
 }
 
@@ -87,12 +57,13 @@
 // inline discussion module
 .discussion-module {
   @extend .discussion-body;
+
   display: block;
   position: relative;
   border-radius: $forum-border-radius;
 
   header {
-    .anonymous{
+    .anonymous {
       font-size: $forum-base-font-size;
     }
   }
@@ -108,12 +79,14 @@
 
   .discussion-module-header {
     @include float(left);
+
     width: flex-grid(7);
     margin-bottom: ($baseline * 0.75);
   }
 
   .add_post_btn_container {
     @include text-align(right);
+
     width: flex-grid(12);
     height: (2 * $baseline);
   }
@@ -122,19 +95,19 @@
     margin-top: $baseline;
     margin-bottom: $baseline;
   }
-
 }
 
 .discussion-show {
   @include float(right);
+
   position: relative;
   top: 3px;
   font-size: $forum-base-font-size;
   text-align: center;
 
   &.shown {
-    background-color: $btn-default-background-color;
-    color: $uxpl-primary-blue;
+    background-color: theme-color("inverse");
+    color: theme-color("primary");
   }
 }
 
@@ -148,7 +121,7 @@ section.discussion {
   }
 
   .inner-wrapper {
-    max-width: 1180px;
+    max-width: map-get($container-max-widths, xl);
     min-width: 760px;
     margin: auto;
   }
@@ -173,6 +146,7 @@ section.discussion-pagination {
     ol {
       li {
         @include padding-right($baseline/2);
+
         list-style: none;
         display: inline-block;
 
@@ -185,7 +159,7 @@ section.discussion-pagination {
           font-size: $forum-base-font-size;
           font-weight: 700;
           line-height: 32px;
-          color: $gray-d3;
+          color: theme-color("gray-dark");
           text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
         }
       }

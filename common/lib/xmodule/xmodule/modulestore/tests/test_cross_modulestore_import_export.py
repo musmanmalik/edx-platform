@@ -19,9 +19,9 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 import ddt
-from nose.plugins.attrib import attr
 from mock import patch
 
+from openedx.core.lib.tests import attr
 from xmodule.tests import CourseComparisonTest
 from xmodule.modulestore.xml_importer import import_course_from_xml
 from xmodule.modulestore.xml_exporter import export_course_to_xml
@@ -39,9 +39,10 @@ COURSE_DATA_NAMES = (
     'split_test_module_draft',
 )
 
-EXPORTED_COURSE_DIR_NAME = 'exported_source_course'
+EXPORTED_COURSE_DIR_NAME = u'exported_source_course'
 
 
+@attr(shard=2)
 @ddt.ddt
 @attr('mongo')
 class CrossStoreXMLRoundtrip(CourseComparisonTest, PartitionTestCase):
@@ -55,6 +56,7 @@ class CrossStoreXMLRoundtrip(CourseComparisonTest, PartitionTestCase):
         self.export_dir = mkdtemp()
         self.addCleanup(rmtree, self.export_dir, ignore_errors=True)
 
+    @patch('xmodule.video_module.video_module.edxval_api', None)
     @patch('xmodule.tabs.CourseTab.from_json', side_effect=mock_tab_from_json)
     @ddt.data(*itertools.product(
         MODULESTORE_SETUPS,
@@ -186,7 +188,7 @@ class CrossStoreXMLRoundtrip(CourseComparisonTest, PartitionTestCase):
                         self.assertEqual(source_course.url_name, 'course')
 
                         export_dir_path = path(self.export_dir)
-                        policy_dir = export_dir_path / 'exported_source_course' / 'policies' / source_course.url_name
+                        policy_dir = export_dir_path / 'exported_source_course' / 'policies' / source_course_key.run
                         policy_path = policy_dir / 'policy.json'
                         self.assertTrue(os.path.exists(policy_path))
 

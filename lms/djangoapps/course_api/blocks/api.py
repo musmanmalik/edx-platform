@@ -2,9 +2,11 @@
 API function for retrieving course blocks data
 """
 
-from lms.djangoapps.course_blocks.api import COURSE_BLOCK_ACCESS_TRANSFORMERS, get_course_blocks
+import lms.djangoapps.course_blocks.api as course_blocks_api
 from lms.djangoapps.course_blocks.transformers.hidden_content import HiddenContentTransformer
+from lms.djangoapps.course_blocks.transformers.hide_empty import HideEmptyTransformer
 from openedx.core.djangoapps.content.block_structure.transformers import BlockStructureTransformers
+from openedx.core.lib.mobile_utils import is_request_from_mobile_app
 
 from .serializers import BlockDictSerializer, BlockSerializer
 from .transformers.blocks_api import BlocksAPITransformer
@@ -56,10 +58,22 @@ def get_blocks(
         requested_fields = []
     include_completion = 'completion' in requested_fields
     include_special_exams = 'special_exam_info' in requested_fields
+    include_gated_sections = 'show_gated_sections' in requested_fields
 
     if user is not None:
-        transformers += COURSE_BLOCK_ACCESS_TRANSFORMERS
-        transformers += [MilestonesAndSpecialExamsTransformer(include_special_exams), HiddenContentTransformer()]
+        transformers += course_blocks_api.get_course_block_access_transformers(user)
+        transformers += [
+            MilestonesAndSpecialExamsTransformer(
+                include_special_exams=include_special_exams,
+                include_gated_sections=include_gated_sections
+            ),
+            HiddenContentTransformer()
+        ]
+
+    # TODO: Remove this after REVE-52 lands and old-mobile-app traffic falls to < 5% of mobile traffic
+    if is_request_from_mobile_app(request):
+        transformers += [HideEmptyTransformer()]
+
     transformers += [
         BlocksAPITransformer(
             block_counts,
@@ -73,7 +87,7 @@ def get_blocks(
         transformers += [BlockCompletionTransformer()]
 
     # transform
-    blocks = get_course_blocks(user, usage_key, transformers)
+    blocks = course_blocks_api.get_course_blocks(user, usage_key, transformers)
 
     # filter blocks by types
     if block_types_filter:

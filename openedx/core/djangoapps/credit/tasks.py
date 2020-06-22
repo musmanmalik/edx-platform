@@ -11,16 +11,14 @@ from opaque_keys.edx.keys import CourseKey, UsageKey
 from openedx.core.djangoapps.credit.api import set_credit_requirements
 from openedx.core.djangoapps.credit.exceptions import InvalidCreditRequirements
 from openedx.core.djangoapps.credit.models import CreditCourse
-from openedx.core.djangoapps.credit.utils import get_course_blocks
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
 
 LOGGER = get_task_logger(__name__)
 
 
-# pylint: disable=not-callable
 @task(default_retry_delay=settings.CREDIT_TASK_DEFAULT_RETRY_DELAY, max_retries=settings.CREDIT_TASK_MAX_RETRIES)
-def update_credit_course_requirements(course_id):   # pylint: disable=invalid-name
+def update_credit_course_requirements(course_id):
     """
     Updates course requirements table for a course.
 

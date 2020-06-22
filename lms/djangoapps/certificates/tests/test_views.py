@@ -4,16 +4,16 @@ import json
 from uuid import uuid4
 
 import ddt
+import datetime
 from django.conf import settings
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test.client import Client
 from django.test.utils import override_settings
-from nose.plugins.attrib import attr
 from opaque_keys.edx.locator import CourseLocator
 
-from certificates.api import get_certificate_url
-from certificates.models import (
+from lms.djangoapps.certificates.api import get_certificate_url
+from lms.djangoapps.certificates.models import (
     CertificateHtmlViewConfiguration,
     ExampleCertificate,
     ExampleCertificateSet,
@@ -36,10 +36,10 @@ FEATURES_WITH_CUSTOM_CERTS_ENABLED = {
 FEATURES_WITH_CUSTOM_CERTS_ENABLED.update(FEATURES_WITH_CERTS_ENABLED)
 
 
-@attr(shard=1)
 @ddt.ddt
 class UpdateExampleCertificateViewTest(CacheIsolationTestCase):
     """Tests for the XQueue callback that updates example certificates. """
+    shard = 1
 
     COURSE_KEY = CourseLocator(org='test', course='test', run='test')
 
@@ -58,7 +58,7 @@ class UpdateExampleCertificateViewTest(CacheIsolationTestCase):
             description=self.DESCRIPTION,
             template=self.TEMPLATE,
         )
-        self.url = reverse('certificates.views.update_example_certificate')
+        self.url = reverse('update_example_certificate')
 
         # Since rate limit counts are cached, we need to clear
         # this before each test.
@@ -180,16 +180,20 @@ class UpdateExampleCertificateViewTest(CacheIsolationTestCase):
         self.assertEqual(content['return_code'], 0)
 
 
-@attr(shard=1)
 class MicrositeCertificatesViewsTests(ModuleStoreTestCase):
     """
     Tests for the microsite certificates web/html views
     """
+    shard = 1
+
     def setUp(self):
         super(MicrositeCertificatesViewsTests, self).setUp()
         self.client = Client()
         self.course = CourseFactory.create(
-            org='testorg', number='run1', display_name='refundable course'
+            org='testorg',
+            number='run1',
+            display_name='refundable course',
+            certificate_available_date=datetime.datetime.today() - datetime.timedelta(days=1)
         )
         self.course.cert_html_view_enabled = True
         self.course.save()

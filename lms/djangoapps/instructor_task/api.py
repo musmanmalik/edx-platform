@@ -12,9 +12,10 @@ from collections import Counter
 from celery.states import READY_STATES
 
 from bulk_email.models import CourseEmail
-from certificates.models import CertificateGenerationHistory
+from lms.djangoapps.certificates.models import CertificateGenerationHistory
 from lms.djangoapps.instructor_task.api_helper import (
     check_arguments_for_rescoring,
+    check_arguments_for_overriding,
     check_entrance_exam_problems_for_rescoring,
     encode_entrance_exam_and_student_input,
     encode_problem_and_student_input,
@@ -22,6 +23,7 @@ from lms.djangoapps.instructor_task.api_helper import (
 )
 from lms.djangoapps.instructor_task.models import InstructorTask
 from lms.djangoapps.instructor_task.tasks import (
+    override_problem_score,
     calculate_grades_csv,
     calculate_may_enroll_csv,
     calculate_problem_grade_report,
@@ -78,7 +80,7 @@ def get_instructor_task_history(course_id, usage_key=None, student=None, task_ty
     return instructor_tasks.order_by('-id')
 
 
-def get_entrance_exam_instructor_task_history(course_id, usage_key=None, student=None):  # pylint: disable=invalid-name
+def get_entrance_exam_instructor_task_history(course_id, usage_key=None, student=None):
     """
     Returns a query of InstructorTask objects of historical tasks for a given course,
     that optionally match an entrance exam and student if present.
@@ -92,7 +94,7 @@ def get_entrance_exam_instructor_task_history(course_id, usage_key=None, student
 
 
 # Disabling invalid-name because this fn name is longer than 30 chars.
-def submit_rescore_problem_for_student(request, usage_key, student, only_if_higher=False):  # pylint: disable=invalid-name
+def submit_rescore_problem_for_student(request, usage_key, student, only_if_higher=False):
     """
     Request a problem to be rescored as a background task.
 
@@ -114,7 +116,29 @@ def submit_rescore_problem_for_student(request, usage_key, student, only_if_high
     return submit_task(request, task_type, task_class, usage_key.course_key, task_input, task_key)
 
 
-def submit_rescore_problem_for_all_students(request, usage_key, only_if_higher=False):  # pylint: disable=invalid-name
+def submit_override_score(request, usage_key, student, score):
+    """
+    Request a problem score override as a background task. Only
+    applicable to individual users.
+
+    The problem score will be overridden for the specified student only.
+    Parameters are the `course_id`, the `problem_url`, the `student` as
+    a User object, and the score override desired.
+    The url must specify the location of the problem, using i4x-type notation.
+
+    ItemNotFoundException is raised if the problem doesn't exist, or AlreadyRunningError
+    if this task is already running for this student, or NotImplementedError if
+    the problem is not a ScorableXBlock.
+    """
+    check_arguments_for_overriding(usage_key, score)
+    task_type = override_problem_score.__name__
+    task_class = override_problem_score
+    task_input, task_key = encode_problem_and_student_input(usage_key, student)
+    task_input['score'] = score
+    return submit_task(request, task_type, task_class, usage_key.course_key, task_input, task_key)
+
+
+def submit_rescore_problem_for_all_students(request, usage_key, only_if_higher=False):
     """
     Request a problem to be rescored as a background task.
 
@@ -138,7 +162,7 @@ def submit_rescore_problem_for_all_students(request, usage_key, only_if_higher=F
     return submit_task(request, task_type, task_class, usage_key.course_key, task_input, task_key)
 
 
-def submit_rescore_entrance_exam_for_student(request, usage_key, student=None, only_if_higher=False):  # pylint: disable=invalid-name
+def submit_rescore_entrance_exam_for_student(request, usage_key, student=None, only_if_higher=False):
     """
     Request entrance exam problems to be re-scored as a background task.
 
@@ -356,7 +380,7 @@ def submit_calculate_students_features_csv(request, course_key, features):
     return submit_task(request, task_type, task_class, course_key, task_input, task_key)
 
 
-def submit_detailed_enrollment_features_csv(request, course_key):  # pylint: disable=invalid-name
+def submit_detailed_enrollment_features_csv(request, course_key):
     """
     Submits a task to generate a CSV containing detailed enrollment info.
 
@@ -413,7 +437,7 @@ def submit_course_survey_report(request, course_key):
     return submit_task(request, task_type, task_class, course_key, task_input, task_key)
 
 
-def submit_proctored_exam_results_report(request, course_key, features):  # pylint: disable=invalid-name
+def submit_proctored_exam_results_report(request, course_key):
     """
     Submits a task to generate a HTML File containing the executive summary report.
 
@@ -421,7 +445,7 @@ def submit_proctored_exam_results_report(request, course_key, features):  # pyli
     """
     task_type = 'proctored_exam_results_report'
     task_class = proctored_exam_results_csv
-    task_input = {'features': features}
+    task_input = {}
     task_key = ""
 
     return submit_task(request, task_type, task_class, course_key, task_input, task_key)
@@ -453,7 +477,7 @@ def submit_export_ora2_data(request, course_key):
     return submit_task(request, task_type, task_class, course_key, task_input, task_key)
 
 
-def generate_certificates_for_students(request, course_key, student_set=None, specific_student_id=None):  # pylint: disable=invalid-name
+def generate_certificates_for_students(request, course_key, student_set=None, specific_student_id=None):
     """
     Submits a task to generate certificates for given students enrolled in the course.
 

@@ -32,6 +32,9 @@
                     routerEvents;
 
                 // TODO: eliminate usage of global variables when possible
+                if (options.roles === undefined) {
+                    options.roles = {};
+                }
                 DiscussionUtil.loadRoles(options.roles);
                 window.$$course_id = options.courseId;
                 window.courseName = options.courseName;
@@ -60,7 +63,8 @@
                     course_settings: courseSettings,
                     discussionBoardView: discussionBoardView,
                     mode: 'tab',
-                    startHeader: 2
+                    startHeader: 2,
+                    topicId: options.defaultTopicId
                 });
                 newPostView.render();
 

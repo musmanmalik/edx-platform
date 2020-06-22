@@ -4,7 +4,7 @@ Test xblock/validation.py
 
 import unittest
 
-from nose.tools import assert_raises
+import pytest
 
 from xmodule.validation import StudioValidationMessage, StudioValidation
 from xblock.validation import Validation, ValidationMessage
@@ -14,21 +14,22 @@ class StudioValidationMessageTest(unittest.TestCase):
     """
     Tests for `ValidationMessage`
     """
+    shard = 1
 
     def test_bad_parameters(self):
         """
         Test that `TypeError`s are thrown for bad input parameters.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             StudioValidationMessage("unknown type", u"Unknown type info")
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             StudioValidationMessage(StudioValidationMessage.WARNING, u"bad warning", action_class=0)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             StudioValidationMessage(StudioValidationMessage.WARNING, u"bad warning", action_runtime_event=0)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             StudioValidationMessage(StudioValidationMessage.WARNING, u"bad warning", action_label="Non-unicode string")
 
     def test_to_json(self):
@@ -73,6 +74,8 @@ class StudioValidationTest(unittest.TestCase):
     """
     Tests for `StudioValidation` class.
     """
+    shard = 1
+
     def test_copy(self):
         validation = Validation("id")
         validation.add(ValidationMessage(ValidationMessage.ERROR, u"Error message"))
@@ -105,7 +108,7 @@ class StudioValidationTest(unittest.TestCase):
         self.assertEqual(expected, validation_copy.messages[0].to_json())
 
     def test_copy_errors(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             StudioValidation.copy("foo")
 
     def test_empty(self):
@@ -165,7 +168,7 @@ class StudioValidationTest(unittest.TestCase):
         """
         Test that `set_summary` errors if argument is not a ValidationMessage.
         """
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             StudioValidation("id").set_summary("foo")
 
     def test_to_json(self):

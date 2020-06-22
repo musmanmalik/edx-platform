@@ -1,23 +1,20 @@
-# pylint: disable=no-member
 """
 Tests for the Third Party Auth REST API
 """
-import json
 import unittest
 
 import ddt
+import six
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
 from django.http import QueryDict
 from django.test.utils import override_settings
+from django.urls import reverse
 from mock import patch
 from provider.constants import CONFIDENTIAL
 from provider.oauth2.models import Client, AccessToken
 from openedx.core.lib.api.permissions import ApiKeyHeaderPermission
 from rest_framework.test import APITestCase
-from django.conf import settings
-from django.test.utils import override_settings
 from social_django.models import UserSocialAuth
 
 from student.tests.factories import UserFactory
@@ -60,7 +57,7 @@ class TpaAPITestCase(ThirdPartyAuthTestMixin, APITestCase):
         testshib = self.configure_saml_provider(
             name='TestShib',
             enabled=True,
-            idp_slug=IDP_SLUG_TESTSHIB
+            slug=IDP_SLUG_TESTSHIB
         )
 
         # Create several users and link each user to Google and TestShib
@@ -82,7 +79,7 @@ class TpaAPITestCase(ThirdPartyAuthTestMixin, APITestCase):
             UserSocialAuth.objects.create(
                 user=user,
                 provider=testshib.backend_name,
-                uid='{}:remote_{}'.format(testshib.idp_slug, username),
+                uid='{}:remote_{}'.format(testshib.slug, username),
             )
         # Create another user not linked to any providers:
         UserFactory.create(username=CARL_USERNAME, email='{}@example.com'.format(CARL_USERNAME), password=PASSWORD)
@@ -99,12 +96,10 @@ class TpaAPITestCase(ThirdPartyAuthTestMixin, APITestCase):
         inactive_user.save()
 
 
-@override_settings(EDX_API_KEY=VALID_API_KEY)
 @ddt.ddt
-@unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
-class UserViewAPITests(TpaAPITestCase):
+class UserViewsMixin(object):
     """
-    Test the Third Party Auth User REST API
+    Generic TestCase to exercise the v1 and v2 UserViews.
     """
 
     def expected_active(self, username):
@@ -143,7 +138,7 @@ class UserViewAPITests(TpaAPITestCase):
     @ddt.unpack
     def test_list_connected_providers(self, request_user, target_user, expect_result):
         self.client.login(username=request_user, password=PASSWORD)
-        url = reverse('third_party_auth_users_api', kwargs={'username': target_user})
+        url = self.make_url({'username': target_user})
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, expect_result)
@@ -160,7 +155,7 @@ class UserViewAPITests(TpaAPITestCase):
     )
     @ddt.unpack
     def test_list_connected_providers_with_api_key(self, api_key, target_user, expect_result):
-        url = reverse('third_party_auth_users_api', kwargs={'username': target_user})
+        url = self.make_url({'username': target_user})
         response = self.client.get(url, HTTP_X_EDX_API_KEY=api_key)
         self.assertEqual(response.status_code, expect_result)
         if expect_result == 200:
@@ -177,7 +172,7 @@ class UserViewAPITests(TpaAPITestCase):
     def test_allow_unprivileged_response(self, allow_unprivileged, requesting_user, expect, include_remote_id):
         self.client.login(username=requesting_user, password=PASSWORD)
         with override_settings(ALLOW_UNPRIVILEGED_SSO_PROVIDER_QUERY=allow_unprivileged):
-            url = reverse('third_party_auth_users_api', kwargs={'username': ALICE_USERNAME})
+            url = self.make_url({'username': ALICE_USERNAME})
             response = self.client.get(url)
         self.assertEqual(response.status_code, expect)
         if response.status_code == 200:
@@ -187,18 +182,66 @@ class UserViewAPITests(TpaAPITestCase):
 
     def test_allow_query_by_email(self):
         self.client.login(username=ALICE_USERNAME, password=PASSWORD)
-        url = reverse('third_party_auth_users_api', kwargs={'username': '{}@example.com'.format(ALICE_USERNAME)})
+        url = self.make_url({'email': '{}@example.com'.format(ALICE_USERNAME)})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertGreater(len(response.data['active']), 0)
 
     def test_get_inactive_user(self):
         self.client.login(username=ADMIN_USERNAME, password=PASSWORD)
-        url = reverse('third_party_auth_users_api', kwargs={'username': INACTIVE_USERNAME})
+        url = self.make_url({'email': '{}@example.com'.format(INACTIVE_USERNAME)})
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['account_active'], False)
+
+    def test_throttling(self):
+        # Default throttle is 10/min.  Make 11 requests to verify
+        throttling_user = UserFactory.create(password=PASSWORD)
+        self.client.login(username=throttling_user.username, password=PASSWORD)
+        url = self.make_url({'username': ALICE_USERNAME})
+        with override_settings(ALLOW_UNPRIVILEGED_SSO_PROVIDER_QUERY=True):
+            for _ in range(10):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+
+
+@override_settings(EDX_API_KEY=VALID_API_KEY)
+@ddt.ddt
+@unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
+class UserViewAPITests(UserViewsMixin, TpaAPITestCase):
+    """
+    Test the Third Party Auth User REST API
+    """
+
+    def make_url(self, identifier):
+        """
+        Return the view URL, with the identifier provided
+        """
+        return reverse(
+            'third_party_auth_users_api',
+            kwargs={'username': identifier.values()[0]}
+        )
+
+
+@override_settings(EDX_API_KEY=VALID_API_KEY)
+@ddt.ddt
+@unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
+class UserViewV2APITests(UserViewsMixin, TpaAPITestCase):
+    """
+    Test the Third Party Auth User REST API
+    """
+
+    def make_url(self, identifier):
+        """
+        Return the view URL, with the identifier provided
+        """
+        return '?'.join([
+            reverse('third_party_auth_users_api_v2'),
+            six.moves.urllib.parse.urlencode(identifier)
+        ])
 
 
 @override_settings(EDX_API_KEY=VALID_API_KEY)
@@ -289,7 +332,7 @@ class UserMappingViewAPITests(TpaAPITestCase):
         self._verify_response(response, expect_code, expect_data)
 
     def test_user_mappings_only_return_requested_idp_mapping_by_provider_id(self):
-        testshib2 = self.configure_saml_provider(name='TestShib2', enabled=True, idp_slug='testshib2')
+        testshib2 = self.configure_saml_provider(name='TestShib2', enabled=True, slug='testshib2')
         username = 'testshib2user'
         user = UserFactory.create(
             username=username,
@@ -300,7 +343,7 @@ class UserMappingViewAPITests(TpaAPITestCase):
         UserSocialAuth.objects.create(
             user=user,
             provider=testshib2.backend_name,
-            uid='{}:{}'.format(testshib2.idp_slug, username),
+            uid='{}:{}'.format(testshib2.slug, username),
         )
 
         url = reverse('third_party_auth_user_mapping_api', kwargs={'provider_id': PROVIDER_ID_TESTSHIB})

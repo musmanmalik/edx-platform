@@ -2,21 +2,30 @@
 """
 Tests for video outline API
 """
-
+import ddt
 import itertools
+import json
+
 from collections import namedtuple
+from mock import Mock
 from uuid import uuid4
 
-import ddt
+from django.conf import settings
 from edxval import api
 from milestones.tests.utils import MilestonesTestCaseMixin
-from nose.plugins.attrib import attr
+from mock import patch
 
 from mobile_api.models import MobileApiConfig
-from mobile_api.testutils import MobileAPITestCase, MobileAuthTestMixin, MobileCourseAccessTestMixin
+from mobile_api.testutils import (
+    MobileAPITestCase,
+    MobileAuthTestMixin,
+    MobileCourseAccessTestMixin
+)
+from mobile_api.utils import API_V05, API_V1
 from openedx.core.djangoapps.course_groups.cohorts import add_user_to_cohort, remove_user_from_cohort
 from openedx.core.djangoapps.course_groups.models import CourseUserGroupPartitionGroup
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
+from openedx.core.lib.tests import attr
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.factories import ItemFactory
 from xmodule.partitions.partitions import Group, UserPartition
@@ -62,6 +71,7 @@ class TestVideoAPITestCase(MobileAPITestCase):
         self.edx_video_id = 'testing-123'
         self.video_url = 'http://val.edx.org/val/video.mp4'
         self.video_url_high = 'http://val.edx.org/val/video_high.mp4'
+        self.video_url_low = 'http://val.edx.org/val/video_low.mp4'
         self.youtube_url = 'http://val.edx.org/val/youtube.mp4'
         self.html5_video_url = 'http://video.edx.org/html5/video.mp4'
 
@@ -156,7 +166,7 @@ class TestVideoAPIMixin(object):
 
     def _setup_course_partitions(self, scheme_id='random', is_cohorted=False):
         """Helper method to configure the user partitions in the course."""
-        self.partition_id = 0  # pylint: disable=attribute-defined-outside-init
+        self.partition_id = 0
         self.course.user_partitions = [
             UserPartition(
                 self.partition_id, 'first_partition', 'First Partition',
@@ -175,7 +185,7 @@ class TestVideoAPIMixin(object):
     def _setup_split_module(self, sub_block_category):
         """Helper method to configure a split_test unit with children of type sub_block_category."""
         self._setup_course_partitions()
-        self.split_test = ItemFactory.create(  # pylint: disable=attribute-defined-outside-init
+        self.split_test = ItemFactory.create(
             parent=self.unit,
             category="split_test",
             display_name=u"split test unit",
@@ -198,12 +208,13 @@ class TestVideoAPIMixin(object):
         return sub_block_a, sub_block_b
 
 
-@attr(shard=2)
+@attr(shard=9)
+@ddt.ddt
 class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, MilestonesTestCaseMixin):
     """
-    Tests /api/mobile/v0.5/video_outlines/courses/{course_id} with no course set
+    Tests /api/mobile/{api_version}/video_outlines/courses/{course_id} with no course set
     """
-    REVERSE_INFO = {'name': 'video-summary-list', 'params': ['course_id']}
+    REVERSE_INFO = {'name': 'video-summary-list', 'params': ['course_id', 'api_version']}
 
     def setUp(self):
         super(TestNonStandardCourseStructure, self).setUp()
@@ -233,7 +244,8 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             display_name=u"test factory vertical under section omega \u03a9",
         )
 
-    def test_structure_course_video(self):
+    @ddt.data(API_V05, API_V1)
+    def test_structure_course_video(self, api_version):
         """
         Tests when there is a video without a vertical directly under course
         """
@@ -243,7 +255,7 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             category="video",
             display_name=u"test factory video omega \u03a9",
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         section_url = course_outline[0]["section_url"]
         unit_url = course_outline[0]["unit_url"]
@@ -252,7 +264,8 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
 
         self._verify_paths(course_outline, [])
 
-    def test_structure_course_vert_video(self):
+    @ddt.data(API_V05, API_V1)
+    def test_structure_course_vert_video(self, api_version):
         """
         Tests when there is a video under vertical directly under course
         """
@@ -262,7 +275,7 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             category="video",
             display_name=u"test factory video omega \u03a9",
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         section_url = course_outline[0]["section_url"]
         unit_url = course_outline[0]["unit_url"]
@@ -279,7 +292,8 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             ]
         )
 
-    def test_structure_course_chap_video(self):
+    @ddt.data(API_V05, API_V1)
+    def test_structure_course_chap_video(self, api_version):
         """
         Tests when there is a video directly under chapter
         """
@@ -290,7 +304,7 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             category="video",
             display_name=u"test factory video omega \u03a9",
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         section_url = course_outline[0]["section_url"]
         unit_url = course_outline[0]["unit_url"]
@@ -308,7 +322,8 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             ]
         )
 
-    def test_structure_course_section_video(self):
+    @ddt.data(API_V05, API_V1)
+    def test_structure_course_section_video(self, api_version):
         """
         Tests when chapter is none, and video under section under course
         """
@@ -318,7 +333,7 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             category="video",
             display_name=u"test factory video omega \u03a9",
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         section_url = course_outline[0]["section_url"]
         unit_url = course_outline[0]["unit_url"]
@@ -336,7 +351,8 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             ]
         )
 
-    def test_structure_course_chap_section_video(self):
+    @ddt.data(API_V05, API_V1)
+    def test_structure_course_chap_section_video(self, api_version):
         """
         Tests when chapter and sequential exists, with a video with no vertical.
         """
@@ -347,7 +363,7 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             category="video",
             display_name=u"meow factory video omega \u03a9",
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         section_url = course_outline[0]["section_url"]
         unit_url = course_outline[0]["unit_url"]
@@ -369,7 +385,8 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             ]
         )
 
-    def test_structure_course_section_vert_video(self):
+    @ddt.data(API_V05, API_V1)
+    def test_structure_course_section_vert_video(self, api_version):
         """
         Tests chapter->section->vertical->unit
         """
@@ -379,7 +396,7 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
             category="video",
             display_name=u"test factory video omega \u03a9",
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         section_url = course_outline[0]["section_url"]
         unit_url = course_outline[0]["unit_url"]
@@ -408,19 +425,20 @@ class TestNonStandardCourseStructure(MobileAPITestCase, TestVideoAPIMixin, Miles
         )
 
 
-@attr(shard=2)
+@attr(shard=9)
 @ddt.ddt
 class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCourseAccessTestMixin,
                            TestVideoAPIMixin, MilestonesTestCaseMixin):
     """
-    Tests for /api/mobile/v0.5/video_outlines/courses/{course_id}..
+    Tests for /api/mobile/{api_version}/video_outlines/courses/{course_id}..
     """
-    REVERSE_INFO = {'name': 'video-summary-list', 'params': ['course_id']}
+    REVERSE_INFO = {'name': 'video-summary-list', 'params': ['course_id', 'api_version']}
 
-    def test_only_on_web(self):
+    @ddt.data(API_V05, API_V1)
+    def test_only_on_web(self, api_version):
         self.login_and_enroll()
 
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 0)
 
         subid = uuid4().hex
@@ -443,7 +461,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             subid=subid
         )
 
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
 
         self.assertEqual(len(course_outline), 1)
 
@@ -457,7 +475,8 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         self.assertEqual(course_outline[0]["summary"]["category"], "video")
         self.assertTrue(course_outline[0]["summary"]["only_on_web"])
 
-    def test_mobile_api_config(self):
+    @ddt.data(API_V05, API_V1)
+    def test_mobile_api_video_profiles(self, api_version):
         """
         Tests VideoSummaryList with different MobileApiConfig video_profiles
         """
@@ -492,6 +511,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         )
 
         expected_output = {
+            'all_sources': [],
             'category': u'video',
             'video_thumbnail_url': None,
             'language': u'en',
@@ -499,7 +519,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             'video_url': self.video_url_high,
             'duration': 12.0,
             'transcripts': {
-                'en': 'http://testserver/api/mobile/v0.5/video_outlines/transcripts/{}/testing_mobile_high_video/en'.format(self.course.id)  # pylint: disable=line-too-long
+                'en': 'http://testserver/api/mobile/{api_version}/video_outlines/transcripts/{course_id}/testing_mobile_high_video/en'.format(api_version=api_version, course_id=self.course.id)  # pylint: disable=line-too-long
             },
             'only_on_web': False,
             'encoded_videos': {
@@ -515,27 +535,36 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             'size': 111
         }
 
+        # The transcript was not entered, so it should not be found!
+        # This is the default behaviour at courses.edX.org, based on `FALLBACK_TO_ENGLISH_TRANSCRIPTS`
+        transcripts_response = self.client.get(expected_output['transcripts']['en'])
+        self.assertEqual(404, transcripts_response.status_code)
+
+        with patch.dict(settings.FEATURES, FALLBACK_TO_ENGLISH_TRANSCRIPTS=False):
+            # Other platform installations may override this setting
+            # This ensures that the server don't return empty English transcripts when there's none!
+            self.assertFalse(self.api_response(api_version=api_version).data[0]['summary'].get('transcripts'))
+
         # Testing when video_profiles='mobile_low,mobile_high,youtube'
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         course_outline[0]['summary'].pop("id")
         self.assertEqual(course_outline[0]['summary'], expected_output)
 
         # Testing when there is no mobile_low, and that mobile_high doesn't show
         MobileApiConfig(video_profiles="mobile_low,youtube").save()
 
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
 
         expected_output['encoded_videos'].pop('mobile_high')
         expected_output['video_url'] = self.youtube_url
         expected_output['size'] = 2222
-
         course_outline[0]['summary'].pop("id")
         self.assertEqual(course_outline[0]['summary'], expected_output)
 
         # Testing where youtube is the default video over mobile_high
         MobileApiConfig(video_profiles="youtube,mobile_high").save()
 
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
 
         expected_output['encoded_videos']['mobile_high'] = {
             'url': self.video_url_high,
@@ -545,7 +574,42 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         course_outline[0]['summary'].pop("id")
         self.assertEqual(course_outline[0]['summary'], expected_output)
 
-    def test_video_not_in_val(self):
+    @ddt.data(API_V05, API_V1)
+    def test_mobile_api_html5_sources(self, api_version):
+        """
+        Tests VideoSummaryList without the video pipeline, using fallback HTML5 video URLs
+        """
+        self.login_and_enroll()
+        descriptor = ItemFactory.create(
+            parent=self.other_unit,
+            category="video",
+            display_name=u"testing html5 sources",
+            edx_video_id=None,
+            source=self.video_url_high,
+            html5_sources=[self.video_url_low],
+        )
+        expected_output = {
+            'all_sources': [self.video_url_low, self.video_url_high],
+            'category': u'video',
+            'video_thumbnail_url': None,
+            'language': u'en',
+            'id': unicode(descriptor.scope_ids.usage_id),
+            'name': u'testing html5 sources',
+            'video_url': self.video_url_low,
+            'duration': None,
+            'transcripts': {
+                'en': 'http://testserver/api/mobile/{api_version}/video_outlines/transcripts/{course_id}/testing_html5_sources/en'.format(api_version=api_version, course_id=self.course.id)  # pylint: disable=line-too-long
+            },
+            'only_on_web': False,
+            'encoded_videos': None,
+            'size': 0,
+        }
+
+        course_outline = self.api_response(api_version=api_version).data
+        self.assertEqual(course_outline[0]['summary'], expected_output)
+
+    @ddt.data(API_V05, API_V1)
+    def test_video_not_in_val(self, api_version):
         self.login_and_enroll()
         self._create_video_with_subs()
         ItemFactory.create(
@@ -556,14 +620,15 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             html5_sources=[self.html5_video_url]
         )
 
-        summary = self.api_response().data[1]['summary']
+        summary = self.api_response(api_version=api_version).data[1]['summary']
         self.assertEqual(summary['name'], "some non existent video in val")
         self.assertIsNone(summary['encoded_videos'])
         self.assertIsNone(summary['duration'])
         self.assertEqual(summary['size'], 0)
         self.assertEqual(summary['video_url'], self.html5_video_url)
 
-    def test_course_list(self):
+    @ddt.data(API_V05, API_V1)
+    def test_course_list(self, api_version):
         self.login_and_enroll()
         self._create_video_with_subs()
         ItemFactory.create(
@@ -586,7 +651,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             visible_to_staff_only=True,
         )
 
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 3)
         vid = course_outline[0]
         self.assertIn('test_subsection_omega_%CE%A9', vid['section_url'])
@@ -605,7 +670,8 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         self.assertEqual(course_outline[2]['summary']['size'], 0)
         self.assertFalse(course_outline[2]['summary']['only_on_web'])
 
-    def test_with_nameless_unit(self):
+    @ddt.data(API_V05, API_V1)
+    def test_with_nameless_unit(self, api_version):
         self.login_and_enroll()
         ItemFactory.create(
             parent=self.nameless_unit,
@@ -613,11 +679,12 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             edx_video_id=self.edx_video_id,
             display_name=u"test draft video omega 2 \u03a9"
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         self.assertEqual(course_outline[0]['path'][2]['name'], self.nameless_unit.location.block_id)
 
-    def test_with_video_in_sub_section(self):
+    @ddt.data(API_V05, API_V1)
+    def test_with_video_in_sub_section(self, api_version):
         """
         Tests a non standard xml format where a video is underneath a sequential
 
@@ -631,7 +698,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             edx_video_id=self.edx_video_id,
             display_name=u"video in the sub section"
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 1)
         self.assertEqual(len(course_outline[0]['path']), 2)
         section_url = course_outline[0]["section_url"]
@@ -646,17 +713,17 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         self.assertEqual(section_url, unit_url)
 
     @ddt.data(
-        *itertools.product([True, False], ["video", "problem"])
+        *itertools.product([True, False], ["video", "problem"], [API_V05, API_V1])
     )
     @ddt.unpack
-    def test_with_split_block(self, is_user_staff, sub_block_category):
+    def test_with_split_block(self, is_user_staff, sub_block_category, api_version):
         """Test with split_module->sub_block_category and for both staff and non-staff users."""
         self.login_and_enroll()
         self.user.is_staff = is_user_staff
         self.user.save()
         self._setup_split_module(sub_block_category)
 
-        video_outline = self.api_response().data
+        video_outline = self.api_response(api_version=api_version).data
         num_video_blocks = 1 if sub_block_category == "video" else 0
         self.assertEqual(len(video_outline), num_video_blocks)
         for block_index in range(num_video_blocks):
@@ -672,7 +739,8 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             )
             self.assertIn(u"split test block", video_outline[block_index]["summary"]["name"])
 
-    def test_with_split_vertical(self):
+    @ddt.data(API_V05, API_V1)
+    def test_with_split_vertical(self, api_version):
         """Test with split_module->vertical->video structure."""
         self.login_and_enroll()
         split_vertical_a, split_vertical_b = self._setup_split_module("vertical")
@@ -688,7 +756,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             display_name=u"video in vertical b",
         )
 
-        video_outline = self.api_response().data
+        video_outline = self.api_response(api_version=api_version).data
 
         # user should see only one of the videos (a or b).
         self.assertEqual(len(video_outline), 1)
@@ -728,8 +796,14 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             display_name=u"video for group " + unicode(group_id),
         )
 
-    @ddt.data("_create_cohorted_video", "_create_cohorted_vertical_with_video")
-    def test_with_cohorted_content(self, content_creator_method_name):
+    @ddt.data(
+        ("_create_cohorted_video", API_V05),
+        ("_create_cohorted_video", API_V1),
+        ("_create_cohorted_vertical_with_video", API_V05),
+        ("_create_cohorted_vertical_with_video", API_V1),
+    )
+    @ddt.unpack
+    def test_with_cohorted_content(self, content_creator_method_name, api_version):
         self.login_and_enroll()
         self._setup_course_partitions(scheme_id='cohort', is_cohorted=True)
 
@@ -750,7 +824,7 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             add_user_to_cohort(cohorts[cohort_index], self.user.username)
 
             # should only see video for this cohort
-            video_outline = self.api_response().data
+            video_outline = self.api_response(api_version=api_version).data
             self.assertEqual(len(video_outline), 1)
             self.assertEquals(
                 u"video for group " + unicode(cohort_index),
@@ -761,16 +835,17 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             remove_user_from_cohort(cohorts[cohort_index], self.user.username)
 
         # un-cohorted user should see no videos
-        video_outline = self.api_response().data
+        video_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(video_outline), 0)
 
         # staff user sees all videos
         self.user.is_staff = True
         self.user.save()
-        video_outline = self.api_response().data
+        video_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(video_outline), 2)
 
-    def test_with_hidden_blocks(self):
+    @ddt.data(API_V05, API_V1)
+    def test_with_hidden_blocks(self, api_version):
         self.login_and_enroll()
         hidden_subsection = ItemFactory.create(
             parent=self.section,
@@ -796,10 +871,11 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             category="video",
             edx_video_id=self.edx_video_id,
         )
-        course_outline = self.api_response().data
+        course_outline = self.api_response(api_version=api_version).data
         self.assertEqual(len(course_outline), 0)
 
-    def test_language(self):
+    @ddt.data(API_V05, API_V1)
+    def test_language(self, api_version):
         self.login_and_enroll()
         video = ItemFactory.create(
             parent=self.nameless_unit,
@@ -824,11 +900,12 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
         for case in language_cases:
             video.transcripts = case.transcripts
             modulestore().update_item(video, self.user.id)
-            course_outline = self.api_response().data
+            course_outline = self.api_response(api_version=api_version).data
             self.assertEqual(len(course_outline), 1)
             self.assertEqual(course_outline[0]['summary']['language'], case.expected_language)
 
-    def test_transcripts(self):
+    @ddt.data(API_V05, API_V1)
+    def test_transcripts(self, api_version):
         self.login_and_enroll()
         video = ItemFactory.create(
             parent=self.nameless_unit,
@@ -857,21 +934,58 @@ class TestVideoSummaryList(TestVideoAPITestCase, MobileAuthTestMixin, MobileCour
             video.transcripts = case.transcripts
             video.sub = case.english_subtitle
             modulestore().update_item(video, self.user.id)
-            course_outline = self.api_response().data
+            course_outline = self.api_response(api_version=api_version).data
             self.assertEqual(len(course_outline), 1)
             self.assertSetEqual(
                 set(course_outline[0]['summary']['transcripts'].keys()),
                 set(case.expected_transcripts)
             )
 
+    @ddt.data(
+        ({}, '', [], ['en'], API_V05),
+        ({}, '', [], ['en'], API_V1),
+        ({}, '', ['de'], ['de'], API_V05),
+        ({}, '', ['de'], ['de'], API_V1),
+        ({}, '', ['en', 'de'], ['en', 'de'], API_V05),
+        ({}, '', ['en', 'de'], ['en', 'de'], API_V1),
+        ({}, 'en-subs', ['de'], ['en', 'de'], API_V05),
+        ({}, 'en-subs', ['de'], ['en', 'de'], API_V1),
+        ({'uk': 1}, 'en-subs', ['de'], ['en', 'uk', 'de'], API_V05),
+        ({'uk': 1}, 'en-subs', ['de'], ['en', 'uk', 'de'], API_V1),
+        ({'uk': 1, 'de': 1}, 'en-subs', ['de', 'en'], ['en', 'uk', 'de'], API_V05),
+        ({'uk': 1, 'de': 1}, 'en-subs', ['de', 'en'], ['en', 'uk', 'de'], API_V1),
+    )
+    @ddt.unpack
+    @patch('xmodule.video_module.transcripts_utils.edxval_api.get_available_transcript_languages')
+    def test_val_transcripts_with_feature_enabled(self, transcripts, english_sub, val_transcripts,
+                                                  expected_transcripts, api_version,
+                                                  mock_get_transcript_languages):
+        self.login_and_enroll()
+        video = ItemFactory.create(
+            parent=self.nameless_unit,
+            category="video",
+            edx_video_id=self.edx_video_id,
+            display_name=u"test draft video omega 2 \u03a9"
+        )
 
-@attr(shard=2)
+        mock_get_transcript_languages.return_value = val_transcripts
+        video.transcripts = transcripts
+        video.sub = english_sub
+        modulestore().update_item(video, self.user.id)
+
+        course_outline = self.api_response(api_version=api_version).data
+        self.assertEqual(len(course_outline), 1)
+        self.assertItemsEqual(course_outline[0]['summary']['transcripts'].keys(), expected_transcripts)
+
+
+@attr(shard=9)
+@ddt.ddt
 class TestTranscriptsDetail(TestVideoAPITestCase, MobileAuthTestMixin, MobileCourseAccessTestMixin,
                             TestVideoAPIMixin, MilestonesTestCaseMixin):
     """
-    Tests for /api/mobile/v0.5/video_outlines/transcripts/{course_id}..
+    Tests for /api/mobile/{api_version}/video_outlines/transcripts/{course_id}..
     """
-    REVERSE_INFO = {'name': 'video-transcripts-detail', 'params': ['course_id']}
+    REVERSE_INFO = {'name': 'video-transcripts-detail', 'params': ['course_id', 'api_version']}
 
     def setUp(self):
         super(TestTranscriptsDetail, self).setUp()
@@ -885,11 +999,47 @@ class TestTranscriptsDetail(TestVideoAPITestCase, MobileAuthTestMixin, MobileCou
         })
         return super(TestTranscriptsDetail, self).reverse_url(reverse_args, **kwargs)
 
-    def test_incorrect_language(self):
+    @ddt.data(API_V05, API_V1)
+    def test_incorrect_language(self, api_version):
         self.login_and_enroll()
-        self.api_response(expected_response_code=404, lang='pl')
+        self.api_response(expected_response_code=404, lang='pl', api_version=api_version)
 
-    def test_transcript_with_unicode_file_name(self):
+    @ddt.data(API_V05, API_V1)
+    def test_transcript_with_unicode_file_name(self, api_version):
         self.video = self._create_video_with_subs(custom_subid=u'你好')
         self.login_and_enroll()
-        self.api_response(expected_response_code=200, lang='en')
+        self.api_response(expected_response_code=200, lang='en', api_version=api_version)
+
+    @ddt.data(API_V05, API_V1)
+    @patch(
+        'xmodule.video_module.transcripts_utils.edxval_api.get_available_transcript_languages',
+        Mock(return_value=['uk']),
+    )
+    @patch('xmodule.video_module.transcripts_utils.edxval_api.get_video_transcript_data')
+    def test_val_transcript(self, api_version, mock_get_video_transcript_content):
+        """
+        Tests transcript retrieval view with val transcripts.
+        """
+        mock_get_video_transcript_content.return_value = {
+            'content': json.dumps({
+                'start': [10],
+                'end': [100],
+                'text': [u'Hi, welcome to Edx.'],
+            }),
+            'file_name': 'edx.sjson'
+        }
+
+        self.login_and_enroll()
+        # Now, make request to retrieval endpoint
+        response = self.api_response(expected_response_code=200, lang='uk', api_version=api_version)
+
+        # Expected headers
+        expected_content = u'0\n00:00:00,010 --> 00:00:00,100\nHi, welcome to Edx.\n\n'
+        expected_headers = {
+            'Content-Disposition': 'attachment; filename="edx.srt"',
+            'Content-Type': 'application/x-subrip; charset=utf-8'
+        }
+        # Assert the actual response
+        self.assertEqual(response.content, expected_content)
+        for attribute, value in expected_headers.iteritems():
+            self.assertEqual(response.get(attribute), value)

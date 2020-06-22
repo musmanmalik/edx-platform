@@ -4,6 +4,9 @@ var visibilityState = xblockInfo.get('visibility_state');
 var published = xblockInfo.get('published');
 var prereq = xblockInfo.get('prereq');
 var hasPartitionGroups = xblockInfo.get('has_partition_group_components');
+var userPartitionInfo = xblockInfo.get('user_partition_info');
+var selectedGroupsLabel = userPartitionInfo['selected_groups_label'];
+var selectedPartitionIndex = userPartitionInfo['selected_partition_index'];
 
 var statusMessages = [];
 var messageType;
@@ -57,7 +60,16 @@ if (staffOnlyMessage) {
         addStatusMessage(messageType, messageText);
     }
 
-    if (hasPartitionGroups) {
+    if (selectedPartitionIndex !== -1 && !isNaN(selectedPartitionIndex) && xblockInfo.isVertical()) {
+        messageType = 'partition-groups';
+        messageText = edx.StringUtils.interpolate(
+                gettext('Access to this unit is restricted to: {selectedGroupsLabel}'),
+                {
+                    selectedGroupsLabel: selectedGroupsLabel
+                }
+        )
+        addStatusMessage(messageType, messageText);
+    } else if (hasPartitionGroups && xblockInfo.isVertical()) {
         addStatusMessage(
             'partition-groups',
             gettext('Access to some content in this unit is restricted to specific groups of learners')
@@ -85,7 +97,7 @@ if (is_proctored_exam) {
 %>
 <% if (parentInfo) { %>
 <li class="outline-item outline-<%- xblockType %> <%- visibilityClass %> is-draggable <%- includesChildren ? 'is-collapsible' : '' %> <%- isCollapsed ? 'is-collapsed' : '' %>"
-    data-parent="<%- parentInfo.get('id') %>" data-locator="<%- xblockInfo.get('id') %>">
+    data-parent="<%- parentInfo.get('id') %>" data-locator="<%- xblockInfo.get('id') %>" id="<%- xblockInfo.get('id') %>">
 
     <span class="draggable-drop-indicator draggable-drop-indicator-before"><span class="icon fa fa-caret-right" aria-hidden="true"></span></span>
     <% if (xblockInfo.isHeaderVisible()) { %>
@@ -110,9 +122,15 @@ if (is_proctored_exam) {
                     </span>
                 <% } %>
             </h3>
-
         <div class="<%- xblockType %>-header-actions">
             <ul class="actions-list">
+                <% if (xblockInfo.isSequential() && xblockInfo.get('proctoring_exam_configuration_link')) { %>
+                <li class="action-item">
+                    <a href="<%- xblockInfo.get('proctoring_exam_configuration_link') %>" data-tooltip="<%- gettext('Proctoring Settings') %>" class="proctoring-configuration-button" target="_blank">
+                        <span class="action-button-text"><%- gettext('Proctoring Settings') %></span>
+                    </a>
+                </li>
+                <% } %>
                 <% if (xblockInfo.isPublishable()) { %>
                     <li class="action-item action-publish">
                         <a href="#" data-tooltip="<%- gettext('Publish') %>" class="publish-button action-button">
@@ -188,6 +206,15 @@ if (is_proctored_exam) {
                 </p>
               </div>
             <% } %>
+            <% if (xblockInfo.get('highlights_enabled') && course.get('self_paced') && xblockInfo.isChapter()) { %>
+                <div class="block-highlights">
+                    <% var number_of_highlights = (xblockInfo.get('highlights') || []).length; %>
+                        <button class="block-highlights-value highlights-button action-button">
+                            <span class="number-highlights"><%- number_of_highlights %></span>
+                            <%- gettext('Section Highlights') %>
+                        </button>
+                </div>
+            <% } %>
             <% if (xblockInfo.get('is_time_limited')) { %>
                 <div class="status-timed-proctored-exam">
                     <p>
@@ -197,7 +224,7 @@ if (is_proctored_exam) {
                          -
                         <span class="sr status-proctored-exam-label"> <%- exam_value %> </span>
                         <span class="status-proctored-exam-value"> <%- exam_value %> </span>
-                        <% if (xblockInfo.get('due_date')) { %>
+                        <% if (xblockInfo.get('due_date') && !course.get('self_paced')) { %>
                             <span class="status-grading-date"> <%- gettext('Due:') %> <%- xblockInfo.get('due_date') %> </span>
                         <% } %>
                     </p>

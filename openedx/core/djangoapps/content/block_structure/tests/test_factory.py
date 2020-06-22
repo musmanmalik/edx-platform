@@ -1,8 +1,7 @@
 """
 Tests for block_structure_factory.py
 """
-from nose.plugins.attrib import attr
-from unittest import TestCase
+from django.test import TestCase
 from xmodule.modulestore.exceptions import ItemNotFoundError
 
 from ..store import BlockStructureStore
@@ -13,11 +12,12 @@ from .helpers import (
 )
 
 
-@attr(shard=2)
 class TestBlockStructureFactory(TestCase, ChildrenMapTestMixin):
     """
     Tests for BlockStructureFactory
     """
+    shard = 2
+
     def setUp(self):
         super(TestBlockStructureFactory, self).setUp()
         self.children_map = self.SIMPLE_CHILDREN_MAP

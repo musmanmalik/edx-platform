@@ -1,6 +1,7 @@
 """
 Tests for the Badges app models.
 """
+from path import Path
 from django.core.exceptions import ValidationError
 from django.core.files.images import ImageFile
 from django.core.files.storage import default_storage
@@ -8,7 +9,6 @@ from django.db.utils import IntegrityError
 from django.test import TestCase
 from django.test.utils import override_settings
 from mock import Mock, patch
-from nose.plugins.attrib import attr
 
 from badges.models import (
     BadgeAssertion,
@@ -18,7 +18,7 @@ from badges.models import (
     validate_badge_image
 )
 from badges.tests.factories import BadgeAssertionFactory, BadgeClassFactory, RandomBadgeClassFactory
-from certificates.tests.test_models import TEST_DATA_ROOT
+from lms.djangoapps.certificates.tests.test_models import TEST_DATA_ROOT
 from student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
@@ -31,11 +31,16 @@ def get_image(name):
     return ImageFile(open(TEST_DATA_ROOT / 'badges' / name + '.png'))
 
 
-@attr(shard=1)
+@override_settings(MEDIA_ROOT=TEST_DATA_ROOT)
 class BadgeImageConfigurationTest(TestCase):
     """
     Test the validation features of BadgeImageConfiguration.
     """
+    shard = 1
+
+    def tearDown(self):
+        tmp_path = Path(TEST_DATA_ROOT / 'course_complete_badges')
+        Path.rmtree_p(tmp_path)
 
     def test_no_double_default(self):
         """
@@ -64,6 +69,7 @@ class DummyBackend(object):
     award = Mock()
 
 
+@override_settings(MEDIA_ROOT=TEST_DATA_ROOT)
 class BadgeClassTest(ModuleStoreTestCase):
     """
     Test BadgeClass functionality
@@ -77,7 +83,7 @@ class BadgeClassTest(ModuleStoreTestCase):
         """
         Remove all files uploaded as badges.
         """
-        upload_to = BadgeClass._meta.get_field('image').upload_to  # pylint: disable=protected-access
+        upload_to = BadgeClass._meta.get_field('image').upload_to
         if default_storage.exists(upload_to):
             (_, files) = default_storage.listdir(upload_to)
             for uploaded_file in files:
@@ -155,7 +161,7 @@ class BadgeClassTest(ModuleStoreTestCase):
         self.assertEqual(badge_class.description, 'This is a test')
         self.assertEqual(badge_class.criteria, 'https://example.com/test_criteria')
         self.assertEqual(badge_class.display_name, 'Super Badge')
-        self.assertEqual(badge_class.image.name.rsplit('/', 1)[-1], 'good.png')
+        self.assertTrue('good' in badge_class.image.name.rsplit('/', 1)[-1])
 
     def test_get_badge_class_nocreate(self):
         """

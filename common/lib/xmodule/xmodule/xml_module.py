@@ -10,7 +10,6 @@ from xblock.core import XML_NAMESPACES
 from xblock.fields import Dict, Scope, ScopeIds
 from xblock.runtime import KvsFieldData
 
-import dogstats_wrapper as dog_stats_api
 from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.inheritance import InheritanceKeyValueStore, own_metadata
 from xmodule.x_module import DEPRECATION_VSCOMPAT_EVENT, XModuleDescriptor
@@ -139,6 +138,14 @@ class XmlParserMixin(object):
                          # Used for storing xml attributes between import and export, for roundtrips
                          'xml_attributes')
 
+    # This is a categories to fields map that contains the block category specific fields which should not be
+    # cleaned and/or override while adding xml to node.
+    metadata_to_not_to_clean = {
+        # A category `video` having `sub` and `transcripts` fields
+        # which should not be cleaned/override in an xml object.
+        'video': ('sub', 'transcripts')
+    }
+
     metadata_to_export_to_policy = ('discussion_topics',)
 
     @staticmethod
@@ -165,13 +172,15 @@ class XmlParserMixin(object):
         raise NotImplementedError("%s does not implement definition_from_xml" % cls.__name__)
 
     @classmethod
-    def clean_metadata_from_xml(cls, xml_object):
+    def clean_metadata_from_xml(cls, xml_object, excluded_fields=()):
         """
         Remove any attribute named for a field with scope Scope.settings from the supplied
         xml_object
         """
         for field_name, field in cls.fields.items():
-            if field.scope == Scope.settings and xml_object.get(field_name) is not None:
+            if (field.scope == Scope.settings
+                    and field_name not in excluded_fields
+                    and xml_object.get(field_name) is not None):
                 del xml_object.attrib[field_name]
 
     @classmethod
@@ -223,11 +232,6 @@ class XmlParserMixin(object):
             filepath = ''
             aside_children = []
         else:
-            dog_stats_api.increment(
-                DEPRECATION_VSCOMPAT_EVENT,
-                tags=["location:xmlparser_util_mixin_load_definition_filename"]
-            )
-
             filepath = cls._format_filepath(xml_object.tag, filename)
 
             # VS[compat]
@@ -236,11 +240,6 @@ class XmlParserMixin(object):
             # again in the correct format.  This should go away once the CMS is
             # online and has imported all current (fall 2012) courses from xml
             if not system.resources_fs.exists(filepath) and hasattr(cls, 'backcompat_paths'):
-                dog_stats_api.increment(
-                    DEPRECATION_VSCOMPAT_EVENT,
-                    tags=["location:xmlparser_util_mixin_load_definition_backcompat"]
-                )
-
                 candidates = cls.backcompat_paths(filepath)
                 for candidate in candidates:
                     if system.resources_fs.exists(candidate):
@@ -279,14 +278,6 @@ class XmlParserMixin(object):
             attr = cls._translate(attr)
 
             if attr in cls.metadata_to_strip:
-                if attr in ('course', 'org', 'url_name', 'filename'):
-                    dog_stats_api.increment(
-                        DEPRECATION_VSCOMPAT_EVENT,
-                        tags=(
-                            "location:xmlparser_util_mixin_load_metadata",
-                            "metadata:{}".format(attr),
-                        )
-                    )
                 # don't load these
                 continue
 
@@ -346,10 +337,6 @@ class XmlParserMixin(object):
         else:
             filepath = None
             definition_xml = node
-            dog_stats_api.increment(
-                DEPRECATION_VSCOMPAT_EVENT,
-                tags=["location:xmlparser_util_mixin_parse_xml"]
-            )
 
         # Note: removes metadata.
         definition, children = cls.load_definition(definition_xml, runtime, def_id, id_generator)
@@ -448,7 +435,8 @@ class XmlParserMixin(object):
                 aside.add_xml_to_node(aside_node)
                 xml_object.append(aside_node)
 
-        self.clean_metadata_from_xml(xml_object)
+        not_to_clean_fields = self.metadata_to_not_to_clean.get(self.category, ())
+        self.clean_metadata_from_xml(xml_object, excluded_fields=not_to_clean_fields)
 
         # Set the tag on both nodes so we get the file path right.
         xml_object.tag = self.category
@@ -457,7 +445,9 @@ class XmlParserMixin(object):
         # Add the non-inherited metadata
         for attr in sorted(own_metadata(self)):
             # don't want e.g. data_dir
-            if attr not in self.metadata_to_strip and attr not in self.metadata_to_export_to_policy:
+            if (attr not in self.metadata_to_strip
+                    and attr not in self.metadata_to_export_to_policy
+                    and attr not in not_to_clean_fields):
                 val = serialize_field(self._field_data.get(self, attr))
                 try:
                     xml_object.set(attr, val)
@@ -474,9 +464,13 @@ class XmlParserMixin(object):
         if self.export_to_file():
             # Write the definition to a file
             url_path = name_to_pathname(self.url_name)
-            filepath = self._format_filepath(self.category, url_path)
-            self.runtime.export_fs.makedir(os.path.dirname(filepath), recursive=True, allow_recreate=True)
-            with self.runtime.export_fs.open(filepath, 'w') as fileobj:
+            # if folder is course then create file with name {course_run}.xml
+            filepath = self._format_filepath(
+                self.category,
+                self.location.run if self.category == 'course' else url_path,
+            )
+            self.runtime.export_fs.makedirs(os.path.dirname(filepath), recreate=True)
+            with self.runtime.export_fs.open(filepath, 'wb') as fileobj:
                 ElementTree(xml_object).write(fileobj, pretty_print=True, encoding='utf-8')
         else:
             # Write all attributes from xml_object onto node

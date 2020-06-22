@@ -3,8 +3,8 @@ jobs:
  build:
    working_directory: ~/edx-platform
    machine:
-     enabled: true
-     image: circleci/classic:latest
+      enabled: true
+      image: ubuntu-1604:201903-01
 
    parallelism: 4
 
@@ -14,14 +14,17 @@ jobs:
      # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
      # CircleCI 2.0 does not support environment variables that refer to each other the same way as 1.0 did.
      - run:
-          name: Creating directories and files
-          command: |
+         name: Creating directories and files
+         command: |
            mkdir -p ~/python_2.7.12 ~/sqlite_3.14
            mkdir -p circleci-test-results/artifacts/junit circleci-test-results/artifacts/test_root/log
+           sudo mkdir -p /data/db
+           sudo chown -R $USER:$USER /data/db
+           sudo chmod 0755 /data/db/
 
      - run:
-          name: Installing Python v2.7.12
-          command: |
+         name: Installing Python v2.7.12
+         command: |
            cd ~/python_2.7.12
            wget https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tgz
            tar -xvf Python-2.7.12.tgz
@@ -33,38 +36,41 @@ jobs:
          name: Installing and creating virtual environment
          command: |
            sudo pip install virtualenv
-           virtualenv --python=`which python` ~/virtualenvs/venv-2.7.12
+           rm -rf ~/virtualenvs/
+           virtualenv --python=`which python` --no-wheel --no-setuptools ~/virtualenvs/venv-2.7.12
            source ~/virtualenvs/venv-2.7.12/bin/activate
+           cd && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+           python get-pip.py pip==9.0.3 wheel==0.33.4 setuptools==41.0.1
 
      - run:
-         name: Installing Node v6.11.1 and Node packages
+         name: Installing Node v8.9.3 and Node packages
          command: |
-           curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+           curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
            sudo apt-get install -y nodejs
            sudo npm install -g n
-           sudo n 6.11.1
+           sudo n 8.9.3
 
      - run:
          name: Installing pre-reqs
          command: |
             source ~/virtualenvs/venv-2.7.12/bin/activate
             bash ./scripts/install-system-req.sh
+            sudo locale-gen en_US.UTF-8
+            export LANG=en_US.UTF-8
+            export LANGUAGE=en_US:en
+            export LC_ALL=en_US.UTF-8
+            sudo service mongod start
 
      - restore_cache:
               name: Restores cache if any of the requirements file have not changed since the previous run
               key: >-
-                virtual-environment-cache-v1
-                -{{ checksum "requirements/edx/pre.txt" }}
-                -{{ checksum "requirements/edx/base.txt" }}
-                -{{ checksum "requirements/edx/github.txt" }}
-                -{{ checksum "requirements/edx/local.txt" }}
+                virtual-environment-cache-v8
+                -{{ checksum "requirements/edx/development.txt" }}
                 -{{ checksum "requirements/edx/custom.txt" }}
-                -{{ checksum "requirements/edx/paver.txt" }}
-                -{{ checksum "requirements/edx/post.txt" }}
 
      - restore_cache:
          name: Restores cache if the package.json file have not changed since the previous run
-         key: virtual-environment-cache-v1-{{ checksum "package.json" }}
+         key: virtual-environment-cache-v8-{{ checksum "package.json" }}
 
      # Mirror what paver install_prereqs does.
      # After a successful build, CircleCI will
@@ -84,16 +90,9 @@ jobs:
            source ~/virtualenvs/venv-2.7.12/bin/activate
            npm install
            pip install google-compute-engine
-           pip install --exists-action w -r requirements/edx/pre.txt
-           pip install --exists-action w -r requirements/edx/base.txt
-           pip install --exists-action w -r requirements/edx/github.txt
-           pip install --exists-action w -r requirements/edx/local.txt
+           pip install --exists-action w -r requirements/edx/development.txt
            pip install --exists-action w -r requirements/edx/custom.txt
-           pip install --exists-action w -r requirements/edx/paver.txt
-
-           if [ -e requirements/edx/post.txt ]; then pip install --exists-action w -r requirements/edx/post.txt ; fi
            pip install coveralls==1.0
-           pip install --upgrade --force-reinstall git+https://github.com/edx/django-rest-framework.git@3c72cb5ee5baebc4328947371195eae2077197b0#egg=djangorestframework==3.2.3
            pip freeze
 
      # Note: If sqlite version is changed below, update/increment the cache version as well under
@@ -113,20 +112,15 @@ jobs:
 
      - save_cache:
          key: >-
-           virtual-environment-cache-v1
-           -{{ checksum "requirements/edx/pre.txt" }}
-           -{{ checksum "requirements/edx/base.txt" }}
-           -{{ checksum "requirements/edx/github.txt" }}
-           -{{ checksum "requirements/edx/local.txt" }}
+           virtual-environment-cache-v8
+           -{{ checksum "requirements/edx/development.txt" }}
            -{{ checksum "requirements/edx/custom.txt" }}
-           -{{ checksum "requirements/edx/paver.txt" }}
-           -{{ checksum "requirements/edx/post.txt" }}
 
          paths:
             - ~/virtualenvs/venv-2.7.12
 
      - save_cache:
-         key: virtual-environment-cache-v1-{{ checksum "package.json" }}
+         key: virtual-environment-cache-v8-{{ checksum "package.json" }}
          paths:
             - node_modules
 
