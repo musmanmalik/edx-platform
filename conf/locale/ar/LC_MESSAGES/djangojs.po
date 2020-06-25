@@ -7264,6 +7264,12 @@ msgstr ""
 "اختر هذا المربّع لتتلقّى رسالة بريد إلكتروني واحدة يوميًّا حول إشعارات "
 "الأنشطة الجديدة وغير المقروءة في المنشورات التي تتابعها."
 
+#: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+msgid ""
+"Earn points for your engagement by adding a new post or responding to an "
+"existing post."
+msgstr "اربح نقاطًا لمشاركتك من خلال إضافة منشور جديد أو الرد على منشور موجود."
+
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
 msgid "All Posts"
 msgstr "كل المنشورات"

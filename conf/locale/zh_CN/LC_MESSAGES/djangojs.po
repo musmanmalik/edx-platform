@@ -7092,6 +7092,12 @@ msgid ""
 "new, unread activity from posts you are following."
 msgstr "勾选此项，每天接收一封邮件，通知您所关注的讨论帖的最新未读情况。"
 
+#: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+msgid ""
+"Earn points for your engagement by adding a new post or responding to an "
+"existing post."
+msgstr "通过添加新的文章或者回复现有文章，赢得参与积分。"
+
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
 msgid "All Posts"
 msgstr "所有讨论帖"

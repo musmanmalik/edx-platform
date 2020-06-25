@@ -608,6 +608,7 @@
     "Duplicate": "Dupliziere", 
     "Duplicating": "Duplizieren", 
     "Duration (sec)": "Dauer (Sek.)", 
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "Erhalten Sie Punkte f\u00fcr Ihr Engagement, indem Sie einen neuen Post erstellen oder auf einen bestehenden Post antworten.", 
     "Earned Certificates": "Erhaltene Zertifikate", 
     "EdX doesn\\'t have a timed transcript for this video. Please upload an .srt file.": "EdX hat kein zeitbehaftetes Transkript f\u00fcr dieses Video. Bitte lade eine .srt-Datei hoch.", 
     "EdX has a timed transcript for this video. If you want to edit this transcript, you can download, edit, and re-upload the existing transcript. If you want to replace this transcript, upload a new .srt transcript file.": "EdX bietet ein zeitbehaftetes Transkript f\u00fcr dieses Video. Falls du dieses Transkript bearbeiten m\u00f6chtest, kannst du es herunterladen, bearbeiten und als ersetzendes Transkript erneut hochladen. Wenn du dieses Transkript ersetzen m\u00f6chtest, lade eine neue .srt Transkriptdatei hoch.", 

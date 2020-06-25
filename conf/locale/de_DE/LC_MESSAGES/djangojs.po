@@ -7301,6 +7301,12 @@ msgstr ""
 "Aktivieren Sie diese Box und Sie erhalten einmal am Tag eine Zusammenfassung"
 " von neuen, ungelesenen Aktivitäten zu Beiträgen, denen Sie folgen. "
 
+#: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+msgid ""
+"Earn points for your engagement by adding a new post or responding to an "
+"existing post."
+msgstr "Erhalten Sie Punkte für Ihr Engagement, indem Sie einen neuen Post erstellen oder auf einen bestehenden Post antworten."
+
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
 msgid "All Posts"
 msgstr "Alle Beiträge"

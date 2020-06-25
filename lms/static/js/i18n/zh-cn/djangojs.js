@@ -602,6 +602,7 @@
     "Duplicate": "\u590d\u5236", 
     "Duplicating": "\u6b63\u5728\u590d\u5236", 
     "Duration (sec)": "\u6301\u7eed\u65f6\u95f4(\u79d2)", 
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "\u901a\u8fc7\u6dfb\u52a0\u65b0\u7684\u6587\u7ae0\u6216\u8005\u56de\u590d\u73b0\u6709\u6587\u7ae0\uff0c\u8d62\u5f97\u53c2\u4e0e\u79ef\u5206\u3002", 
     "Earned %(created)s.": "\u5df2\u83b7\u5f97 %(created)s\u3002", 
     "Earned Certificates": "\u5df2\u83b7\u53d6\u8bc1\u4e66", 
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "EdX \u5728 Studio \u4e2d\u6ca1\u6709\u8be5\u89c6\u9891\u7684\u5b57\u5e55\uff0c\u4f46\u662f\u6211\u4eec\u5728 YouTube \u4e2d\u627e\u5230\u4e86\u4e00\u4e2a\u5b57\u5e55\u3002\u60a8\u53ef\u4ee5\u5bfc\u5165 YouTube \u5b57\u5e55\u6216\u8005\u4e0a\u4f20\u60a8\u81ea\u5df1\u7684 .srt \u5b57\u5e55\u6587\u4ef6\u3002", 
