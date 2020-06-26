@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name="Open edX",
-    version="0.7",
+    version="0.11",
     install_requires=["setuptools"],
     requires=[],
     # NOTE: These are not the names we should be installing.  This tree should
@@ -40,12 +40,14 @@ setup(
             "course_bookmarks = openedx.features.course_bookmarks.plugins:CourseBookmarksTool",
             "course_updates = openedx.features.course_experience.plugins:CourseUpdatesTool",
             "course_reviews = openedx.features.course_experience.plugins:CourseReviewsTool",
+            "verified_upgrade = courseware.course_tools:VerifiedUpgradeTool",
         ],
         "openedx.user_partition_scheme": [
             "random = openedx.core.djangoapps.user_api.partition_schemes:RandomUserPartitionScheme",
             "cohort = openedx.core.djangoapps.course_groups.partition_scheme:CohortPartitionScheme",
             "verification = openedx.core.djangoapps.user_api.partition_schemes:ReturnGroup1PartitionScheme",
             "enrollment_track = openedx.core.djangoapps.verified_track_content.partition_scheme:EnrollmentTrackPartitionScheme",
+            "content_type_gate = openedx.features.content_type_gating.partitions:ContentTypeGatingPartitionScheme",
         ],
         "openedx.block_structure_transformer": [
             "library_content = lms.djangoapps.course_blocks.transformers.library_content:ContentLibraryTransformer",
@@ -54,11 +56,48 @@ setup(
             "start_date_field = lms.djangoapps.course_blocks.transformers.start_date:StartDateFieldTransformer",
             "user_partitions = lms.djangoapps.course_blocks.transformers.user_partitions:UserPartitionTransformer",
             "visibility = lms.djangoapps.course_blocks.transformers.visibility:VisibilityTransformer",
+            "hide_empty = lms.djangoapps.course_blocks.transformers.hide_empty:HideEmptyTransformer",
             "hidden_content = lms.djangoapps.course_blocks.transformers.hidden_content:HiddenContentTransformer",
             "course_blocks_api = lms.djangoapps.course_api.blocks.transformers.blocks_api:BlocksAPITransformer",
             "milestones = lms.djangoapps.course_api.blocks.transformers.milestones:MilestonesAndSpecialExamsTransformer",
             "grades = lms.djangoapps.grades.transformer:GradesTransformer",
-            "completion = lms.djangoapps.course_api.blocks.transformers.block_completion:BlockCompletionTransformer"
+            "completion = lms.djangoapps.course_api.blocks.transformers.block_completion:BlockCompletionTransformer",
+            "load_override_data = lms.djangoapps.course_blocks.transformers.load_override_data:OverrideDataTransformer",
+            "content_type_gate = openedx.features.content_type_gating.block_transformers:ContentTypeGateTransformer",
+        ],
+        "openedx.ace.policy": [
+            "bulk_email_optout = lms.djangoapps.bulk_email.policies:CourseEmailOptout"
+        ],
+        "lms.djangoapp": [
+            "ace_common = openedx.core.djangoapps.ace_common.apps:AceCommonConfig",
+            "credentials = openedx.core.djangoapps.credentials.apps:CredentialsConfig",
+            "discussion = lms.djangoapps.discussion.apps:DiscussionConfig",
+            "grades = lms.djangoapps.grades.apps:GradesConfig",
+            "journals = openedx.features.journals.apps:JournalsConfig",
+            "plugins = openedx.core.djangoapps.plugins.apps:PluginsConfig",
+            "schedules = openedx.core.djangoapps.schedules.apps:SchedulesConfig",
+            "theming = openedx.core.djangoapps.theming.apps:ThemingConfig",
+            "bookmarks = openedx.core.djangoapps.bookmarks.apps:BookmarksConfig",
+            "zendesk_proxy = openedx.core.djangoapps.zendesk_proxy.apps:ZendeskProxyConfig",
+            "instructor = lms.djangoapps.instructor.apps:InstructorConfig",
+            "password_policy = openedx.core.djangoapps.password_policy.apps:PasswordPolicyConfig",
+            "user_authn = openedx.core.djangoapps.user_authn.apps:UserAuthnConfig"
+        ],
+        "cms.djangoapp": [
+            "ace_common = openedx.core.djangoapps.ace_common.apps:AceCommonConfig",
+            # Importing an LMS app into the Studio process is not a good
+            # practice. We're ignoring this for Discussions here because its
+            # placement in LMS is a historical artifact. The eventual goal is to
+            # consolidate the multiple discussions-related Django apps and
+            # either put them in the openedx/ dir, or in another repo entirely.
+            "discussion = lms.djangoapps.discussion.apps:DiscussionConfig",
+            "plugins = openedx.core.djangoapps.plugins.apps:PluginsConfig",
+            "schedules = openedx.core.djangoapps.schedules.apps:SchedulesConfig",
+            "theming = openedx.core.djangoapps.theming.apps:ThemingConfig",
+            "bookmarks = openedx.core.djangoapps.bookmarks.apps:BookmarksConfig",
+            "zendesk_proxy = openedx.core.djangoapps.zendesk_proxy.apps:ZendeskProxyConfig",
+            "password_policy = openedx.core.djangoapps.password_policy.apps:PasswordPolicyConfig",
+            "user_authn = openedx.core.djangoapps.user_authn.apps:UserAuthnConfig"
         ],
     }
 )

@@ -5,13 +5,13 @@ import unittest
 
 import ddt
 from django.http import HttpRequest
-from django.test import TestCase
 from django.test.client import Client
 from django.utils.translation import LANGUAGE_SESSION_KEY
 from mock import Mock
 
 from openedx.core.djangoapps.dark_lang.middleware import DarkLangMiddleware
 from openedx.core.djangoapps.dark_lang.models import DarkLangConfig
+from openedx.core.djangolib.testing.utils import CacheIsolationTestCase
 from student.tests.factories import UserFactory
 
 UNSET = object()
@@ -27,7 +27,7 @@ def set_if_set(dct, key, value):
 
 
 @ddt.ddt
-class DarkLangMiddlewareTests(TestCase):
+class DarkLangMiddlewareTests(CacheIsolationTestCase):
     """
     Tests of DarkLangMiddleware
     """
@@ -203,6 +203,7 @@ class DarkLangMiddlewareTests(TestCase):
             changed_by=self.user,
             enabled=True
         ).save()
+
         self.assertAcceptEquals(
             expected,
             self.process_middleware_request(accept=accept_header)
@@ -243,13 +244,13 @@ class DarkLangMiddlewareTests(TestCase):
         """
         Sends a post request to set the preview language
         """
-        return self.client.post('/update_lang/', {'preview_lang': preview_language, 'set_language': 'set_language'})
+        return self.client.post('/update_lang/', {'preview_language': preview_language, 'action': 'set_preview_language'})
 
     def _post_clear_preview_lang(self):
         """
         Sends a post request to Clear the preview language
         """
-        return self.client.post('/update_lang/', {'reset': 'reset'})
+        return self.client.post('/update_lang/', {'action': 'reset_preview_language'})
 
     def _set_client_session_language(self, session_language):
         """

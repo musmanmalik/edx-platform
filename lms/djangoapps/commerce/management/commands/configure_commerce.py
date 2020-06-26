@@ -9,7 +9,7 @@ import logging
 
 from django.core.management import BaseCommand
 
-from commerce.models import CommerceConfiguration
+from ...models import CommerceConfiguration
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -54,7 +54,7 @@ class Command(BaseCommand):
         checkout_on_ecommerce = options.get('checkout_on_ecommerce')
 
         # We are keeping id=1, because as of now, there are only one commerce configuration for the system.
-        CommerceConfiguration.objects.update_or_create(  # pylint: disable=no-member
+        CommerceConfiguration.objects.update_or_create(
             id=1,
             defaults={
                 'enabled': not disable,

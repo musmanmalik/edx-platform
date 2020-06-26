@@ -90,6 +90,21 @@ class ProblemPage(PageObject):
             description="MathJax rendered in problem body"
         )
 
+    def verify_mathjax_rendered_in_preview(self):
+        """
+        Check that MathJax has been rendered in formula problem preview
+        """
+
+        def mathjax_present():
+            """ Returns True if MathJax css is present inside the preview """
+            mathjax_container = self.q(css="div.problem div .MathJax_SVG")
+            return mathjax_container.visible and mathjax_container.present
+
+        self.wait_for(
+            mathjax_present,
+            description="MathJax rendered in problem preview"
+        )
+
     def verify_mathjax_rendered_in_hint(self):
         """
         Check that MathJax have been rendered in problem hint
@@ -126,6 +141,13 @@ class ProblemPage(PageObject):
         self.q(css='div.problem div.inputtype input').fill(text)
         self.wait_for_element_invisibility('.loading', 'wait for loading icon to disappear')
         self.wait_for_ajax()
+
+    @property
+    def get_numerical_input_value(self):
+        """
+        Get the numerical problem input contents
+        """
+        return self.q(css='div.problem div.inputtype input').text[0]
 
     def click_submit(self):
         """
@@ -329,19 +351,28 @@ class ProblemPage(PageObject):
         self.wait_for_element_visibility('.notification.general.notification-submit', msg)
         self.wait_for_focus_on_submit_notification()
 
-    def click_hint(self):
+    def click_hint(self, hint_index=0):
         """
         Click the Hint button.
+
+        Arguments:
+            hint_index (int): Index of a displayed hint
         """
         click_css(self, '.problem .hint-button', require_notification=False)
-        self.wait_for_focus_on_hint_notification()
+        self.wait_for_focus_on_hint_notification(hint_index)
 
-    def wait_for_focus_on_hint_notification(self):
+    def wait_for_focus_on_hint_notification(self, hint_index=0):
         """
         Wait for focus to be on the hint notification.
+
+        Arguments:
+            hint_index (int): Index of a displayed hint
         """
+        css = '.notification-hint .notification-message > ol > li.hint-index-{hint_index}'.format(
+            hint_index=hint_index
+        )
         self.wait_for(
-            lambda: self.q(css='.notification-hint').focused,
+            lambda: self.q(css=css).focused,
             'Waiting for the focus to be on the hint notification'
         )
 
@@ -406,6 +437,23 @@ class ProblemPage(PageObject):
         Is there an "incorrect" status showing? Works with simple problem types.
         """
         return self.q(css="div.problem div.inputtype div.incorrect span.status").is_present()
+
+    def get_simpleprob_correctness(self):
+        """
+        Returns the correctness status for a simple problem.
+
+        Given a simple problem, the method returns the correctness status.
+        If there is no visible status, None is returned
+        """
+
+        if self.simpleprob_is_correct():
+            return 'correct'
+        elif self.simpleprob_is_incorrect():
+            return 'incorrect'
+        elif self.simpleprob_is_partially_correct():
+            return 'partial'
+        else:
+            return None
 
     def click_clarification(self, index=0):
         """

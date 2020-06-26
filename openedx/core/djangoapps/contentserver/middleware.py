@@ -14,10 +14,11 @@ from cryptography.fernet import Fernet, InvalidToken
 from django.http import (
     HttpResponse, HttpResponseNotModified, HttpResponseForbidden,
     HttpResponseBadRequest, HttpResponseNotFound, HttpResponsePermanentRedirect)
+from six import text_type
 from student.models import CourseEnrollment
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY
-from django.utils.importlib import import_module
+from importlib import import_module
 
 from xmodule.assetstore.assetmgr import AssetManager
 from xmodule.contentstore.content import StaticContent, XASSET_LOCATION_TAG
@@ -137,18 +138,18 @@ class StaticContentServer(object):
                 except ValueError as exception:
                     # If the header field is syntactically invalid it should be ignored.
                     log.exception(
-                        u"%s in Range header: %s for content: %s", exception.message, header_value, unicode(loc)
+                        u"%s in Range header: %s for content: %s", text_type(exception), header_value, unicode(loc)
                     )
                 else:
                     if unit != 'bytes':
                         # Only accept ranges in bytes
-                        log.warning(u"Unknown unit in Range header: %s for content: %s", header_value, unicode(loc))
+                        log.warning(u"Unknown unit in Range header: %s for content: %s", header_value, text_type(loc))
                     elif len(ranges) > 1:
                         # According to Http/1.1 spec content for multiple ranges should be sent as a multipart message.
                         # http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
                         # But we send back the full content.
                         log.warning(
-                            u"More than 1 ranges in Range header: %s for content: %s", header_value, unicode(loc)
+                            u"More than 1 ranges in Range header: %s for content: %s", header_value, text_type(loc)
                         )
                     else:
                         first, last = ranges[0]
@@ -166,7 +167,8 @@ class StaticContentServer(object):
                                 newrelic.agent.add_custom_parameter('contentserver.ranged', True)
                         else:
                             log.warning(
-                                u"Cannot satisfy ranges in Range header: %s for content: %s", header_value, unicode(loc)
+                                u"Cannot satisfy ranges in Range header: %s for content: %s",
+                                header_value, text_type(loc)
                             )
                             return HttpResponse(status=416)  # Requested Range Not Satisfiable
 
@@ -182,6 +184,7 @@ class StaticContentServer(object):
             # "Accept-Ranges: bytes" tells the user that only "bytes" ranges are allowed
             response['Accept-Ranges'] = 'bytes'
             response['Content-Type'] = content.content_type
+            response['X-Frame-Options'] = 'ALLOW'
 
             # Set any caching headers, and do any response cleanup needed.  Based on how much
             # middleware we have in place, there's no easy way to use the built-in Django
@@ -272,7 +275,7 @@ class StaticContentServer(object):
                 session = engine.SessionStore(session_id)
                 return not (session is None or SESSION_KEY not in session)
 
-        if not hasattr(request, "user") or not request.user.is_authenticated():
+        if not hasattr(request, "user") or not request.user.is_authenticated:
             return False
 
         if not request.user.is_staff:

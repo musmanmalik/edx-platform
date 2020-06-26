@@ -6,18 +6,18 @@ forums, and to the cohort admin views.
 import logging
 import random
 
-import request_cache
 from courseware import courses
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 from django.http import Http404
 from django.utils.translation import ugettext as _
 from eventtracking import tracker
-from request_cache.middleware import request_cached
+from edx_django_utils.cache import RequestCache
+from openedx.core.lib.cache_utils import request_cached
 from student.models import get_user_by_username_or_email
 
 from .models import (
@@ -28,6 +28,7 @@ from .models import (
     CourseUserGroupPartitionGroup,
     UnregisteredLearnerCohortAssignments
 )
+from .signals.signals import COHORT_MEMBERSHIP_UPDATED
 
 
 class AlreadyAddedToCohortException(ValueError):
@@ -182,14 +183,14 @@ def bulk_cache_cohorts(course_key, users):
     """
     # before populating the cache with another bulk set of data,
     # remove previously cached entries to keep memory usage low.
-    request_cache.clear_cache(COHORT_CACHE_NAMESPACE)
-    cache = request_cache.get_cache(COHORT_CACHE_NAMESPACE)
+    RequestCache(COHORT_CACHE_NAMESPACE).clear()
+    cache = RequestCache(COHORT_CACHE_NAMESPACE).data
 
     if is_course_cohorted(course_key):
         cohorts_by_user = {
             membership.user: membership
             for membership in
-            CohortMembership.objects.filter(user__in=users, course_id=course_key).select_related('user__id')
+            CohortMembership.objects.filter(user__in=users, course_id=course_key).select_related('user')
         }
         for user, membership in cohorts_by_user.iteritems():
             cache[_cohort_cache_key(user.id, course_key)] = membership.course_user_group
@@ -222,7 +223,9 @@ def get_cohort(user, course_key, assign=True, use_cached=False):
     Raises:
        ValueError if the CourseKey doesn't exist.
     """
-    cache = request_cache.get_cache(COHORT_CACHE_NAMESPACE)
+    if user.is_anonymous:
+        return None
+    cache = RequestCache(COHORT_CACHE_NAMESPACE).data
     cache_key = _cohort_cache_key(user.id, course_key)
 
     if use_cached and cache_key in cache:
@@ -251,24 +254,19 @@ def get_cohort(user, course_key, assign=True, use_cached=False):
 
     # Otherwise assign the user a cohort.
     try:
-        with transaction.atomic():
-            # If learner has been pre-registered in a cohort, get that cohort. Otherwise assign to a random cohort.
-            course_user_group = None
-            for assignment in UnregisteredLearnerCohortAssignments.objects.filter(email=user.email, course_id=course_key):
-                course_user_group = assignment.course_user_group
-                unregistered_learner = assignment
-
-            if course_user_group:
-                unregistered_learner.delete()
-            else:
-                course_user_group = get_random_cohort(course_key)
-
-            membership = CohortMembership.objects.create(
-                user=user,
-                course_user_group=course_user_group,
-            )
-
-            return cache.setdefault(cache_key, membership.course_user_group)
+        # If learner has been pre-registered in a cohort, get that cohort. Otherwise assign to a random cohort.
+        course_user_group = None
+        for assignment in UnregisteredLearnerCohortAssignments.objects.filter(email=user.email, course_id=course_key):
+            course_user_group = assignment.course_user_group
+            assignment.delete()
+            break
+        else:
+            course_user_group = get_random_cohort(course_key)
+        add_user_to_cohort(course_user_group, user)
+        return course_user_group
+    except ValueError:
+        # user already in cohort
+        return course_user_group
     except IntegrityError as integrity_error:
         # An IntegrityError is raised when multiple workers attempt to
         # create the same row in one of the cohort model entries:
@@ -355,7 +353,7 @@ def get_cohort_names(course):
     return {cohort.id: cohort.name for cohort in get_course_cohorts(course)}
 
 
-### Helpers for cohort management views
+# Helpers for cohort management views
 
 
 def get_cohort_by_name(course_key, name):
@@ -432,18 +430,20 @@ def remove_user_from_cohort(cohort, username_or_email):
 
     try:
         membership = CohortMembership.objects.get(course_user_group=cohort, user=user)
+        course_key = membership.course_id
         membership.delete()
+        COHORT_MEMBERSHIP_UPDATED.send(sender=None, user=user, course_key=course_key)
     except CohortMembership.DoesNotExist:
         raise ValueError("User {} was not present in cohort {}".format(username_or_email, cohort))
 
 
-def add_user_to_cohort(cohort, username_or_email):
+def add_user_to_cohort(cohort, username_or_email_or_user):
     """
     Look up the given user, and if successful, add them to the specified cohort.
 
     Arguments:
         cohort: CourseUserGroup
-        username_or_email: string.  Treated as email if has '@'
+        username_or_email_or_user: user or string.  Treated as email if has '@'
 
     Returns:
         User object (or None if the email address is preassigned),
@@ -458,36 +458,41 @@ def add_user_to_cohort(cohort, username_or_email):
         User.DoesNotExist if a user could not be found.
     """
     try:
-        user = get_user_by_username_or_email(username_or_email)
+        if hasattr(username_or_email_or_user, 'email'):
+            user = username_or_email_or_user
+        else:
+            user = get_user_by_username_or_email(username_or_email_or_user)
 
-        membership = CohortMembership(course_user_group=cohort, user=user)
-        membership.save()  # This will handle both cases, creation and updating, of a CohortMembership for this user.
-
+        membership, previous_cohort = CohortMembership.assign(cohort, user)
         tracker.emit(
             "edx.cohort.user_add_requested",
             {
                 "user_id": user.id,
                 "cohort_id": cohort.id,
                 "cohort_name": cohort.name,
-                "previous_cohort_id": membership.previous_cohort_id,
-                "previous_cohort_name": membership.previous_cohort_name,
+                "previous_cohort_id": getattr(previous_cohort, 'id', None),
+                "previous_cohort_name": getattr(previous_cohort, 'name', None),
             }
         )
-        return (user, membership.previous_cohort_name, False)
+        cache = RequestCache(COHORT_CACHE_NAMESPACE).data
+        cache_key = _cohort_cache_key(user.id, membership.course_id)
+        cache[cache_key] = membership.course_user_group
+        COHORT_MEMBERSHIP_UPDATED.send(sender=None, user=user, course_key=membership.course_id)
+        return user, getattr(previous_cohort, 'name', None), False
     except User.DoesNotExist as ex:
         # If username_or_email is an email address, store in database.
         try:
-            validate_email(username_or_email)
+            validate_email(username_or_email_or_user)
 
             try:
                 assignment = UnregisteredLearnerCohortAssignments.objects.get(
-                    email=username_or_email, course_id=cohort.course_id
+                    email=username_or_email_or_user, course_id=cohort.course_id
                 )
                 assignment.course_user_group = cohort
                 assignment.save()
             except UnregisteredLearnerCohortAssignments.DoesNotExist:
                 assignment = UnregisteredLearnerCohortAssignments.objects.create(
-                    course_user_group=cohort, email=username_or_email, course_id=cohort.course_id
+                    course_user_group=cohort, email=username_or_email_or_user, course_id=cohort.course_id
                 )
 
             tracker.emit(
@@ -501,7 +506,7 @@ def add_user_to_cohort(cohort, username_or_email):
 
             return (None, None, True)
         except ValidationError as invalid:
-            if "@" in username_or_email:
+            if "@" in username_or_email_or_user:
                 raise invalid
             else:
                 raise ex
@@ -529,7 +534,7 @@ def get_group_info_for_cohort(cohort, use_cached=False):
     use_cached=True to use the cached value instead of fetching from the
     database.
     """
-    cache = request_cache.get_cache(u"cohorts.get_group_info_for_cohort")
+    cache = RequestCache(u"cohorts.get_group_info_for_cohort").data
     cache_key = unicode(cohort.id)
 
     if use_cached and cache_key in cache:
@@ -580,7 +585,7 @@ def is_last_random_cohort(user_group):
     return len(random_cohorts) == 1 and random_cohorts[0].name == user_group.name
 
 
-@request_cached
+@request_cached()
 def _get_course_cohort_settings(course_key):
     """
     Return cohort settings for a course. NOTE that the only non-deprecated fields in

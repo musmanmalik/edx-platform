@@ -36,7 +36,7 @@ if settings.FEATURES.get('ENABLE_INSTRUCTOR_BACKGROUND_TASKS'):
     urlpatterns += [
         url(
             r'^v1/tasks$',
-            'lms.djangoapps.instructor_task.views.instructor_task_status',
+            lms.djangoapps.instructor_task.views.instructor_task_status,
             name='get_instructor_task_status',
         ),
     ]

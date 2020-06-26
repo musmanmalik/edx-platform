@@ -1,4 +1,5 @@
 # pylint: disable=missing-docstring
+# pylint: disable=no-member
 # pylint: disable=redefined-outer-name
 
 from __future__ import absolute_import
@@ -7,8 +8,8 @@ import time
 from logging import getLogger
 
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
-from lettuce import before, step, world
+from django.urls import reverse
+from lettuce import step, world
 from lettuce.django import django_url
 
 from courseware.courses import get_course_by_id
@@ -228,9 +229,9 @@ def get_courseware_with_tabs(course_id):
         'chapter_name': c.display_name_with_default_escaped,
         'sections': [{
             'section_name': s.display_name_with_default_escaped,
-            'clickable_tab_count': len(s.get_children()) if (type(s) == seq_module.SequenceDescriptor) else 0,
+            'clickable_tab_count': len(s.get_children()) if isinstance(s, seq_module.SequenceDescriptor) else 0,
             'tabs': [{
-                'children_count': len(t.get_children()) if (type(t) == vertical_block.VerticalBlock) else 0,
+                'children_count': len(t.get_children()) if isinstance(t, vertical_block.VerticalBlock) else 0,
                 'class': t.__class__.__name__} for t in s.get_children()
             ]
         } for s in c.get_children() if not s.hide_from_toc]

@@ -1,53 +1,62 @@
 """Tests for items views."""
 import json
 from datetime import datetime, timedelta
+
 import ddt
-
-from mock import patch, Mock, PropertyMock
-from pytz import UTC
-from pyquery import PyQuery
-from webob import Response
-
 from django.conf import settings
+from django.urls import reverse
 from django.http import Http404
 from django.test import TestCase
 from django.test.client import RequestFactory
-from django.core.urlresolvers import reverse
-from contentstore.utils import reverse_usage_url, reverse_course_url
-
+from mock import Mock, PropertyMock, patch
 from opaque_keys import InvalidKeyError
-from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
-from contentstore.views.component import (
-    component_handler, get_component_templates
-)
+from opaque_keys.edx.asides import AsideUsageKeyV2
+from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.locator import BlockUsageLocator, CourseLocator
+from pyquery import PyQuery
+from pytz import UTC
+from six import text_type
+from web_fragments.fragment import Fragment
+from webob import Response
+from xblock.core import XBlockAside
+from xblock.exceptions import NoSuchHandlerError
+from xblock.fields import Scope, ScopeIds, String
+from xblock.runtime import DictKeyValueStore, KvsFieldData
+from xblock.test.tools import TestRuntime
+from xblock.validation import ValidationMessage
 
-from contentstore.views.item import (
-    create_xblock_info, _get_source_index, _get_module_info, ALWAYS, VisibilityState, _xblock_type_and_display_name,
-    add_container_page_publishing_info
-)
 from contentstore.tests.utils import CourseTestCase
+from contentstore.utils import reverse_course_url, reverse_usage_url
+from contentstore.views.component import component_handler, get_component_templates
+from contentstore.views.item import (
+    ALWAYS,
+    VisibilityState,
+    _get_module_info,
+    _get_source_index,
+    _xblock_type_and_display_name,
+    add_container_page_publishing_info,
+    create_xblock_info,
+    highlights_setting,
+)
+from lms_xblock.mixin import NONSENSICAL_ACCESS_RESTRICTION
 from student.tests.factories import UserFactory
 from xblock_django.models import XBlockConfiguration, XBlockStudioConfiguration, XBlockStudioConfigurationFlag
+from xblock_django.user_service import DjangoXBlockUserService
 from xmodule.capa_module import CapaDescriptor
+from xmodule.course_module import DEFAULT_START_DATE
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, TEST_DATA_SPLIT_MODULESTORE
-from xmodule.modulestore.tests.factories import ItemFactory, LibraryFactory, check_mongo_calls, CourseFactory
-from xmodule.x_module import STUDIO_VIEW, STUDENT_VIEW
-from xmodule.course_module import DEFAULT_START_DATE
-from xblock.core import XBlockAside
-from xblock.fields import Scope, String, ScopeIds
-from xblock.fragment import Fragment
-from xblock.runtime import DictKeyValueStore, KvsFieldData
-from xblock.test.tools import TestRuntime
-from xblock.exceptions import NoSuchHandlerError
-from xblock_django.user_service import DjangoXBlockUserService
-from opaque_keys.edx.keys import UsageKey, CourseKey
-from opaque_keys.edx.locations import Location
+from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, LibraryFactory, check_mongo_calls
 from xmodule.partitions.partitions import (
-    Group, UserPartition, ENROLLMENT_TRACK_PARTITION_ID, MINIMUM_STATIC_PARTITION_ID
+    ENROLLMENT_TRACK_PARTITION_ID,
+    MINIMUM_STATIC_PARTITION_ID,
+    Group,
+    UserPartition
 )
+from xmodule.partitions.tests.test_partitions import MockPartitionService
+from xmodule.x_module import STUDENT_VIEW, STUDIO_VIEW
 
 
 class AsideTest(XBlockAside):
@@ -104,7 +113,7 @@ class ItemTest(CourseTestCase):
             data['display_name'] = display_name
         if boilerplate is not None:
             data['boilerplate'] = boilerplate
-        return self.client.ajax_post(reverse('contentstore.views.xblock_handler'), json.dumps(data))
+        return self.client.ajax_post(reverse('xblock_handler'), json.dumps(data))
 
     def _create_vertical(self, parent_usage_key=None):
         """
@@ -118,6 +127,7 @@ class ItemTest(CourseTestCase):
 @ddt.ddt
 class GetItemTest(ItemTest):
     """Tests for '/xblock' GET url."""
+    shard = 1
 
     def _get_preview(self, usage_key, data=None):
         """ Makes a request to xblock preview handler """
@@ -376,7 +386,7 @@ class GetItemTest(ItemTest):
                 "scheme": "enrollment_track",
                 "groups": [
                     {
-                        "id": settings.COURSE_ENROLLMENT_MODES["audit"],
+                        "id": settings.COURSE_ENROLLMENT_MODES["audit"]["id"],
                         "name": "Audit",
                         "selected": False,
                         "deleted": False,
@@ -462,6 +472,8 @@ class GetItemTest(ItemTest):
 @ddt.ddt
 class DeleteItem(ItemTest):
     """Tests for '/xblock' DELETE url."""
+    shard = 1
+
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_delete_static_page(self, store):
         course = CourseFactory.create(default_store=store)
@@ -478,6 +490,8 @@ class TestCreateItem(ItemTest):
     """
     Test the create_item handler thoroughly
     """
+    shard = 1
+
     def test_create_nicely(self):
         """
         Try the straightforward use cases
@@ -645,7 +659,7 @@ class DuplicateHelper(object):
         if display_name is not None:
             data['display_name'] = display_name
 
-        resp = self.client.ajax_post(reverse('contentstore.views.xblock_handler'), json.dumps(data))
+        resp = self.client.ajax_post(reverse('xblock_handler'), json.dumps(data))
         return self.response_usage_key(resp)
 
 
@@ -653,6 +667,8 @@ class TestDuplicateItem(ItemTest, DuplicateHelper):
     """
     Test the duplicate method.
     """
+    shard = 1
+
     def setUp(self):
         """ Creates the test course structure and a few components to 'duplicate'. """
         super(TestDuplicateItem, self).setUp()
@@ -759,6 +775,8 @@ class TestMoveItem(ItemTest):
     """
     Tests for move item.
     """
+    shard = 1
+
     def setUp(self):
         """
         Creates the test course structure to build course outline tree.
@@ -856,7 +874,7 @@ class TestMoveItem(ItemTest):
             data['target_index'] = target_index
 
         return self.client.patch(
-            reverse('contentstore.views.xblock_handler'),
+            reverse('xblock_handler'),
             json.dumps(data),
             content_type='application/json'
         )
@@ -1139,7 +1157,7 @@ class TestMoveItem(ItemTest):
         data = {'move_source_locator': unicode(self.html_usage_key)}
         with self.assertRaises(InvalidKeyError):
             self.client.patch(
-                reverse('contentstore.views.xblock_handler'),
+                reverse('xblock_handler'),
                 json.dumps(data),
                 content_type='application/json'
             )
@@ -1149,11 +1167,69 @@ class TestMoveItem(ItemTest):
         Test patch request without providing a move source locator.
         """
         response = self.client.patch(
-            reverse('contentstore.views.xblock_handler')
+            reverse('xblock_handler')
         )
         self.assertEqual(response.status_code, 400)
         response = json.loads(response.content)
         self.assertEqual(response['error'], 'Patch request did not recognise any parameters to handle.')
+
+    def _verify_validation_message(self, message, expected_message, expected_message_type):
+        """
+        Verify that the validation message has the expected validation message and type.
+        """
+        self.assertEqual(message.text, expected_message)
+        self.assertEqual(message.type, expected_message_type)
+
+    def test_move_component_nonsensical_access_restriction_validation(self):
+        """
+        Test that moving a component with non-contradicting access
+        restrictions into a unit that has contradicting access
+        restrictions brings up the nonsensical access validation
+        message and that the message does not show up when moved
+        into a unit where the component's access settings do not
+        contradict the unit's access settings.
+        """
+        group1 = self.course.user_partitions[0].groups[0]
+        group2 = self.course.user_partitions[0].groups[1]
+        vert2 = self.store.get_item(self.vert2_usage_key)
+        html = self.store.get_item(self.html_usage_key)
+
+        # Inject mock partition service as obtaining the course from the draft modulestore
+        # (which is the default for these tests) does not work.
+        partitions_service = MockPartitionService(
+            self.course,
+            course_id=self.course.id,
+        )
+        html.runtime._services['partitions'] = partitions_service
+
+        # Set access settings so html will contradict vert2 when moved into that unit
+        vert2.group_access = {self.course.user_partitions[0].id: [group1.id]}
+        html.group_access = {self.course.user_partitions[0].id: [group2.id]}
+        self.store.update_item(html, self.user.id)
+        self.store.update_item(vert2, self.user.id)
+
+        # Verify that there is no warning when html is in a non contradicting unit
+        validation = html.validate()
+        self.assertEqual(len(validation.messages), 0)
+
+        # Now move it and confirm that the html component has been moved into vertical 2
+        self.assert_move_item(self.html_usage_key, self.vert2_usage_key)
+        html.parent = self.vert2_usage_key
+        self.store.update_item(html, self.user.id)
+        validation = html.validate()
+        self.assertEqual(len(validation.messages), 1)
+        self._verify_validation_message(
+            validation.messages[0],
+            NONSENSICAL_ACCESS_RESTRICTION,
+            ValidationMessage.ERROR,
+        )
+
+        # Move the html component back and confirm that the warning is gone again
+        self.assert_move_item(self.html_usage_key, self.vert_usage_key)
+        html.parent = self.vert_usage_key
+        self.store.update_item(html, self.user.id)
+        validation = html.validate()
+        self.assertEqual(len(validation.messages), 0)
 
     @patch('contentstore.views.item.log')
     def test_move_logging(self, mock_logger):
@@ -1242,7 +1318,7 @@ class TestMoveItem(ItemTest):
         }
         with self.assertRaises(ItemNotFoundError):
             self.client.patch(
-                reverse('contentstore.views.xblock_handler'),
+                reverse('xblock_handler'),
                 json.dumps(data),
                 content_type='application/json'
             )
@@ -1252,6 +1328,8 @@ class TestDuplicateItemWithAsides(ItemTest, DuplicateHelper):
     """
     Test the duplicate method for blocks with asides.
     """
+    shard = 1
+
     MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
 
     def setUp(self):
@@ -1288,7 +1366,7 @@ class TestDuplicateItemWithAsides(ItemTest, DuplicateHelper):
 
             key_store = DictKeyValueStore()
             field_data = KvsFieldData(key_store)
-            runtime = TestRuntime(services={'field-data': field_data})  # pylint: disable=abstract-class-instantiated
+            runtime = TestRuntime(services={'field-data': field_data})
 
             def_id = runtime.id_generator.create_definition(block_type)
             usage_id = runtime.id_generator.create_usage(def_id)
@@ -1314,6 +1392,8 @@ class TestEditItemSetup(ItemTest):
     """
     Setup for xblock update tests.
     """
+    shard = 1
+
     def setUp(self):
         """ Creates the test course structure and a couple problems to 'edit'. """
         super(TestEditItemSetup, self).setUp()
@@ -1340,10 +1420,13 @@ class TestEditItemSetup(ItemTest):
         self.course_update_url = reverse_usage_url("xblock_handler", self.usage_key)
 
 
+@ddt.ddt
 class TestEditItem(TestEditItemSetup):
     """
     Test xblock update.
     """
+    shard = 1
+
     def test_delete_field(self):
         """
         Sending null in for a field 'deletes' it
@@ -1393,6 +1476,32 @@ class TestEditItem(TestEditItemSetup):
         sequential = self.get_item_from_modulestore(self.seq_usage_key)
         self.assertEqual(sequential.due, datetime(2010, 11, 22, 4, 0, tzinfo=UTC))
         self.assertEqual(sequential.start, datetime(2010, 9, 12, 14, 0, tzinfo=UTC))
+
+    @ddt.data(
+        '1000-01-01T00:00Z',
+        '0150-11-21T14:45Z',
+        '1899-12-31T23:59Z',
+        '1789-06-06T22:10Z',
+        '1001-01-15T19:32Z',
+    )
+    def test_xblock_due_date_validity(self, date):
+        """
+        Test due date for the subsection is not pre-1900
+        """
+        self.client.ajax_post(
+            self.seq_update_url,
+            data={'metadata': {'due': date}}
+        )
+        sequential = self.get_item_from_modulestore(self.seq_usage_key)
+        xblock_info = create_xblock_info(
+            sequential,
+            include_child_info=True,
+            include_children_predicate=ALWAYS,
+            user=self.user
+        )
+        # Both display and actual value should be None
+        self.assertEquals(xblock_info['due_date'], u'')
+        self.assertIsNone(xblock_info['due'])
 
     def test_update_generic_fields(self):
         new_display_name = 'New Display Name'
@@ -1783,6 +1892,7 @@ class TestEditItemSplitMongo(TestEditItemSetup):
     """
     Tests for EditItem running on top of the SplitMongoModuleStore.
     """
+    shard = 1
     MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
 
     def test_editing_view_wrappers(self):
@@ -1804,6 +1914,8 @@ class TestEditSplitModule(ItemTest):
     """
     Tests around editing instances of the split_test module.
     """
+    shard = 1
+
     def setUp(self):
         super(TestEditSplitModule, self).setUp()
         self.user = UserFactory()
@@ -2025,6 +2137,9 @@ class TestEditSplitModule(ItemTest):
 
 @ddt.ddt
 class TestComponentHandler(TestCase):
+    """Tests for component handler api"""
+    shard = 1
+
     def setUp(self):
         super(TestComponentHandler, self).setUp()
 
@@ -2039,9 +2154,10 @@ class TestComponentHandler(TestCase):
         # of the xBlock descriptor.
         self.descriptor = self.modulestore.return_value.get_item.return_value
 
-        self.usage_key_string = unicode(
-            Location('dummy_org', 'dummy_course', 'dummy_run', 'dummy_category', 'dummy_name')
+        self.usage_key = BlockUsageLocator(
+            CourseLocator('dummy_org', 'dummy_course', 'dummy_run'), 'dummy_category', 'dummy_name'
         )
+        self.usage_key_string = text_type(self.usage_key)
 
         self.user = UserFactory()
 
@@ -2080,11 +2196,49 @@ class TestComponentHandler(TestCase):
         self.assertEquals(component_handler(self.request, self.usage_key_string, 'dummy_handler').status_code,
                           status_code)
 
+    @ddt.data((True, True), (False, False),)
+    @ddt.unpack
+    def test_aside(self, is_xblock_aside, is_get_aside_called):
+        """
+        test get_aside_from_xblock called
+        """
+        def create_response(handler, request, suffix):  # pylint: disable=unused-argument
+            """create dummy response"""
+            return Response(status_code=200)
+
+        def get_usage_key():
+            """return usage key"""
+            return (
+                text_type(AsideUsageKeyV2(self.usage_key, "aside"))
+                if is_xblock_aside
+                else self.usage_key_string
+            )
+
+        self.descriptor.handle = create_response
+
+        with patch(
+            'contentstore.views.component.is_xblock_aside',
+            return_value=is_xblock_aside
+        ), patch(
+            'contentstore.views.component.get_aside_from_xblock'
+        ) as mocked_get_aside_from_xblock, patch(
+            "contentstore.views.component.webob_to_django_response"
+        ) as mocked_webob_to_django_response:
+            component_handler(
+                self.request,
+                get_usage_key(),
+                'dummy_handler'
+            )
+            assert mocked_webob_to_django_response.called is True
+
+        assert mocked_get_aside_from_xblock.called is is_get_aside_called
+
 
 class TestComponentTemplates(CourseTestCase):
     """
     Unit tests for the generation of the component templates for a course.
     """
+    shard = 1
 
     def setUp(self):
         super(TestComponentTemplates, self).setUp()
@@ -2320,11 +2474,14 @@ class TestXBlockInfo(ItemTest):
     """
     Unit tests for XBlock's outline handling.
     """
+    shard = 1
+
     def setUp(self):
         super(TestXBlockInfo, self).setUp()
         user_id = self.user.id
         self.chapter = ItemFactory.create(
-            parent_location=self.course.location, category='chapter', display_name="Week 1", user_id=user_id
+            parent_location=self.course.location, category='chapter', display_name="Week 1", user_id=user_id,
+            highlights=['highlight'],
         )
         self.sequential = ItemFactory.create(
             parent_location=self.chapter.location, category='sequential', display_name="Lesson 1", user_id=user_id
@@ -2505,6 +2662,16 @@ class TestXBlockInfo(ItemTest):
 
             self.assertEqual(xblock_info['start'], DEFAULT_START_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'))
 
+    def test_highlights_enabled(self):
+        self.course.highlights_enabled_for_messaging = True
+        self.store.update_item(self.course, None)
+        chapter = self.store.get_item(self.chapter.location)
+        with highlights_setting.override():
+            chapter_xblock_info = create_xblock_info(chapter)
+            course_xblock_info = create_xblock_info(self.course)
+            self.assertTrue(chapter_xblock_info['highlights_enabled'])
+            self.assertTrue(course_xblock_info['highlights_enabled_for_messaging'])
+
     def validate_course_xblock_info(self, xblock_info, has_child_info=True, course_outline=False):
         """
         Validate that the xblock info is correct for the test course.
@@ -2513,6 +2680,7 @@ class TestXBlockInfo(ItemTest):
         self.assertEqual(xblock_info['id'], unicode(self.course.location))
         self.assertEqual(xblock_info['display_name'], self.course.display_name)
         self.assertTrue(xblock_info['published'])
+        self.assertFalse(xblock_info['highlights_enabled_for_messaging'])
 
         # Finally, validate the entire response for consistency
         self.validate_xblock_info_consistency(xblock_info, has_child_info=has_child_info, course_outline=course_outline)
@@ -2531,6 +2699,8 @@ class TestXBlockInfo(ItemTest):
         self.assertEqual(xblock_info['graded'], False)
         self.assertEqual(xblock_info['due'], None)
         self.assertEqual(xblock_info['format'], None)
+        self.assertEqual(xblock_info['highlights'], self.chapter.highlights)
+        self.assertFalse(xblock_info['highlights_enabled'])
 
         # Finally, validate the entire response for consistency
         self.validate_xblock_info_consistency(xblock_info, has_child_info=has_child_info)
@@ -2616,7 +2786,8 @@ class TestXBlockInfo(ItemTest):
             self.assertIsNone(xblock_info.get('child_info', None))
 
     @patch.dict('django.conf.settings.FEATURES', {'ENABLE_SPECIAL_EXAMS': True})
-    def test_proctored_exam_xblock_info(self):
+    @patch('contentstore.views.item.get_exam_configuration_dashboard_url')
+    def test_proctored_exam_xblock_info(self, get_exam_configuration_dashboard_url_patch):
         self.course.enable_proctored_exams = True
         self.course.save()
         self.store.update_item(self.course, self.user.id)
@@ -2637,6 +2808,8 @@ class TestXBlockInfo(ItemTest):
             default_time_limit_minutes=100
         )
         sequential = modulestore().get_item(sequential.location)
+
+        get_exam_configuration_dashboard_url_patch.return_value = 'test_url'
         xblock_info = create_xblock_info(
             sequential,
             include_child_info=True,
@@ -2646,12 +2819,16 @@ class TestXBlockInfo(ItemTest):
         self.assertEqual(xblock_info['is_proctored_exam'], True)
         self.assertEqual(xblock_info['is_time_limited'], True)
         self.assertEqual(xblock_info['default_time_limit_minutes'], 100)
+        self.assertEqual(xblock_info['proctoring_exam_configuration_link'], 'test_url')
+        get_exam_configuration_dashboard_url_patch.assert_called_with(self.course.id, xblock_info['id'])
 
 
 class TestLibraryXBlockInfo(ModuleStoreTestCase):
     """
     Unit tests for XBlock Info for XBlocks in a content library
     """
+    shard = 1
+
     def setUp(self):
         super(TestLibraryXBlockInfo, self).setUp()
         user_id = self.user.id
@@ -2701,6 +2878,8 @@ class TestLibraryXBlockCreation(ItemTest):
     """
     Tests the adding of XBlocks to Library
     """
+    shard = 1
+
     def test_add_xblock(self):
         """
         Verify we can add an XBlock to a Library.
@@ -2737,6 +2916,7 @@ class TestXBlockPublishingInfo(ItemTest):
     """
     Unit tests for XBlock's outline handling.
     """
+    shard = 1
     FIRST_SUBSECTION_PATH = [0]
     FIRST_UNIT_PATH = [0, 0]
     SECOND_UNIT_PATH = [0, 1]
@@ -3065,7 +3245,6 @@ class TestXBlockPublishingInfo(ItemTest):
         Test that when item was initially in `scheduled` state in instructor mode, change course pacing to self-paced,
         now in self-paced course, item should have `live` visibility state.
         """
-        SelfPacedConfiguration(enabled=True).save()
 
         # Create course, chapter and setup future release date to make chapter in scheduled state
         course = CourseFactory.create(default_store=store_type)

@@ -5,6 +5,7 @@ from mock import patch, Mock
 
 from django.test import TestCase, override_settings
 from django.conf import settings
+from edx_django_utils.cache import RequestCache
 
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -22,11 +23,13 @@ class TestHelpers(TestCase):
         Tests template paths are returned from enabled theme.
         """
         expected_themes = [
-            Theme('test-theme', 'test-theme', get_theme_base_dir('test-theme')),
-            Theme('red-theme', 'red-theme', get_theme_base_dir('red-theme')),
-            Theme('edge.edx.org', 'edge.edx.org', get_theme_base_dir('edge.edx.org')),
-            Theme('edx.org', 'edx.org', get_theme_base_dir('edx.org')),
-            Theme('stanford-style', 'stanford-style', get_theme_base_dir('stanford-style')),
+            Theme('dark-theme', 'dark-theme', get_theme_base_dir('dark-theme'), settings.PROJECT_ROOT),
+            Theme('edge.edx.org', 'edge.edx.org', get_theme_base_dir('edge.edx.org'), settings.PROJECT_ROOT),
+            Theme('edx.org', 'edx.org', get_theme_base_dir('edx.org'), settings.PROJECT_ROOT),
+            Theme('open-edx', 'open-edx', get_theme_base_dir('open-edx'), settings.PROJECT_ROOT),
+            Theme('red-theme', 'red-theme', get_theme_base_dir('red-theme'), settings.PROJECT_ROOT),
+            Theme('stanford-style', 'stanford-style', get_theme_base_dir('stanford-style'), settings.PROJECT_ROOT),
+            Theme('test-theme', 'test-theme', get_theme_base_dir('test-theme'), settings.PROJECT_ROOT),
         ]
         actual_themes = get_themes()
         self.assertItemsEqual(expected_themes, actual_themes)
@@ -37,7 +40,7 @@ class TestHelpers(TestCase):
         Tests template paths are returned from enabled theme.
         """
         expected_themes = [
-            Theme('test-theme', 'test-theme', get_theme_base_dir('test-theme')),
+            Theme('test-theme', 'test-theme', get_theme_base_dir('test-theme'), settings.PROJECT_ROOT),
         ]
         actual_themes = get_themes()
         self.assertItemsEqual(expected_themes, actual_themes)
@@ -186,6 +189,8 @@ class TestHelpers(TestCase):
                 with patch("microsite_configuration.microsite.TEMPLATES_BACKEND") as mock_microsite_backend:
                     mock_microsite_backend.get_template = Mock(return_value="/microsite/about.html")
                     self.assertEqual(theming_helpers.get_template_path("about.html"), "about.html")
+
+        RequestCache.clear_all_namespaces()
 
         # if the current site does not have associated SiteTheme then get_template_path should return microsite override
         with patch(

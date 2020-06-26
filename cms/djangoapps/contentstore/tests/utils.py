@@ -3,25 +3,25 @@ Utilities for contentstore tests
 '''
 import json
 import textwrap
-from mock import Mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.test.client import Client
-from opaque_keys.edx.locations import SlashSeparatedCourseKey, AssetLocation
+from mock import Mock
+from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locations import AssetLocation
 
 from contentstore.utils import reverse_url
+from edx_notifications import apps
 from student.models import Registration
-from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore
-from lms import startup
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.inheritance import own_metadata
 from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-from xmodule.modulestore.xml_importer import import_course_from_xml
 from xmodule.modulestore.tests.utils import ProceduralCourseTestMixin
+from xmodule.modulestore.xml_importer import import_course_from_xml
 
 TEST_DATA_DIR = settings.COMMON_TEST_DATA_ROOT
 
@@ -91,7 +91,7 @@ class CourseTestCase(ProceduralCourseTestMixin, ModuleStoreTestCase):
         self.course = CourseFactory.create()
 
         # initialize the Notification subsystem
-        startup.startup_notification_subsystem()
+        apps.startup_notification_subsystem()
 
     def create_non_staff_authed_user_client(self, authenticate=True):
         """
@@ -102,7 +102,6 @@ class CourseTestCase(ProceduralCourseTestMixin, ModuleStoreTestCase):
         client = AjaxEnabledTestClient()
         if authenticate:
             client.login(username=nonstaff.username, password=password)
-        nonstaff.is_authenticated = lambda: authenticate
         return client, nonstaff
 
     def reload_course(self):
@@ -134,7 +133,7 @@ class CourseTestCase(ProceduralCourseTestMixin, ModuleStoreTestCase):
         """
         content_store = contentstore()
         import_course_from_xml(self.store, self.user.id, TEST_DATA_DIR, ['toy'], static_content_store=content_store)
-        course_id = SlashSeparatedCourseKey('edX', 'toy', '2012_Fall')
+        course_id = CourseKey.from_string('/'.join(['edX', 'toy', '2012_Fall']))
 
         # create an Orphan
         # We had a bug where orphaned draft nodes caused export to fail. This is here to cover that case.
@@ -142,7 +141,7 @@ class CourseTestCase(ProceduralCourseTestMixin, ModuleStoreTestCase):
         vertical.location = vertical.location.replace(name='no_references')
         self.store.update_item(vertical, self.user.id, allow_not_found=True)
         orphan_vertical = self.store.get_item(vertical.location)
-        self.assertEqual(orphan_vertical.location.name, 'no_references')
+        self.assertEqual(orphan_vertical.location.block_id, 'no_references')
         self.assertEqual(len(orphan_vertical.children), len(vertical.children))
 
         # create an orphan vertical and html; we already don't try to import
@@ -318,7 +317,12 @@ class CourseTestCase(ProceduralCourseTestMixin, ModuleStoreTestCase):
                 self.assertEqual(course1_item.data, course2_item.data)
 
             # compare meta-data
-            self.assertEqual(own_metadata(course1_item), own_metadata(course2_item))
+            course1_metadata = own_metadata(course1_item)
+            course2_metadata = own_metadata(course2_item)
+            # Omit edx_video_id as it can be different in case of extrnal video imports.
+            course1_metadata.pop('edx_video_id', None)
+            course2_metadata.pop('edx_video_id', None)
+            self.assertEqual(course1_metadata, course2_metadata)
 
             # compare children
             self.assertEqual(course1_item.has_children, course2_item.has_children)

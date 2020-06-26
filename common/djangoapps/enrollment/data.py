@@ -5,7 +5,9 @@ source to be used throughout the API.
 import logging
 
 from django.contrib.auth.models import User
+from django.db import transaction
 from opaque_keys.edx.keys import CourseKey
+from six import text_type
 
 from enrollment.errors import (
     CourseEnrollmentClosedError,
@@ -25,17 +27,20 @@ from student.models import (
     EnrollmentClosedError,
     NonExistentCourseError
 )
+from student.roles import RoleCache
 
 log = logging.getLogger(__name__)
 
 
-def get_course_enrollments(user_id):
+def get_course_enrollments(user_id, include_inactive=False):
     """Retrieve a list representing all aggregated data for a user's course enrollments.
 
     Construct a representation of all course enrollment data for a specific user.
 
     Args:
         user_id (str): The name of the user to retrieve course enrollment information for.
+        include_inactive (bool): Determines whether inactive enrollments will be included
+
 
     Returns:
         A serializable list of dictionaries of all aggregated enrollment data for a user.
@@ -43,8 +48,10 @@ def get_course_enrollments(user_id):
     """
     qset = CourseEnrollment.objects.filter(
         user__username=user_id,
-        is_active=True
     ).order_by('created')
+
+    if not include_inactive:
+        qset = qset.filter(is_active=True)
 
     enrollments = CourseEnrollmentSerializer(qset, many=True).data
 
@@ -91,6 +98,22 @@ def get_course_enrollment(username, course_id):
         return None
 
 
+def get_user_enrollments(course_key):
+    """Based on the course id, return all user enrollments in the course
+    Args:
+        course_key (CourseKey): Identifier of the course
+        from which to retrieve enrollments.
+    Returns:
+        A course's user enrollments as a queryset
+    Raises:
+        CourseEnrollment.DoesNotExist
+    """
+    return CourseEnrollment.objects.filter(
+        course_id=course_key,
+        is_active=True
+    ).order_by('created')
+
+
 def create_course_enrollment(username, course_id, mode, is_active):
     """Create a new course enrollment for the given user.
 
@@ -125,14 +148,14 @@ def create_course_enrollment(username, course_id, mode, is_active):
         enrollment = CourseEnrollment.enroll(user, course_key, check_access=True)
         return _update_enrollment(enrollment, is_active=is_active, mode=mode)
     except NonExistentCourseError as err:
-        raise CourseNotFoundError(err.message)
+        raise CourseNotFoundError(text_type(err))
     except EnrollmentClosedError as err:
-        raise CourseEnrollmentClosedError(err.message)
+        raise CourseEnrollmentClosedError(text_type(err))
     except CourseFullError as err:
-        raise CourseEnrollmentFullError(err.message)
+        raise CourseEnrollmentFullError(text_type(err))
     except AlreadyEnrolledError as err:
         enrollment = get_course_enrollment(username, course_id)
-        raise CourseEnrollmentExistsError(err.message, enrollment)
+        raise CourseEnrollmentExistsError(text_type(err), enrollment)
 
 
 def update_course_enrollment(username, course_id, mode=None, is_active=None):
@@ -220,6 +243,21 @@ def get_enrollment_attributes(user_id, course_id):
     return CourseEnrollmentAttribute.get_enrollment_attributes(enrollment)
 
 
+def unenroll_user_from_all_courses(user_id):
+    """
+    Set all of a user's enrollments to inactive.
+    :param user_id: The user being unenrolled.
+    :return: A list of all courses from which the user was unenrolled.
+    """
+    user = _get_user(user_id)
+    enrollments = CourseEnrollment.objects.filter(user=user)
+    with transaction.atomic():
+        for enrollment in enrollments:
+            _update_enrollment(enrollment, is_active=False)
+
+    return set([str(enrollment.course_id.org) for enrollment in enrollments])
+
+
 def _get_user(user_id):
     """Retrieve user with provided user_id
 
@@ -300,3 +338,16 @@ def get_course_enrollment_info(course_id, include_expired=False):
         raise CourseNotFoundError(msg)
     else:
         return CourseSerializer(course, include_expired=include_expired).data
+
+
+def get_user_roles(user_id):
+    """
+    Returns a list of all roles that this user has.
+    :param user_id: The id of the selected user.
+    :return: All roles for all courses that this user has.
+    """
+    user = _get_user(user_id)
+    if not hasattr(user, '_roles'):
+        user._roles = RoleCache(user)
+    role_cache = user._roles
+    return role_cache._roles

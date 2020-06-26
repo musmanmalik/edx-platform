@@ -6,7 +6,7 @@ progress page.
 from contextlib import contextmanager
 
 import ddt
-from nose.plugins.attrib import attr
+import pytest
 
 from ...fixtures.course import CourseFixture, XBlockFixtureDesc
 from ...pages.common.logout import LogoutPage
@@ -14,7 +14,7 @@ from ...pages.lms.courseware import CoursewarePage
 from ...pages.lms.instructor_dashboard import InstructorDashboardPage, StudentSpecificAdmin
 from ...pages.lms.problem import ProblemPage
 from ...pages.lms.progress import ProgressPage
-from ...pages.studio.component_editor import ComponentEditorView
+from ...pages.studio.xblock_editor import XBlockEditorView
 from ...pages.studio.overview import CourseOutlinePage as StudioCourseOutlinePage
 from ...pages.studio.utils import type_in_codemirror
 from ..helpers import (
@@ -42,7 +42,7 @@ class ProgressPageBaseTest(UniqueCourseTest):
     def setUp(self):
         super(ProgressPageBaseTest, self).setUp()
         self.courseware_page = CoursewarePage(self.browser, self.course_id)
-        self.problem_page = ProblemPage(self.browser)  # pylint: disable=attribute-defined-outside-init
+        self.problem_page = ProblemPage(self.browser)
         self.progress_page = ProgressPage(self.browser, self.course_id)
         self.logout_page = LogoutPage(self.browser)
 
@@ -127,13 +127,14 @@ class ProgressPageBaseTest(UniqueCourseTest):
             self.logout_page.visit()
 
 
-@attr(shard=9)
 @ddt.ddt
 class PersistentGradesTest(ProgressPageBaseTest):
     """
     Test that grades for completed assessments are persisted
     when various edits are made.
     """
+    shard = 22
+
     def setUp(self):
         super(PersistentGradesTest, self).setUp()
         self.instructor_dashboard_page = InstructorDashboardPage(self.browser, self.course_id)
@@ -179,7 +180,7 @@ class PersistentGradesTest(ProgressPageBaseTest):
         """
         unit, component = self._get_problem_in_studio()
         component.edit()
-        component_editor = ComponentEditorView(self.browser, component.locator)
+        component_editor = XBlockEditorView(self.browser, component.locator)
         component_editor.set_field_value_and_save('Problem Weight', 5)
         unit.publish()
 
@@ -275,12 +276,13 @@ class PersistentGradesTest(ProgressPageBaseTest):
             self.assertEqual(self._get_section_score(), (0, 2))
 
 
-@attr(shard=9)
 class SubsectionGradingPolicyTest(ProgressPageBaseTest):
     """
     Tests changing a subsection's 'graded' field
     and the effect it has on the progress page.
     """
+    shard = 22
+
     def setUp(self):
         super(SubsectionGradingPolicyTest, self).setUp()
         self._set_policy_for_subsection("Homework", 0)
@@ -325,6 +327,9 @@ class SubsectionGradingPolicyTest(ProgressPageBaseTest):
             # Answer the first Lab problem (unit only contains a single problem)
             self._answer_problem_correctly()
             self.progress_page.visit()
+
+            # Verify the basic a11y of the progress page
+            self.progress_page.a11y_audit.check_for_accessibility_errors()
 
             # Verify that y-Axis labels are aria-hidden
             self.assertEqual(['100%', 'true'], self.progress_page.y_tick_label(0))
@@ -414,7 +419,7 @@ class SubsectionGradingPolicyTest(ProgressPageBaseTest):
             self._check_scores_and_page_text([(1, 1), (0, 1)], (1, 2), "Homework 1 - Test Subsection 1 - 50% (1/2)")
 
 
-@attr('a11y')
+@pytest.mark.a11y
 class ProgressPageA11yTest(ProgressPageBaseTest):
     """
     Class to test the accessibility of the progress page.
@@ -424,5 +429,10 @@ class ProgressPageA11yTest(ProgressPageBaseTest):
         """
         Test the accessibility of the progress page.
         """
+        self.progress_page.a11y_audit.config.set_rules({
+            "ignore": [
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+            ]
+        })
         self.progress_page.visit()
         self.progress_page.a11y_audit.check_for_accessibility_errors()

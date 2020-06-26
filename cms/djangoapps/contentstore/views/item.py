@@ -18,11 +18,11 @@ from django.views.decorators.http import require_http_methods
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import LibraryUsageLocator
 from pytz import UTC
+from six import text_type
+from web_fragments.fragment import Fragment
 from xblock.core import XBlock
 from xblock.fields import Scope
-from xblock.fragment import Fragment
 
-import dogstats_wrapper as dog_stats_api
 from cms.lib.xblock.authoring_mixin import VISIBILITY_VIEW
 from contentstore.utils import (
     ancestor_has_staff_lock,
@@ -30,6 +30,7 @@ from contentstore.utils import (
     find_staff_lock_source,
     get_split_group_display_name,
     get_user_partition_info,
+    get_visibility_partition_info,
     has_children_visible_to_specific_partition_groups,
     is_currently_visible_to_students,
     is_self_paced
@@ -45,9 +46,12 @@ from contentstore.views.helpers import (
 )
 from contentstore.views.preview import get_preview_fragment
 from edxmako.shortcuts import render_to_string
+from help_tokens.core import HelpUrlExpert
 from models.settings.course_grading import CourseGradingModel
-from openedx.core.lib.xblock_utils import wrap_xblock, request_token, xblock_local_resource_url
+from openedx.core.djangoapps.schedules.config import COURSE_UPDATE_WAFFLE_FLAG
+from openedx.core.djangoapps.waffle_utils import WaffleSwitch
 from openedx.core.lib.gating import api as gating_api
+from openedx.core.lib.xblock_utils import request_token, wrap_xblock, wrap_xblock_aside
 from static_replace import replace_static_urls
 from student.auth import has_studio_read_access, has_studio_write_access
 from util.date_utils import get_default_time_display
@@ -64,6 +68,7 @@ from xmodule.modulestore.inheritance import own_metadata
 from xmodule.services import ConfigurationService, SettingsService
 from xmodule.tabs import CourseTabList
 from xmodule.x_module import DEPRECATION_VSCOMPAT_EVENT, PREVIEW_VIEWS, STUDENT_VIEW, STUDIO_VIEW
+from edx_proctoring.api import get_exam_configuration_dashboard_url
 
 __all__ = [
     'orphan_handler', 'xblock_handler', 'xblock_view_handler', 'xblock_outline_handler', 'xblock_container_handler'
@@ -80,9 +85,12 @@ NEVER = lambda x: False
 ALWAYS = lambda x: True
 
 
+highlights_setting = WaffleSwitch(u'dynamic_pacing', u'studio_course_update')
+
+
 def hash_resource(resource):
     """
-    Hash a :class:`xblock.fragment.FragmentResource`.
+    Hash a :class:`web_fragments.fragment.FragmentResource`.
     """
     md5 = hashlib.md5()
     md5.update(repr(resource))
@@ -129,7 +137,9 @@ def xblock_handler(request, usage_key_string):
                 :isPrereq: Set this xblock as a prerequisite which can be used to limit access to other xblocks
                 :prereqUsageKey: Use the xblock identified by this usage key to limit access to this xblock
                 :prereqMinScore: The minimum score that needs to be achieved on the prerequisite xblock
-                        identifed by prereqUsageKey
+                        identifed by prereqUsageKey. Ranging from 0 to 100.
+                :prereqMinCompletion: The minimum completion percentage that needs to be achieved on the
+                        prerequisite xblock identifed by prereqUsageKey. Ranging from 0 to 100.
                 :publish: can be:
                   'make_public': publish the content
                   'republish': publish this item *only* if it was previously published
@@ -196,6 +206,7 @@ def xblock_handler(request, usage_key_string):
                 is_prereq=request.json.get('isPrereq'),
                 prereq_usage_key=request.json.get('prereqUsageKey'),
                 prereq_min_score=request.json.get('prereqMinScore'),
+                prereq_min_completion=request.json.get('prereqMinCompletion'),
                 publish=request.json.get('publish'),
                 fields=request.json.get('fields'),
             )
@@ -318,6 +329,14 @@ def xblock_view_handler(request, usage_key_string, view_name):
             'StudioRuntime',
             usage_id_serializer=unicode,
             request_token=request_token(request),
+        ))
+
+        xblock.runtime.wrappers_asides.append(partial(
+            wrap_xblock_aside,
+            'StudioRuntime',
+            usage_id_serializer=unicode,
+            request_token=request_token(request),
+            extra_classes=['wrapper-comp-plugins']
         ))
 
         if view_name in (STUDIO_VIEW, VISIBILITY_VIEW):
@@ -477,7 +496,7 @@ def _update_with_callback(xblock, user, old_metadata=None, old_content=None):
 
 def _save_xblock(user, xblock, data=None, children_strings=None, metadata=None, nullout=None,
                  grader_type=None, is_prereq=None, prereq_usage_key=None, prereq_min_score=None,
-                 publish=None, fields=None):
+                 prereq_min_completion=None, publish=None, fields=None):
     """
     Saves xblock w/ its fields. Has special processing for grader_type, publish, and nullout and Nones in metadata.
     nullout means to truly set the field to None whereas nones in metadata mean to unset them (so they revert
@@ -572,18 +591,19 @@ def _save_xblock(user, xblock, data=None, children_strings=None, metadata=None, 
                             value = field.from_json(value)
                         except ValueError as verr:
                             reason = _("Invalid data")
-                            if verr.message:
-                                reason = _("Invalid data ({details})").format(details=verr.message)
+                            if text_type(verr):
+                                reason = _("Invalid data ({details})").format(details=text_type(verr))
                             return JsonResponse({"error": reason}, 400)
 
                         field.write_to(xblock, value)
 
+        validate_and_update_xblock_due_date(xblock)
         # update the xblock and call any xblock callbacks
         xblock = _update_with_callback(xblock, user, old_metadata, old_content)
 
         # for static tabs, their containing course also records their display name
         course = store.get_course(xblock.location.course_key)
-        if xblock.location.category == 'static_tab':
+        if xblock.location.block_type == 'static_tab':
             # find the course's reference to this tab and update the name.
             static_tab = CourseTabList.get_tab_by_slug(course.tabs, xblock.location.name)
             # only update if changed
@@ -618,7 +638,11 @@ def _save_xblock(user, xblock, data=None, children_strings=None, metadata=None, 
 
             if prereq_usage_key is not None:
                 gating_api.set_required_content(
-                    xblock.location.course_key, xblock.location, prereq_usage_key, prereq_min_score
+                    xblock.location.course_key,
+                    xblock.location,
+                    prereq_usage_key,
+                    prereq_min_score,
+                    prereq_min_completion
                 )
 
         # If publish is set to 'republish' and this item is not in direct only categories and has previously been
@@ -956,19 +980,10 @@ def _delete_item(usage_key, user):
         # VS[compat] cdodge: This is a hack because static_tabs also have references from the course module, so
         # if we add one then we need to also add it to the policy information (i.e. metadata)
         # we should remove this once we can break this reference from the course to static tabs
-        if usage_key.category == 'static_tab':
-
-            dog_stats_api.increment(
-                DEPRECATION_VSCOMPAT_EVENT,
-                tags=(
-                    "location:_delete_item_static_tab",
-                    u"course:{}".format(unicode(usage_key.course_key)),
-                )
-            )
-
+        if usage_key.block_type == 'static_tab':
             course = store.get_course(usage_key.course_key)
             existing_tabs = course.tabs or []
-            course.tabs = [tab for tab in existing_tabs if tab.get('url_slug') != usage_key.name]
+            course.tabs = [tab for tab in existing_tabs if tab.get('url_slug') != usage_key.block_id]
             store.update_item(course, user.id)
 
         store.delete_item(usage_key, user.id)
@@ -1028,7 +1043,7 @@ def _get_xblock(usage_key, user):
         try:
             return store.get_item(usage_key, depth=None)
         except ItemNotFoundError:
-            if usage_key.category in CREATE_IF_NOT_FOUND:
+            if usage_key.block_type in CREATE_IF_NOT_FOUND:
                 # Create a new one for certain categories only. Used for course info handouts.
                 return store.create_item(user.id, usage_key.course_key, usage_key.block_type, block_id=usage_key.block_id)
             else:
@@ -1084,17 +1099,18 @@ def _get_gating_info(course, xblock):
         if not hasattr(course, 'gating_prerequisites'):
             # Cache gating prerequisites on course module so that we are not
             # hitting the database for every xblock in the course
-            setattr(course, 'gating_prerequisites', gating_api.get_prerequisites(course.id))  # pylint: disable=literal-used-as-attribute
+            setattr(course, 'gating_prerequisites', gating_api.get_prerequisites(course.id))
         info["is_prereq"] = gating_api.is_prerequisite(course.id, xblock.location)
         info["prereqs"] = [
             p for p in course.gating_prerequisites if unicode(xblock.location) not in p['namespace']
         ]
-        prereq, prereq_min_score = gating_api.get_required_content(
+        prereq, prereq_min_score, prereq_min_completion = gating_api.get_required_content(
             course.id,
             xblock.location
         )
         info["prereq"] = prereq
         info["prereq_min_score"] = prereq_min_score
+        info["prereq_min_completion"] = prereq_min_completion
         if prereq:
             info["visibility_state"] = VisibilityState.gated
     return info
@@ -1228,6 +1244,20 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             xblock_info.update({
                 'hide_after_due': xblock.hide_after_due,
             })
+        elif xblock.category in ('chapter', 'course'):
+            if xblock.category == 'chapter':
+                xblock_info.update({
+                    'highlights': xblock.highlights,
+                })
+            elif xblock.category == 'course':
+                xblock_info.update({
+                    'highlights_enabled_for_messaging': course.highlights_enabled_for_messaging,
+                })
+            xblock_info.update({
+                'highlights_enabled': highlights_setting.is_enabled(),
+                'highlights_preview_only': not COURSE_UPDATE_WAFFLE_FLAG.is_enabled(course.id),
+                'highlights_doc_url': HelpUrlExpert.the_one().url_for_token('content_highlights'),
+            })
 
         # update xblock_info with special exam information if the feature flag is enabled
         if settings.FEATURES.get('ENABLE_SPECIAL_EXAMS'):
@@ -1238,12 +1268,21 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
                     'enable_timed_exams': xblock.enable_timed_exams
                 })
             elif xblock.category == 'sequential':
+                rules_url = settings.PROCTORING_SETTINGS.get('LINK_URLS', {}).get('online_proctoring_rules', "")
+
+                proctoring_exam_configuration_link = None
+                if xblock.is_proctored_exam:
+                    proctoring_exam_configuration_link = get_exam_configuration_dashboard_url(
+                        course.id, xblock_info['id'])
+
                 xblock_info.update({
                     'is_proctored_exam': xblock.is_proctored_exam,
+                    'online_proctoring_rules': rules_url,
                     'is_practice_exam': xblock.is_practice_exam,
                     'is_time_limited': xblock.is_time_limited,
                     'exam_review_rules': xblock.exam_review_rules,
                     'default_time_limit_minutes': xblock.default_time_limit_minutes,
+                    'proctoring_exam_configuration_link': proctoring_exam_configuration_link,
                 })
 
         # Update with gating info
@@ -1278,13 +1317,15 @@ def create_xblock_info(xblock, data=None, metadata=None, include_ancestor_info=F
             else:
                 xblock_info['staff_only_message'] = False
 
-            xblock_info["has_partition_group_components"] = has_children_visible_to_specific_partition_groups(
+            xblock_info['has_partition_group_components'] = has_children_visible_to_specific_partition_groups(
                 xblock
             )
+        xblock_info['user_partition_info'] = get_visibility_partition_info(xblock, course=course)
+
     return xblock_info
 
 
-def add_container_page_publishing_info(xblock, xblock_info):  # pylint: disable=invalid-name
+def add_container_page_publishing_info(xblock, xblock_info):
     """
     Adds information about the xblock's publish state to the supplied
     xblock_info for the container page.
@@ -1418,7 +1459,7 @@ def _create_xblock_ancestor_info(xblock, course_outline=False, include_child_inf
 
 
 def _create_xblock_child_info(xblock, course_outline, graders, include_children_predicate=NEVER, user=None,
-                              course=None, is_concise=False):  # pylint: disable=line-too-long
+                              course=None, is_concise=False):
     """
     Returns information about the children of an xblock, as well as about the primary category
     of xblock expected as children.
@@ -1464,6 +1505,14 @@ def _get_release_date(xblock, user=None):
 
     # Treat DEFAULT_START_DATE as a magic number that means the release date has not been set
     return get_default_time_display(xblock.start) if xblock.start != DEFAULT_START_DATE else None
+
+
+def validate_and_update_xblock_due_date(xblock):
+    """
+    Validates the due date for the xblock, and set to None if pre-1900 due date provided
+    """
+    if xblock.due and xblock.due.year < 1900:
+        xblock.due = None
 
 
 def _get_release_date_from(xblock):

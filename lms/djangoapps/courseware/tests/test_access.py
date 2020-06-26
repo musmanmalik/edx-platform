@@ -9,17 +9,15 @@ import ddt
 import pytz
 from ccx_keys.locator import CCXLocator
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 from django.test.client import RequestFactory
 from milestones.tests.utils import MilestonesTestCaseMixin
 from mock import Mock, patch
-from nose.plugins.attrib import attr
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.locator import CourseLocator
 
 import courseware.access as access
 import courseware.access_response as access_response
-from ccx.tests.factories import CcxFactory
 from courseware.masquerade import CourseMasquerade
 from courseware.tests.factories import (
     BetaTesterFactory,
@@ -31,6 +29,9 @@ from courseware.tests.factories import (
 from courseware.tests.helpers import LoginEnrollmentTestCase, masquerade_as_group_member
 from lms.djangoapps.ccx.models import CustomCourseForEdX
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from openedx.core.djangoapps.waffle_utils.testutils import WAFFLE_TABLES
+from openedx.core.lib.tests import attr
+from openedx.features.content_type_gating.models import ContentTypeGatingConfig
 from student.models import CourseEnrollment
 from student.roles import CourseCcxCoachRole, CourseStaffRole
 from student.tests.factories import (
@@ -45,7 +46,6 @@ from xmodule.course_module import (
     CATALOG_VISIBILITY_CATALOG_AND_ABOUT,
     CATALOG_VISIBILITY_NONE
 )
-from xmodule.error_module import ErrorDescriptor
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import (
@@ -54,10 +54,9 @@ from xmodule.modulestore.tests.django_utils import (
     SharedModuleStoreTestCase
 )
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
-from xmodule.modulestore.xml import CourseLocationManager
 from xmodule.partitions.partitions import MINIMUM_STATIC_PARTITION_ID, Group, UserPartition
-from xmodule.tests import get_test_system
 
+QUERY_COUNT_TABLE_BLACKLIST = WAFFLE_TABLES
 
 # pylint: disable=protected-access
 
@@ -164,9 +163,14 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
     """
     Tests for the various access controls on the student dashboard
     """
-    TOMORROW = datetime.datetime.now(pytz.utc) + datetime.timedelta(days=1)
-    YESTERDAY = datetime.datetime.now(pytz.utc) - datetime.timedelta(days=1)
+    TOMORROW = 'tomorrow'
+    YESTERDAY = 'yesterday'
     MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
+    DATES = {
+        TOMORROW: datetime.datetime.now(pytz.utc) + datetime.timedelta(days=1),
+        YESTERDAY: datetime.datetime.now(pytz.utc) - datetime.timedelta(days=1),
+        None: None,
+    }
 
     def setUp(self):
         super(AccessTestCase, self).setUp()
@@ -441,7 +445,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         mock_unit = Mock(location=self.course.location, user_partitions=[])
         mock_unit._class_tags = {}  # Needed for detached check in _has_access_descriptor
         mock_unit.visible_to_staff_only = visible_to_staff_only
-        mock_unit.start = start
+        mock_unit.start = self.DATES[start]
         mock_unit.merged_group_access = {}
 
         self.verify_access(mock_unit, expected_access, expected_error_type)
@@ -450,7 +454,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         mock_unit = Mock(user_partitions=[])
         mock_unit._class_tags = {}
         mock_unit.days_early_for_beta = 2
-        mock_unit.start = self.TOMORROW
+        mock_unit.start = self.DATES[self.TOMORROW]
         mock_unit.visible_to_staff_only = False
         mock_unit.merged_group_access = {}
 
@@ -467,7 +471,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         mock_unit = Mock(location=self.course.location, user_partitions=[])
         mock_unit._class_tags = {}  # Needed for detached check in _has_access_descriptor
         mock_unit.visible_to_staff_only = False
-        mock_unit.start = start
+        mock_unit.start = self.DATES[start]
         mock_unit.merged_group_access = {}
 
         self.verify_access(mock_unit, True)
@@ -488,7 +492,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         mock_unit = Mock(location=self.course.location, user_partitions=[])
         mock_unit._class_tags = {}  # Needed for detached check in _has_access_descriptor
         mock_unit.visible_to_staff_only = False
-        mock_unit.start = start
+        mock_unit.start = self.DATES[start]
         mock_unit.merged_group_access = {}
 
         self.verify_access(mock_unit, expected_access, expected_error_type)
@@ -502,7 +506,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         user = UserFactory.create()
         course = Mock(
             enrollment_start=tomorrow, enrollment_end=tomorrow,
-            id=SlashSeparatedCourseKey('edX', 'test', '2012_Fall'), enrollment_domain=''
+            id=CourseLocator('edX', 'test', '2012_Fall'), enrollment_domain=''
         )
         CourseEnrollmentAllowedFactory(email=user.email, course_id=course.id)
         self.assertTrue(access._has_access_course(user, 'enroll', course))
@@ -515,7 +519,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         # and not specifically allowed
         course = Mock(
             enrollment_start=yesterday, enrollment_end=tomorrow,
-            id=SlashSeparatedCourseKey('edX', 'test', '2012_Fall'), enrollment_domain='',
+            id=CourseLocator('edX', 'test', '2012_Fall'), enrollment_domain='',
             invitation_only=True
         )
         user = UserFactory.create()
@@ -524,7 +528,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         # Non-staff can enroll if it is between the start and end dates and not invitation only
         course = Mock(
             enrollment_start=yesterday, enrollment_end=tomorrow,
-            id=SlashSeparatedCourseKey('edX', 'test', '2012_Fall'), enrollment_domain='',
+            id=CourseLocator('edX', 'test', '2012_Fall'), enrollment_domain='',
             invitation_only=False
         )
         self.assertTrue(access._has_access_course(user, 'enroll', course))
@@ -532,7 +536,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         # Non-staff cannot enroll outside the open enrollment period if not specifically allowed
         course = Mock(
             enrollment_start=tomorrow, enrollment_end=tomorrow,
-            id=SlashSeparatedCourseKey('edX', 'test', '2012_Fall'), enrollment_domain='',
+            id=CourseLocator('edX', 'test', '2012_Fall'), enrollment_domain='',
             invitation_only=False
         )
         self.assertFalse(access._has_access_course(user, 'enroll', course))
@@ -546,7 +550,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         Tests the catalog visibility tri-states
         """
         user = UserFactory.create()
-        course_id = SlashSeparatedCourseKey('edX', 'test', '2012_Fall')
+        course_id = CourseLocator('edX', 'test', '2012_Fall')
         staff = StaffFactory.create(course_key=course_id)
 
         course = Mock(
@@ -560,7 +564,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
 
         # Now set visibility to just about page
         course = Mock(
-            id=SlashSeparatedCourseKey('edX', 'test', '2012_Fall'),
+            id=CourseLocator('edX', 'test', '2012_Fall'),
             catalog_visibility=CATALOG_VISIBILITY_ABOUT
         )
         self.assertFalse(access._has_access_course(user, 'see_in_catalog', course))
@@ -570,7 +574,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
 
         # Now set visibility to none, which means neither in catalog nor about pages
         course = Mock(
-            id=SlashSeparatedCourseKey('edX', 'test', '2012_Fall'),
+            id=CourseLocator('edX', 'test', '2012_Fall'),
             catalog_visibility=CATALOG_VISIBILITY_NONE
         )
         self.assertFalse(access._has_access_course(user, 'see_in_catalog', course))
@@ -597,16 +601,16 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
 
         # user should not be able to load course even if enrolled
         CourseEnrollmentFactory(user=user, course_id=course.id)
-        response = access._has_access_course(user, 'view_courseware_with_prerequisites', course)
+        response = access._has_access_course(user, 'load', course)
         self.assertFalse(response)
-        self.assertIsInstance(response, access_response.MilestoneError)
+        self.assertIsInstance(response, access_response.MilestoneAccessError)
         # Staff can always access course
         staff = StaffFactory.create(course_key=course.id)
-        self.assertTrue(access._has_access_course(staff, 'view_courseware_with_prerequisites', course))
+        self.assertTrue(access._has_access_course(staff, 'load', course))
 
         # User should be able access after completing required course
         fulfill_course_milestone(pre_requisite_course.id, user)
-        self.assertTrue(access._has_access_course(user, 'view_courseware_with_prerequisites', course))
+        self.assertTrue(access._has_access_course(user, 'load', course))
 
     @ddt.data(
         (True, True, True),
@@ -617,8 +621,7 @@ class AccessTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTes
         """
         Test course access on mobile for staff and students.
         """
-        descriptor = Mock(id=self.course.id, user_partitions=[])
-        descriptor._class_tags = {}
+        descriptor = CourseFactory()
         descriptor.visible_to_staff_only = False
         descriptor.mobile_available = mobile_available
 
@@ -678,7 +681,7 @@ class UserRoleTestCase(TestCase):
 
     def setUp(self):
         super(UserRoleTestCase, self).setUp()
-        self.course_key = SlashSeparatedCourseKey('edX', 'toy', '2012_Fall')
+        self.course_key = CourseLocator('edX', 'toy', '2012_Fall')
         self.anonymous_user = AnonymousUserFactory()
         self.student = UserFactory()
         self.global_staff = UserFactory(is_staff=True)
@@ -727,7 +730,7 @@ class UserRoleTestCase(TestCase):
         )
 
 
-@attr(shard=3)
+@attr(shard=5)
 @ddt.ddt
 class CourseOverviewAccessTestCase(ModuleStoreTestCase):
     """
@@ -775,7 +778,7 @@ class CourseOverviewAccessTestCase(ModuleStoreTestCase):
 
     PREREQUISITES_TEST_DATA = list(itertools.product(
         ['user_normal', 'user_completed_pre_requisite', 'user_staff', 'user_anonymous'],
-        ['view_courseware_with_prerequisites'],
+        ['load'],
         ['course_default', 'course_with_pre_requisite', 'course_with_pre_requisites'],
     ))
 
@@ -825,6 +828,8 @@ class CourseOverviewAccessTestCase(ModuleStoreTestCase):
     @ddt.unpack
     @patch.dict('django.conf.settings.FEATURES', {'DISABLE_START_DATES': False})
     def test_course_catalog_access_num_queries(self, user_attr_name, action, course_attr_name):
+        ContentTypeGatingConfig.objects.create(enabled=True, enabled_as_of=datetime.datetime(2018, 1, 1))
+
         course = getattr(self, course_attr_name)
 
         # get a fresh user object that won't have any cached role information
@@ -834,18 +839,30 @@ class CourseOverviewAccessTestCase(ModuleStoreTestCase):
             user = getattr(self, user_attr_name)
             user = User.objects.get(id=user.id)
 
-        if (user_attr_name == 'user_staff' and
-            action == 'see_exists' and
-            course_attr_name in
-                ['course_default', 'course_not_started']):
-            # checks staff role
-            num_queries = 1
-        elif user_attr_name == 'user_normal' and action == 'see_exists' and course_attr_name != 'course_started':
-            # checks staff role and enrollment data
-            num_queries = 2
+        if user_attr_name == 'user_staff' and action == 'see_exists':
+            # always checks staff role, and if the course has started, check the duration configuration
+            if course_attr_name == 'course_started':
+                num_queries = 3
+            else:
+                num_queries = 1
+        elif user_attr_name == 'user_normal' and action == 'see_exists':
+            if course_attr_name == 'course_started':
+                num_queries = 7
+            else:
+                # checks staff role and enrollment data
+                num_queries = 2
+        elif user_attr_name == 'user_anonymous' and action == 'see_exists':
+            if course_attr_name == 'course_started':
+                num_queries = 3
+            else:
+                num_queries = 0
         else:
-            num_queries = 0
+            # if the course has started, check the duration configuration
+            if action == 'see_exists' and course_attr_name == 'course_started':
+                num_queries = 3
+            else:
+                num_queries = 0
 
         course_overview = CourseOverview.get_from_id(course.id)
-        with self.assertNumQueries(num_queries):
+        with self.assertNumQueries(num_queries, table_blacklist=QUERY_COUNT_TABLE_BLACKLIST):
             bool(access.has_access(user, action, course_overview, course_key=course.id))

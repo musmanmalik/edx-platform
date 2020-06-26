@@ -17,14 +17,11 @@ import inspect
 import json
 import logging
 import numbers
-import os
 import random
 import re
-import subprocess
 import sys
 import textwrap
 import traceback
-import xml.sax.saxutils as saxutils
 from collections import namedtuple
 from datetime import datetime
 from sys import float_info
@@ -37,12 +34,12 @@ from lxml.html.soupparser import fromstring as fromstring_bs  # uses Beautiful S
 from pyparsing import ParseException
 from pytz import UTC
 from shapely.geometry import MultiPoint, Point
+from six import text_type
 
 import capa.safe_exec as safe_exec
 import capa.xqueue_interface as xqueue_interface
-import dogstats_wrapper as dog_stats_api
 # specific library imports
-from calc import UndefinedVariable, evaluator
+from calc import UndefinedVariable, UnmatchedParenthesis, evaluator
 from cmath import isnan
 from openedx.core.djangolib.markup import HTML, Text
 
@@ -184,14 +181,14 @@ class LoncapaResponse(object):
                 msg = "%s: cannot have input field %s" % (
                     unicode(self), abox.tag)
                 msg += "\nSee XML source line %s" % getattr(
-                    xml, 'sourceline', '<unavailable>')
+                    xml, 'sourceline', '[unavailable]')
                 raise LoncapaProblemError(msg)
 
         if self.max_inputfields and len(inputfields) > self.max_inputfields:
             msg = "%s: cannot have more than %s input fields" % (
                 unicode(self), self.max_inputfields)
             msg += "\nSee XML source line %s" % getattr(
-                xml, 'sourceline', '<unavailable>')
+                xml, 'sourceline', '[unavailable]')
             raise LoncapaProblemError(msg)
 
         for prop in self.required_attributes:
@@ -199,7 +196,7 @@ class LoncapaResponse(object):
                 msg = "Error in problem specification: %s missing required attribute %s" % (
                     unicode(self), prop)
                 msg += "\nSee XML source line %s" % getattr(
-                    xml, 'sourceline', '<unavailable>')
+                    xml, 'sourceline', '[unavailable]')
                 raise LoncapaProblemError(msg)
 
         # ordered list of answer_id values for this response
@@ -371,7 +368,7 @@ class LoncapaResponse(object):
         # self.runtime.track_function('get_demand_hint', event_info)
         # This this "feedback hint" event
         event_info = dict()
-        event_info['module_id'] = self.capa_module.location.to_deprecated_string()
+        event_info['module_id'] = text_type(self.capa_module.location)
         event_info['problem_part_id'] = self.id
         event_info['trigger_type'] = 'single'  # maybe be overwritten by log_extra
         event_info['hint_label'] = label
@@ -585,7 +582,7 @@ class LoncapaResponse(object):
         # First try wrapping the text in a <div> and parsing
         # it as an XHTML tree
         try:
-            response_msg_div = etree.XML('<div>%s</div>' % str(response_msg))
+            response_msg_div = etree.XML(HTML('<div>{}</div>').format(HTML(str(response_msg))))
 
         # If we can't do that, create the <div> and set the message
         # as the text of the <div>
@@ -1600,16 +1597,19 @@ class NumericalResponse(LoncapaResponse):
         # Catch a bunch of exceptions and give nicer messages to the student.
         try:
             student_float = evaluator({}, {}, student_answer)
-        except UndefinedVariable as undef_var:
+        except UndefinedVariable as err:
             raise StudentInputError(
-                _(u"Answers can include numerals, operation signs, and a few specific characters, "
-                  u"such as the constants e and i.")
+                err.args[0]
+            )
+        except UnmatchedParenthesis as err:
+            raise StudentInputError(
+                err.args[0]
             )
         except ValueError as val_err:
-            if 'factorial' in val_err.message:
+            if 'factorial' in text_type(val_err):
                 # This is thrown when fact() or factorial() is used in an answer
                 #   that evaluates on negative and/or non-integer inputs
-                # ve.message will be: `factorial() only accepts integral values` or
+                # text_type(ve) will be: `factorial() only accepts integral values` or
                 # `factorial() not defined for negative values`
                 raise StudentInputError(
                     _("Factorial function evaluated outside its domain:"
@@ -1771,7 +1771,7 @@ class NumericalResponse(LoncapaResponse):
         try:
             evaluator(dict(), dict(), answer)
             return True
-        except (StudentInputError, UndefinedVariable):
+        except (StudentInputError, UndefinedVariable, UnmatchedParenthesis):
             return False
 
     def get_answers(self):
@@ -2039,7 +2039,7 @@ class StringResponse(LoncapaResponse):
             except Exception as err:
                 msg = u'[courseware.capa.responsetypes.stringresponse] {error}: {message}'.format(
                     error=_('error'),
-                    message=err.message
+                    message=text_type(err)
                 )
                 log.error(msg, exc_info=True)
                 raise ResponseError(msg)
@@ -2067,7 +2067,7 @@ class StringResponse(LoncapaResponse):
         _ = self.capa_system.i18n.ugettext
         # Translators: Separator used in StringResponse to display multiple answers.
         # Example: "Answer: Answer_1 or Answer_2 or Answer_3".
-        separator = u' <b>{}</b> '.format(_('or'))
+        separator = HTML(' <b>{}</b> ').format(_('or'))
         return {self.answer_id: separator.join(self.correct_answer)}
 
 #-----------------------------------------------------------------------------
@@ -2206,7 +2206,7 @@ class CustomResponse(LoncapaResponse):
             # default to no error message on empty answer (to be consistent with other
             # responsetypes) but allow author to still have the old behavior by setting
             # empty_answer_err attribute
-            msg = (u'<span class="inline-error">{0}</span>'.format(_(u'No answer entered!'))
+            msg = (HTML(u'<span class="inline-error">{0}</span>').format(_(u'No answer entered!'))
                    if self.xml.get('empty_answer_err') else '')
             return CorrectMap(idset[0], 'incorrect', msg=msg)
 
@@ -2461,14 +2461,13 @@ class CustomResponse(LoncapaResponse):
 
             # When we parse *msg* using etree, there needs to be a root
             # element, so we wrap the *msg* text in <html> tags
-            msg = '<html>' + msg + '</html>'
+            msg = HTML('<html>{msg}</html>').format(msg=HTML(msg))
 
             # Replace < characters
             msg = msg.replace('&#60;', '&lt;')
 
             # Use etree to prettify the HTML
-            msg = etree.tostring(fromstring_bs(msg, convertEntities=None),
-                                 pretty_print=True)
+            msg = etree.tostring(fromstring_bs(msg), pretty_print=True)
 
             msg = msg.replace('&#13;', '')
 
@@ -2513,7 +2512,7 @@ class CustomResponse(LoncapaResponse):
 
         # Notify student with a student input error
         _, _, traceback_obj = sys.exc_info()
-        raise ResponseError(err.message, traceback_obj)
+        raise ResponseError(text_type(err), traceback_obj)
 
 #-----------------------------------------------------------------------------
 
@@ -2752,13 +2751,6 @@ class CodeResponse(LoncapaResponse):
 
         _ = self.capa_system.i18n.ugettext
 
-        dog_stats_api.increment(xqueue_interface.XQUEUE_METRIC_NAME, tags=[
-            'action:update_score',
-            'correct:{}'.format(correct)
-        ])
-
-        dog_stats_api.histogram(xqueue_interface.XQUEUE_METRIC_NAME + '.update_score.points_earned', points)
-
         if not valid_score_msg:
             # Translators: 'grader' refers to the edX automatic code grader.
             error_msg = _('Invalid grader reply. Please contact the course staff.')
@@ -2791,7 +2783,7 @@ class CodeResponse(LoncapaResponse):
         return oldcmap
 
     def get_answers(self):
-        anshtml = '<span class="code-answer"><pre><code>%s</code></pre></span>' % self.answer
+        anshtml = HTML('<span class="code-answer"><pre><code>{}</code></pre></span>').format(self.answer)
         return {self.answer_id: anshtml}
 
     def get_initial_display(self):
@@ -2908,7 +2900,7 @@ class ExternalResponse(LoncapaResponse):
                 msg = '%s: Missing answer script code for externalresponse' % unicode(
                     self)
                 msg += "\nSee XML source line %s" % getattr(
-                    self.xml, 'sourceline', '<unavailable>')
+                    self.xml, 'sourceline', '[unavailable]')
                 raise LoncapaProblemError(msg)
 
         self.tests = xml.get('tests')
@@ -2984,7 +2976,8 @@ class ExternalResponse(LoncapaResponse):
                     self.answer_ids), ['incorrect'] * len(idset))))
                 cmap.set_property(
                     self.answer_ids[0], 'msg',
-                    '<span class="inline-error">%s</span>' % str(err).replace('<', '&lt;'))
+                    Text('<span class="inline-error">{}</span>').format(str(err))
+                )
                 return cmap
 
         awd = rxml.find('awarddetail').text
@@ -3012,8 +3005,7 @@ class ExternalResponse(LoncapaResponse):
         except Exception as err:  # pylint: disable=broad-except
             log.error('Error %s', err)
             if self.capa_system.DEBUG:
-                msg = '<span class="inline-error">%s</span>' % str(
-                    err).replace('<', '&lt;')
+                msg = HTML('<span class="inline-error">{}</span>').format(err)
                 exans = [''] * len(self.answer_ids)
                 exans[0] = msg
 
@@ -3108,14 +3100,21 @@ class FormulaResponse(LoncapaResponse):
                     cgi.escape(answer)
                 )
                 raise StudentInputError(
-                    _(u"Answers can include numerals, operation signs, and a few specific characters, "
-                      u"such as the constants e and i.")
+                    err.args[0]
+                )
+            except UnmatchedParenthesis as err:
+                log.debug(
+                    'formularesponse: unmatched parenthesis in formula=%s',
+                    cgi.escape(answer)
+                )
+                raise StudentInputError(
+                    err.args[0]
                 )
             except ValueError as err:
-                if 'factorial' in err.message:
+                if 'factorial' in text_type(err):
                     # This is thrown when fact() or factorial() is used in a formularesponse answer
                     #   that tests on negative and/or non-integer inputs
-                    # err.message will be: `factorial() only accepts integral values` or
+                    # text_type(err) will be: `factorial() only accepts integral values` or
                     # `factorial() not defined for negative values`
                     log.debug(
                         ('formularesponse: factorial function used in response '

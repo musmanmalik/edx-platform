@@ -26,14 +26,12 @@ from xmodule.x_module import (
 from xmodule.modulestore.xml_exporter import DEFAULT_CONTENT_FIELDS
 from xmodule.modulestore import ModuleStoreEnum, ModuleStoreReadBase, LIBRARY_ROOT, COURSE_ROOT
 from xmodule.tabs import CourseTabList
-from opaque_keys.edx.locations import SlashSeparatedCourseKey, Location
+from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import CourseLocator, LibraryLocator, BlockUsageLocator
 
 from xblock.field_data import DictFieldData
 from xblock.runtime import DictKeyValueStore
 from xblock.fields import ScopeIds
-
-import dogstats_wrapper as dog_stats_api
 
 from .exceptions import ItemNotFoundError
 from .inheritance import compute_inherited_metadata, inheriting_field_data, InheritanceKeyValueStore
@@ -54,11 +52,6 @@ def clean_out_mako_templating(xml_string):
     orig_xml = xml_string
     xml_string = xml_string.replace('%include', 'include')
     xml_string = re.sub(r"(?m)^\s*%.*$", '', xml_string)
-    if orig_xml != xml_string:
-        dog_stats_api.increment(
-            DEPRECATION_VSCOMPAT_EVENT,
-            tags=["location:xml_clean_out_mako_templating"]
-        )
     return xml_string
 
 
@@ -105,8 +98,8 @@ class ImportSystem(XMLParsingSystem, MakoDescriptorSystem):
                 # Things to try to get a name, in order  (key, cleaning function, remove key after reading?)
                 lookups = [('url_name', id, False),
                            ('slug', id, True),
-                           ('name', Location.clean, False),
-                           ('display_name', Location.clean, False)]
+                           ('name', BlockUsageLocator.clean, False),
+                           ('display_name', BlockUsageLocator.clean, False)]
 
                 url_name = None
                 for key, clean, remove in lookups:
@@ -125,14 +118,6 @@ class ImportSystem(XMLParsingSystem, MakoDescriptorSystem):
                 def fallback_name(orig_name=None):
                     """Return the fallback name for this module.  This is a function instead of a variable
                     because we want it to be lazy."""
-                    dog_stats_api.increment(
-                        DEPRECATION_VSCOMPAT_EVENT,
-                        tags=(
-                            "location:import_system_fallback_name",
-                            u"name:{}".format(orig_name),
-                        )
-                    )
-
                     if looks_like_fallback(orig_name):
                         # We're about to re-hash, in case something changed, so get rid of the tag_ and hash
                         orig_name = orig_name[len(tag) + 1:-12]
@@ -357,7 +342,7 @@ class XMLModuleStore(ModuleStoreReadBase):
         self.errored_courses = {}  # course_dir -> errorlog, for dirs that failed to load
 
         if course_ids is not None:
-            course_ids = [SlashSeparatedCourseKey.from_deprecated_string(course_id) for course_id in course_ids]
+            course_ids = [CourseKey.from_string(course_id) for course_id in course_ids]
 
         self.load_error_modules = load_error_modules
 
@@ -423,7 +408,7 @@ class XMLModuleStore(ModuleStoreReadBase):
         '''
         String representation - for debugging
         '''
-        return '<%s data_dir=%r, %d courselikes, %d modules>' % (
+        return '<%s data_dir=%r, %d courselikes, %d modules>' % (  # xss-lint: disable=python-interpolate-html
             self.__class__.__name__, self.data_dir, len(self.courses), len(self.modules)
         )
 
@@ -506,33 +491,13 @@ class XMLModuleStore(ModuleStoreReadBase):
 
                 # VS[compat]: remove once courses use the policy dirs.
                 if policy == {}:
-
-                    dog_stats_api.increment(
-                        DEPRECATION_VSCOMPAT_EVENT,
-                        tags=(
-                            "location:xml_load_course_policy_dir",
-                            u"course:{}".format(course),
-                        )
-                    )
-
                     old_policy_path = self.data_dir / course_dir / 'policies' / '{0}.json'.format(url_name)
                     policy = self.load_policy(old_policy_path, tracker)
             else:
                 policy = {}
                 # VS[compat] : 'name' is deprecated, but support it for now...
                 if course_data.get('name'):
-
-                    dog_stats_api.increment(
-                        DEPRECATION_VSCOMPAT_EVENT,
-                        tags=(
-                            "location:xml_load_course_course_data_name",
-                            u"course:{}".format(course_data.get('course')),
-                            u"org:{}".format(course_data.get('org')),
-                            u"name:{}".format(course_data.get('name')),
-                        )
-                    )
-
-                    url_name = Location.clean(course_data.get('name'))
+                    url_name = BlockUsageLocator.clean(course_data.get('name'))
                     tracker("'name' is deprecated for module xml.  Please use "
                             "display_name and url_name.")
                 else:
@@ -629,9 +594,9 @@ class XMLModuleStore(ModuleStoreReadBase):
         if not url_name:
             raise ValueError("Can't load a course without a 'url_name' "
                              "(or 'name') set.  Set url_name.")
-        # Have to use SlashSeparatedCourseKey here because it makes sure the same format is
+        # Have to use older key format here because it makes sure the same format is
         # always used, preventing duplicate keys.
-        return SlashSeparatedCourseKey(org, course, url_name)
+        return CourseKey.from_string('/'.join([org, course, url_name]))
 
     def load_extra_content(self, system, course_descriptor, category, base_dir, course_dir, url_name):
         self._load_extra_content(system, course_descriptor, category, base_dir, course_dir)
@@ -719,14 +684,6 @@ class XMLModuleStore(ModuleStoreReadBase):
                         # Hack because we need to pull in the 'display_name' for static tabs (because we need to edit them)
                         # from the course policy
                         if category == "static_tab":
-                            dog_stats_api.increment(
-                                DEPRECATION_VSCOMPAT_EVENT,
-                                tags=(
-                                    "location:xml_load_extra_content_static_tab",
-                                    u"course_dir:{}".format(course_dir),
-                                )
-                            )
-
                             tab = CourseTabList.get_tab_by_slug(tab_list=course_descriptor.tabs, url_slug=slug)
                             if tab:
                                 module.display_name = tab.name
