@@ -2,7 +2,7 @@
 
 # When updating a hash of an XBlock that uses xblock-utils, please update its version hash in github.txt.
 -e git+https://github.com/edx-solutions/xblock-mentoring.git@0.2#egg=xblock-mentoring==0.2
--e git+https://github.com/edx-solutions/xblock-image-explorer.git@v1.1.18#egg=xblock-image-explorer==1.1.18
+-e git+https://github.com/edx-solutions/xblock-image-explorer.git@v1.2#egg=xblock-image-explorer==1.2
 -e git+https://github.com/edx-solutions/xblock-drag-and-drop.git@92ee2055a16899090a073e1df81e35d5293ad767#egg=xblock-drag-and-drop
 # FIXME: temp hash, until (https://github.com/edx-solutions/xblock-drag-and-drop-v2/pull/207 is merged into `master`)
 -e git+https://github.com/edx-solutions/xblock-drag-and-drop-v2.git@77dde12fc405ca65964f32ad93849504aa53ad8d#egg=xblock-drag-and-drop-v2==2.2.9
