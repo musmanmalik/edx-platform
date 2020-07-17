@@ -7149,6 +7149,12 @@ msgstr ""
 "Marque esta alternativa para receber um e-mail uma vez por dia com um resumo"
 " das novidades das publicações não lidas as quais você segue."
 
+#: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+msgid ""
+"Earn points for your engagement by adding a new post or responding to an "
+"existing post."
+msgstr "Ganhe pontos pelo seu engajamento adicionando uma nova publicação ou respondendo a uma publicação existente."
+
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
 msgid "All Posts"
 msgstr ""

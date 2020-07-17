@@ -7387,6 +7387,12 @@ msgstr ""
 "Cocher cette case pour recevoir une fois par jour un e-mail récapitulatif "
 "des nouveautés dans les fils de discussion que vous suivez."
 
+#: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+msgid ""
+"Earn points for your engagement by adding a new post or responding to an "
+"existing post."
+msgstr "Gagnez des points pour vous remercier de votre implication lorsque vous ajoutez un nouveau message ou répondez à un message existant."
+
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
 msgid "All Posts"
 msgstr "Tous les posts"

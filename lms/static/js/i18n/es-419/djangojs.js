@@ -733,6 +733,7 @@
     "Due:": "Fecha de entrega:", 
     "Duplicate": "Duplicar", 
     "Duration (sec)": "Duraci\u00f3n (segundos)", 
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "Agregue una publicaci\u00f3n nueva o responda a una publicaci\u00f3n existente y acumule puntos por su participaci\u00f3n.", 
     "Earned %(created)s.": "Obtenido %(created)s.", 
     "Earned Certificates": "Certificados Ganados", 
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "EdX no tiene una transcripci\u00f3n de este video en Studio, pero hemos encontrado una en Youtube. Puede importar la transcripci\u00f3n de Youtube o subir su propio archivo .srt.", 

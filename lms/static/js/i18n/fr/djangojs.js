@@ -574,6 +574,7 @@
     "Due:": "A rendre pour le :", 
     "Duplicate": "Dupliquer", 
     "Duration (sec)": "Dur\u00e9e (sec)", 
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "Gagnez des points pour vous remercier de votre implication lorsque vous ajoutez un nouveau message ou r\u00e9pondez \u00e0 un message existant.", 
     "Earned %(created)s.": "%(created)s obtenus.", 
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "EdX ne dispose pas de transcription synchronis\u00e9e pour cette vid\u00e9o dans Studio, mais il existe une transcription YouTube. Vous pouvez importer la transcription Youtube ou t\u00e9l\u00e9versez votre propre fichier de transcription srt.", 
     "EdX doesn\\'t have a timed transcript for this video. Please upload an .srt file.": "EdX ne dispose pas de transcription synchronis\u00e9e pour cette vid\u00e9o. Veuillez t\u00e9l\u00e9verser un fichier de transcription .srt.", 
