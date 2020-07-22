@@ -12,6 +12,9 @@ class RequestRateLimiter(RateLimitMixin):
     """
     Use the 3rd party RateLimitMixin to help do rate limiting.
     """
+    # get max number value from settings instead of using default one
+    requests = settings.RATE_LIMIT_BACKEND_MAX_REQUESTS
+
     def is_rate_limit_exceeded(self, request):
         """
         Returns if the client has been rated limited
