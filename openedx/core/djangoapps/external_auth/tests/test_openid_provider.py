@@ -4,6 +4,7 @@ Created on Jan 18, 2013
 
 @author: brian
 '''
+from __future__ import print_function
 import openid
 from openid.fetchers import HTTPFetcher, HTTPResponse
 from urlparse import parse_qs, urlparse
@@ -12,7 +13,7 @@ from django.conf import settings
 from django.test import TestCase, LiveServerTestCase
 from django.core.cache import cache
 from django.test.utils import override_settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test.client import RequestFactory
 from unittest import skipUnless
 
@@ -321,7 +322,7 @@ class OpenIdProviderTest(TestCase):
         self.assertEquals(parsed_qs['openid.ax.type.ext1'][0], 'http://axschema.org/contact/email')
         self.assertEquals(parsed_qs['openid.ax.type.ext0'][0], 'http://axschema.org/namePerson')
         self.assertEquals(parsed_qs['openid.ax.value.ext0.1'][0],
-                          user.profile.name.encode('utf-8'))  # pylint: disable=no-member
+                          user.profile.name.encode('utf-8'))
         self.assertEquals(parsed_qs['openid.ax.value.ext1.1'][0],
                           user.email.encode('utf-8'))  # pylint: disable=no-member
 
@@ -363,7 +364,7 @@ class OpenIdProviderTest(TestCase):
         # We trigger situation where user is not active at final phase of
         # OpenId login.
         user.is_active = False
-        user.save()  # pylint: disable=no-member
+        user.save()
         post_args = {
             'email': user.email,
             'password': 'test'
@@ -470,4 +471,4 @@ class OpenIdProviderLiveServerTest(LiveServerTestCase):
         try:
             super(OpenIdProviderLiveServerTest, cls).tearDownClass()
         except RuntimeError:
-            print "Warning: Could not shut down test server."
+            print("Warning: Could not shut down test server.")

@@ -14,7 +14,7 @@ class CourseEnrollmentsApiListForm(Form):
     """
     A form that validates the query string parameters for the CourseEnrollmentsApiListView.
     """
-    MAX_USERNAME_COUNT = 200
+    MAX_USERNAME_COUNT = 100
     username = CharField(required=False)
     course_id = CharField(required=False)
 

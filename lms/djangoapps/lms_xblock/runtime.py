@@ -1,19 +1,18 @@
 """
 Module implementing `xblock.runtime.Runtime` functionality for the LMS
 """
-
-import xblock.reference.plugins
 from completion.services import CompletionService
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from edx_django_utils.cache import DEFAULT_REQUEST_CACHE
+import xblock.reference.plugins
 
 from badges.service import BadgingService
 from badges.utils import badges_enabled
 from lms.djangoapps.lms_xblock.models import XBlockAsidesConfig
 from openedx.core.djangoapps.user_api.course_tag import api as user_course_tag_api
 from openedx.core.lib.url_utils import quote_slashes
-from openedx.core.lib.xblock_utils import xblock_local_resource_url
-from request_cache.middleware import RequestCache
+from openedx.core.lib.xblock_utils import xblock_local_resource_url, wrap_xblock_aside
 from xmodule.library_tools import LibraryToolsService
 from xmodule.modulestore.django import ModuleI18nService, modulestore
 from xmodule.partitions.partitions_service import PartitionService
@@ -178,17 +177,20 @@ class LmsModuleSystem(LmsCourse, LmsUser, ModuleSystem):  # pylint: disable=abst
     ModuleSystem specialized to the LMS
     """
     def __init__(self, **kwargs):
-        request_cache_dict = RequestCache.get_request_cache().data
+        request_cache_dict = DEFAULT_REQUEST_CACHE.data
+        store = modulestore()
+
         services = kwargs.setdefault('services', {})
-        services['completion'] = CompletionService(user=kwargs.get('user'), course_key=kwargs.get('course_id'))
+        user = kwargs.get('user')
+        if user and user.is_authenticated:
+            services['completion'] = CompletionService(user=user, course_key=kwargs.get('course_id'))
         services['fs'] = xblock.reference.plugins.FSService()
         services['i18n'] = ModuleI18nService
-        services['library_tools'] = LibraryToolsService(modulestore())
+        services['library_tools'] = LibraryToolsService(store)
         services['partitions'] = PartitionService(
             course_id=kwargs.get('course_id'),
             cache=request_cache_dict
         )
-        store = modulestore()
         services['settings'] = SettingsService()
         services['user_tags'] = UserTagsService(self)
         if badges_enabled():
@@ -228,19 +230,28 @@ class LmsModuleSystem(LmsCourse, LmsUser, ModuleSystem):  # pylint: disable=abst
         The default implementation creates a frag to wraps frag w/ a div identifying the xblock. If you have
         javascript, you'll need to override this impl
         """
+        if not frag.content:
+            return frag
+
+        runtime_class = 'LmsRuntime'
         extra_data = {
             'block-id': quote_slashes(unicode(block.scope_ids.usage_id)),
+            'course-id': quote_slashes(unicode(block.course_id)),
             'url-selector': 'asideBaseUrl',
-            'runtime-class': 'LmsRuntime',
+            'runtime-class': runtime_class,
         }
         if self.request_token:
             extra_data['request-token'] = self.request_token
 
-        return self._wrap_ele(
+        return wrap_xblock_aside(
+            runtime_class,
             aside,
             view,
             frag,
-            extra_data,
+            context,
+            usage_id_serializer=unicode,
+            request_token=self.request_token,
+            extra_data=extra_data,
         )
 
     def applicable_aside_types(self, block):

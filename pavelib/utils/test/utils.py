@@ -1,6 +1,7 @@
 """
 Helper functions for test tasks
 """
+from __future__ import print_function
 import os
 import re
 import subprocess
@@ -10,7 +11,10 @@ from paver.easy import cmdopts, sh, task
 from pavelib.utils.envs import Env
 from pavelib.utils.timer import timed
 
-from bok_choy.browser import browser
+try:
+    from bok_choy.browser import browser
+except ImportError:
+    browser = None
 
 MONGO_PORT_NUM = int(os.environ.get('EDXAPP_TEST_MONGO_PORT', '27017'))
 MINIMUM_FIREFOX_VERSION = 28.0
@@ -33,6 +37,18 @@ def clean_test_files():
     sh("rm -rf /tmp/mako_[cl]ms")
 
 
+@task
+@timed
+def ensure_clean_package_lock():
+    """
+    Ensure no untracked changes have been made in the current git context.
+    """
+    sh("""
+      git diff --name-only --exit-code package-lock.json ||
+      (echo \"Dirty package-lock.json, run 'npm install' and commit the generated changes\" && exit 1)
+    """)
+
+
 def clean_dir(directory):
     """
     Delete all the files from the specified directory.
@@ -53,7 +69,7 @@ def clean_reports_dir(options):
     Clean coverage files, to ensure that we don't use stale data to generate reports.
     """
     if getattr(options, 'skip_clean', False):
-        print '--skip-clean is set, skipping...'
+        print('--skip-clean is set, skipping...')
         return
 
     # We delete the files but preserve the directory structure
@@ -83,9 +99,9 @@ def check_firefox_version():
         # Firefox is running in a separate Docker container; get its version via Selenium
         driver = browser()
         capabilities = driver.capabilities
-        if capabilities['browserName'] == 'firefox':
+        if capabilities['browserName'].lower() == 'firefox':
             firefox_version_regex = re.compile(r'^\d+\.\d+')
-            version_key = 'browserVersion' if 'browserVersion' in 'capabilities' else 'version'
+            version_key = 'browserVersion' if 'browserVersion' in capabilities else 'version'
             try:
                 firefox_ver = float(firefox_version_regex.search(capabilities[version_key]).group(0))
             except AttributeError:

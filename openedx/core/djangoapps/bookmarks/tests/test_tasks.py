@@ -2,24 +2,20 @@
 Tests for tasks.
 """
 import ddt
-from nose.plugins.attrib import attr
-
-from django.conf import settings
 
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.factories import check_mongo_calls, ItemFactory
-
 from ..models import XBlockCache
 from ..tasks import _calculate_course_xblocks_data, _update_xblocks_cache
 from .test_models import BookmarksTestsBase
 
 
-@attr(shard=2)
 @ddt.ddt
 class XBlockCacheTaskTests(BookmarksTestsBase):
     """
     Test the XBlockCache model.
     """
+    shard = 9
 
     def setUp(self):
         super(XBlockCacheTaskTests, self).setUp()
@@ -66,7 +62,7 @@ class XBlockCacheTaskTests(BookmarksTestsBase):
             ],
         }
 
-        self.other_course_expected_cache_data = {  # pylint: disable=invalid-name
+        self.other_course_expected_cache_data = {
             self.other_course.location: [
                 [],
             ], self.other_chapter_1.location: [

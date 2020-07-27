@@ -4,8 +4,7 @@ import json
 
 import ddt
 import mock
-from django.core.urlresolvers import reverse
-from nose.plugins.attrib import attr
+from django.urls import reverse
 
 from course_modes.models import CourseMode
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme
@@ -27,10 +26,10 @@ class UserMixin(object):
         self.client.login(username=self.user.username, password='test')
 
 
-@attr(shard=1)
 @ddt.ddt
 class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
     """ Tests for the receipt view. """
+    shard = 1
 
     def setUp(self):
         """
@@ -109,7 +108,7 @@ class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
         self.assertRegexpMatches(response.content, expected_pattern)
 
     @ddt.data(True, False)
-    @mock.patch('commerce.views.is_user_payment_error')
+    @mock.patch('lms.djangoapps.commerce.views.is_user_payment_error')
     def test_cybersource_message(self, is_user_message_expected, mock_is_user_payment_error):
         """
         Ensure that the page displays the right message for the reason_code (it

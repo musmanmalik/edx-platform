@@ -2,7 +2,7 @@
 Course Structure Content sub-application test cases
 """
 import json
-from nose.plugins.attrib import attr
+from opaque_keys.edx.django.models import UsageKey
 
 from xmodule.modulestore.django import SignalHandler
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -10,7 +10,7 @@ from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from openedx.core.djangoapps.content.course_structures.models import CourseStructure
 from openedx.core.djangoapps.content.course_structures.signals import listen_for_course_publish
 from openedx.core.djangoapps.content.course_structures.tasks import _generate_course_structure, update_course_structure
-from openedx.core.djangoapps.xmodule_django.models import UsageKey
+from openedx.core.lib.tests import attr
 
 
 class SignalDisconnectTestMixin(object):
@@ -20,9 +20,11 @@ class SignalDisconnectTestMixin(object):
 
     def setUp(self):
         super(SignalDisconnectTestMixin, self).setUp()
-        SignalHandler.course_published.disconnect(
-            listen_for_course_publish, dispatch_uid='openedx.core.djangoapps.content.course_structures'
-        )
+        SignalHandler.course_published.disconnect(listen_for_course_publish)
+
+    def tearDown(self):
+        SignalHandler.course_published.connect(listen_for_course_publish)
+        super(SignalDisconnectTestMixin, self).tearDown()
 
 
 @attr(shard=2)

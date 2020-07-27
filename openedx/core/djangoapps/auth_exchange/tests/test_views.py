@@ -11,7 +11,7 @@ import unittest
 
 import ddt
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 import httpretty
 import provider.constants
@@ -59,7 +59,7 @@ class AccessTokenExchangeViewTest(AccessTokenExchangeTestMixin):
             timedelta(seconds=int(content["expires_in"])),
             provider.constants.EXPIRE_DELTA_PUBLIC
         )
-        self.assertEqual(content["scope"], self.oauth2_adapter.normalize_scopes(expected_scopes))
+        self.assertEqual(content["scope"], ' '.join(expected_scopes))
         token = self.oauth2_adapter.get_access_token(token_string=content["access_token"])
         self.assertEqual(token.user, self.user)
         self.assertEqual(self.oauth2_adapter.get_client_for_token(token), self.oauth_client)

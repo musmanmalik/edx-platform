@@ -8,6 +8,7 @@ from bok_choy.promise import EmptyPromise, Promise
 from common.test.acceptance.pages.common.utils import click_css, confirm_prompt
 from common.test.acceptance.pages.studio import BASE_URL
 from common.test.acceptance.pages.studio.utils import HelpMixin, type_in_codemirror
+from common.test.acceptance.tests.helpers import click_and_wait_for_window
 
 
 class ContainerPage(PageObject, HelpMixin):
@@ -177,6 +178,7 @@ class ContainerPage(PageObject, HelpMixin):
         """
         Returns the link for publishing a unit.
         """
+        self.scroll_to_element('.action-publish')
         return self.q(css='.action-publish').first
 
     def publish(self):
@@ -190,9 +192,19 @@ class ContainerPage(PageObject, HelpMixin):
         """
         Discards draft changes (which will then re-render the page).
         """
+        self.scroll_to_element('a.action-discard')
         click_css(self, 'a.action-discard', 0, require_notification=False)
         confirm_prompt(self)
         self.wait_for_ajax()
+
+    @property
+    def xblock_titles(self):
+        """
+        Get titles of  x-block present on the page.
+        Returns:
+            list: A list of X-block titles
+        """
+        return self.q(css='.wrapper-xblock .level-element .header-details').text
 
     @property
     def is_staff_locked(self):
@@ -224,7 +236,7 @@ class ContainerPage(PageObject, HelpMixin):
 
         Switches the browser to the newly opened LMS window.
         """
-        self.q(css='.button-view').first.click()
+        click_and_wait_for_window(self, self.q(css='.button-view').first)
         self._switch_to_lms()
 
     def verify_publish_title(self, expected_title):
@@ -284,6 +296,12 @@ class ContainerPage(PageObject, HelpMixin):
         """
         return _click_edit(self, '.edit-button', '.xblock-studio_view')
 
+    def edit_visibility(self):
+        """
+        Clicks the edit visibility button for this container.
+        """
+        return _click_edit(self, '.access-button', '.xblock-visibility_view')
+
     def verify_confirmation_message(self, message, verify_hidden=False):
         """
         Verify for confirmation message is present or hidden.
@@ -331,6 +349,16 @@ class ContainerPage(PageObject, HelpMixin):
         Returns an information message for the container page.
         """
         return self.q(css=".xblock-message.information").first.text[0]
+
+    def get_xblock_access_message(self):
+        """
+        Returns a message detailing the access to the specified unit
+        """
+        access_message = self.q(css=".access-message").first
+        if access_message:
+            return access_message.text[0]
+        else:
+            return ""
 
     def is_inline_editing_display_name(self):
         """
@@ -460,7 +488,6 @@ class XBlockWrapper(PageObject):
         return self._validation_paragraph('error').present
 
     @property
-    # pylint: disable=invalid-name
     def has_validation_not_configured_warning(self):
         """ Is a validation "not configured" message shown? """
         return self._validation_paragraph('not-configured').present
@@ -480,7 +507,6 @@ class XBlockWrapper(PageObject):
         return self.q(css=self._bounded_selector('{} .xblock-message-item.error'.format(self.VALIDATION_SELECTOR))).text
 
     @property
-    # pylint: disable=invalid-name
     def validation_not_configured_warning_text(self):
         """ Get the text of the validation "not configured" message. """
         return self._validation_paragraph('not-configured').text[0]
@@ -513,7 +539,7 @@ class XBlockWrapper(PageObject):
         Returns true if this xblock has an 'edit visibility' button
         :return:
         """
-        return self.q(css=self._bounded_selector('.visibility-button')).is_present()
+        return self.q(css=self._bounded_selector('.access-button')).is_present()
 
     @property
     def has_move_modal_button(self):
@@ -548,7 +574,7 @@ class XBlockWrapper(PageObject):
         """
         Clicks the edit visibility button for this xblock.
         """
-        return _click_edit(self, '.visibility-button', '.xblock-visibility_view', self._bounded_selector)
+        return _click_edit(self, '.access-button', '.xblock-visibility_view', self._bounded_selector)
 
     def open_advanced_tab(self):
         """

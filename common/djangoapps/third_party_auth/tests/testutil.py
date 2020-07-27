@@ -60,7 +60,7 @@ class ThirdPartyAuthTestMixin(object):
         # Django's FileSystemStorage will rename files if they already exist.
         # This storage backend overwrites files instead, which makes it easier
         # to make assertions about filenames.
-        icon_image_field = OAuth2ProviderConfig._meta.get_field('icon_image')  # pylint: disable=protected-access
+        icon_image_field = OAuth2ProviderConfig._meta.get_field('icon_image')
         patch = mock.patch.object(icon_image_field, 'storage', OverwriteStorage())
         patch.start()
         self.addCleanup(patch.stop)
@@ -79,7 +79,7 @@ class ThirdPartyAuthTestMixin(object):
     @staticmethod
     def configure_oauth_provider(**kwargs):
         """ Update the settings for an OAuth2-based third party auth provider """
-        kwargs.setdefault('provider_slug', kwargs['backend_name'])
+        kwargs.setdefault('slug', kwargs['backend_name'])
         obj = OAuth2ProviderConfig(**kwargs)
         obj.save()
         return obj
@@ -87,7 +87,7 @@ class ThirdPartyAuthTestMixin(object):
     def configure_saml_provider(self, **kwargs):
         """ Update the settings for a SAML-based third party auth provider """
         self.assertTrue(
-            SAMLConfiguration.is_enabled(Site.objects.get_current()),
+            SAMLConfiguration.is_enabled(Site.objects.get_current(), 'default'),
             "SAML Provider Configuration only works if SAML is enabled."
         )
         obj = SAMLProviderConfig(**kwargs)
@@ -195,8 +195,9 @@ class TestCase(ThirdPartyAuthTestMixin, django.test.TestCase):
         super(TestCase, self).setUp()
         # Explicitly set a server name that is compatible with all our providers:
         # (The SAML lib we use doesn't like the default 'testserver' as a domain)
-        self.client.defaults['SERVER_NAME'] = 'example.none'
-        self.url_prefix = 'http://example.none'
+        self.hostname = 'example.none'
+        self.client.defaults['SERVER_NAME'] = self.hostname
+        self.url_prefix = 'http://{}'.format(self.hostname)
 
 
 class SAMLTestCase(TestCase):
@@ -287,7 +288,8 @@ def simulate_running_pipeline(pipeline_target, backend, email=None, fullname=Non
     pipeline_data = {
         "backend": backend,
         "kwargs": {
-            "details": kwargs
+            "details": kwargs,
+            "response": kwargs.get("response", {})
         }
     }
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Settings for Bok Choy tests that are used when running LMS.
 
@@ -14,6 +15,7 @@ import os
 from path import Path as path
 from tempfile import mkdtemp
 
+from django.utils.translation import ugettext_lazy
 from openedx.core.release import RELEASE_LINE
 
 CONFIG_ROOT = path(__file__).abspath().dirname()
@@ -28,7 +30,7 @@ TEST_ROOT = CONFIG_ROOT.dirname().dirname() / "test_root"
 os.environ['SERVICE_VARIANT'] = 'bok_choy_docker' if 'BOK_CHOY_HOSTNAME' in os.environ else 'bok_choy'
 os.environ['CONFIG_ROOT'] = CONFIG_ROOT
 
-from .aws import *  # pylint: disable=wildcard-import, unused-wildcard-import
+from .production import *  # pylint: disable=wildcard-import, unused-wildcard-import, wrong-import-position
 
 
 ######################### Testing overrides ####################################
@@ -52,6 +54,18 @@ update_module_store_settings(
     default_store=os.environ.get('DEFAULT_STORE', 'draft'),
 )
 
+# Capture the console log via template includes, until webdriver supports log capture again
+CAPTURE_CONSOLE_LOG = True
+
+PLATFORM_NAME = ugettext_lazy(u"édX")
+PLATFORM_DESCRIPTION = ugettext_lazy(u"Open édX Platform")
+
+# We need to test different scenarios, following setting effectively disbale rate limiting
+PASSWORD_RESET_EMAIL_RATE_LIMIT = {
+    'no_of_emails': 1,
+    'per_seconds': 1
+}
+
 ############################ STATIC FILES #############################
 
 # Enable debug so that static assets are served by Django
@@ -60,9 +74,7 @@ DEBUG = True
 # Serve static files at /static directly from the staticfiles directory under test root
 # Note: optimized files for testing are generated with settings from test_static_optimized
 STATIC_URL = "/static/"
-STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-)
+STATICFILES_FINDERS = ['django.contrib.staticfiles.finders.FileSystemFinder']
 STATICFILES_DIRS = [
     (TEST_ROOT / "staticfiles" / "lms").abspath(),
 ]
@@ -92,12 +104,16 @@ BLOCK_STRUCTURES_SETTINGS = dict(
     TASK_DEFAULT_RETRY_DELAY=0,
 )
 
-###################### Grade Downloads ######################
+###################### Grades ######################
 GRADES_DOWNLOAD = {
     'STORAGE_TYPE': 'localfs',
     'BUCKET': 'edx-grades',
     'ROOT_PATH': os.path.join(mkdtemp(), 'edx-s3', 'grades'),
 }
+
+FEATURES['PERSISTENT_GRADES_ENABLED_FOR_ALL_TESTS'] = True
+FEATURES['ASSUME_ZERO_GRADE_IF_ABSENT_FOR_ALL_TESTS'] = True
+
 
 # Configure the LMS to use our stub XQueue implementation
 XQUEUE_INTERFACE['url'] = 'http://localhost:8040'
@@ -118,7 +134,6 @@ import logging
 LOG_OVERRIDES = [
     ('track.middleware', logging.CRITICAL),
     ('edxmako.shortcuts', logging.ERROR),
-    ('dd.dogapi', logging.ERROR),
     ('edx.discussion', logging.CRITICAL),
 ]
 for log_name, log_level in LOG_OVERRIDES:
@@ -147,9 +162,13 @@ FEATURES['LICENSING'] = True
 
 # Use the auto_auth workflow for creating users and logging them in
 FEATURES['AUTOMATIC_AUTH_FOR_TESTING'] = True
+FEATURES['RESTRICT_AUTOMATIC_AUTH'] = False
 
 # Open up endpoint for faking Software Secure responses
 FEATURES['ENABLE_SOFTWARE_SECURE_FAKE'] = True
+
+# Disable instructor dash buttons for downloading course data when enrollment exceeds this number
+FEATURES['MAX_ENROLLMENT_INSTR_BUTTONS'] = 4
 
 FEATURES['ENABLE_ENROLLMENT_TRACK_USER_PARTITION'] = True
 
@@ -158,28 +177,25 @@ FEATURES['ENTRANCE_EXAMS'] = True
 
 FEATURES['ENABLE_SPECIAL_EXAMS'] = True
 
+
+YOUTUBE_HOSTNAME = os.environ.get('BOK_CHOY_HOSTNAME', '127.0.0.1')
 # Point the URL used to test YouTube availability to our stub YouTube server
 YOUTUBE_PORT = 9080
 YOUTUBE['TEST_TIMEOUT'] = 5000
-YOUTUBE['API'] = "http://127.0.0.1:{0}/get_youtube_api/".format(YOUTUBE_PORT)
-YOUTUBE['METADATA_URL'] = "http://127.0.0.1:{0}/test_youtube/".format(YOUTUBE_PORT)
-YOUTUBE['TEXT_API']['url'] = "127.0.0.1:{0}/test_transcripts_youtube/".format(YOUTUBE_PORT)
+YOUTUBE['API'] = "http://{0}:{1}/get_youtube_api/".format(YOUTUBE_HOSTNAME, YOUTUBE_PORT)
+YOUTUBE['METADATA_URL'] = "http://{0}:{1}/test_youtube/".format(YOUTUBE_HOSTNAME, YOUTUBE_PORT)
+YOUTUBE['TEXT_API']['url'] = "{0}:{1}/test_transcripts_youtube/".format(YOUTUBE_HOSTNAME, YOUTUBE_PORT)
 
 ############################# SECURITY SETTINGS ################################
 # Default to advanced security in common.py, so tests can reset here to use
 # a simpler security model
-FEATURES['ENFORCE_PASSWORD_POLICY'] = False
 FEATURES['ENABLE_MAX_FAILED_LOGIN_ATTEMPTS'] = False
 FEATURES['SQUELCH_PII_IN_LOGS'] = False
 FEATURES['PREVENT_CONCURRENT_LOGINS'] = False
-FEATURES['ADVANCED_SECURITY'] = False
 
 FEATURES['ENABLE_MOBILE_REST_API'] = True  # Show video bumper in LMS
 FEATURES['ENABLE_VIDEO_BUMPER'] = True  # Show video bumper in LMS
 FEATURES['SHOW_BUMPER_PERIODICITY'] = 1
-
-PASSWORD_MIN_LENGTH = None
-PASSWORD_COMPLEXITY = {}
 
 # Enable courseware search for tests
 FEATURES['ENABLE_COURSEWARE_SEARCH'] = True
@@ -220,7 +236,7 @@ PROFILE_IMAGE_BACKEND = {
 
 # Make sure we test with the extended history table
 FEATURES['ENABLE_CSMH_EXTENDED'] = True
-INSTALLED_APPS += ('coursewarehistoryextended',)
+INSTALLED_APPS.append('coursewarehistoryextended')
 
 BADGING_BACKEND = 'lms.djangoapps.badges.backends.tests.dummy_backend.DummyBackend'
 
@@ -228,20 +244,27 @@ BADGING_BACKEND = 'lms.djangoapps.badges.backends.tests.dummy_backend.DummyBacke
 ECOMMERCE_API_URL = 'http://localhost:8043/api/v2/'
 ECOMMERCE_API_SIGNING_KEY = 'ecommerce-key'
 
-LMS_ROOT_URL = "http://localhost:8000"
+LMS_ROOT_URL = "http://localhost:{}".format(os.environ.get('BOK_CHOY_LMS_PORT', 8003))
+CMS_BASE = "localhost:{}".format(os.environ.get('BOK_CHOY_CMS_PORT', 8031))
+LOGIN_REDIRECT_WHITELIST = [CMS_BASE]
 DOC_LINK_BASE_URL = 'http://edx.readthedocs.io/projects/edx-guide-for-students'
+
 if RELEASE_LINE == "master":
     # On master, acceptance tests use edX books, not the default Open edX books.
     HELP_TOKENS_BOOKS = {
-        'learner': 'http://edx.readthedocs.io/projects/edx-guide-for-students',
-        'course_author': 'http://edx.readthedocs.io/projects/edx-partner-course-staff',
+        'learner': 'https://edx.readthedocs.io/projects/edx-guide-for-students',
+        'course_author': 'https://edx.readthedocs.io/projects/edx-partner-course-staff',
     }
 
 WAFFLE_OVERRIDE = True
 
+############## Settings for Completion API #########################
+
+COMPLETION_BY_VIEWING_DELAY_MS = 1000
+
 #####################################################################
 # Lastly, see if the developer has any local overrides.
 try:
-    from .private import *      # pylint: disable=import-error
+    from .private import *      # pylint: disable=wildcard-import
 except ImportError:
     pass

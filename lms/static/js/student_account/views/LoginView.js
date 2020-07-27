@@ -23,6 +23,7 @@
             events: {
                 'click .js-login': 'submitForm',
                 'click .forgot-password': 'forgotPassword',
+                'click .account-recovery': 'accountRecovery',
                 'click .login-provider': 'thirdPartyAuth'
             },
             formType: 'login',
@@ -41,35 +42,48 @@
                     data.thirdPartyAuth.secondaryProviders && data.thirdPartyAuth.secondaryProviders.length
                 );
                 this.currentProvider = data.thirdPartyAuth.currentProvider || '';
+                this.syncLearnerProfileData = data.thirdPartyAuth.syncLearnerProfileData || false;
                 this.errorMessage = data.thirdPartyAuth.errorMessage || '';
                 this.platformName = data.platformName;
                 this.resetModel = data.resetModel;
+                this.accountRecoveryModel = data.accountRecoveryModel;
                 this.supportURL = data.supportURL;
                 this.passwordResetSupportUrl = data.passwordResetSupportUrl;
                 this.createAccountOption = data.createAccountOption;
                 this.accountActivationMessages = data.accountActivationMessages;
+                this.accountRecoveryMessages = data.accountRecoveryMessages;
                 this.hideAuthWarnings = data.hideAuthWarnings;
+                this.pipelineUserDetails = data.pipelineUserDetails;
+                this.enterpriseName = data.enterpriseName;
 
                 this.listenTo(this.model, 'sync', this.saveSuccess);
                 this.listenTo(this.resetModel, 'sync', this.resetEmail);
+                this.listenTo(this.accountRecoveryModel, 'sync', this.resetEmail);
             },
 
             render: function(html) {
                 var fields = html || '';
 
-                $(this.el).html(_.template(this.tpl)({
-                // We pass the context object to the template so that
-                // we can perform variable interpolation using sprintf
-                    context: {
-                        fields: fields,
-                        currentProvider: this.currentProvider,
-                        providers: this.providers,
-                        hasSecondaryProviders: this.hasSecondaryProviders,
-                        platformName: this.platformName,
-                        createAccountOption: this.createAccountOption
-                    }
-                }));
-
+                HtmlUtils.setHtml(
+                    $(this.el),
+                    HtmlUtils.HTML(
+                        _.template(this.tpl)({
+                            // We pass the context object to the template so that
+                            // we can perform variable interpolation using sprintf
+                            context: {
+                                fields: fields,
+                                currentProvider: this.currentProvider,
+                                syncLearnerProfileData: this.syncLearnerProfileData,
+                                providers: this.providers,
+                                hasSecondaryProviders: this.hasSecondaryProviders,
+                                platformName: this.platformName,
+                                createAccountOption: this.createAccountOption,
+                                pipelineUserDetails: this.pipelineUserDetails,
+                                enterpriseName: this.enterpriseName
+                            }
+                        })
+                    )
+                )
                 this.postRender();
 
                 return this;
@@ -98,13 +112,18 @@
 
                 // Display account activation success or error messages.
                 this.renderAccountActivationMessages();
+                this.renderAccountRecoveryMessages();
             },
 
             renderAccountActivationMessages: function() {
-                _.each(this.accountActivationMessages, this.renderAccountActivationMessage, this);
+                _.each(this.accountActivationMessages, this.renderMessage, this);
             },
 
-            renderAccountActivationMessage: function(message) {
+            renderAccountRecoveryMessages: function() {
+                _.each(this.accountRecoveryMessages, this.renderMessage, this);
+            },
+
+            renderMessage: function(message) {
                 this.renderFormFeedback(this.formStatusTpl, {
                     jsHook: message.tags,
                     message: HtmlUtils.HTML(message.message)
@@ -118,6 +137,13 @@
                 this.clearPasswordResetSuccess();
             },
 
+            accountRecovery: function(event) {
+                event.preventDefault();
+
+                this.trigger('account-recovery-help');
+                this.clearPasswordResetSuccess();
+            },
+
             postFormSubmission: function() {
                 this.clearPasswordResetSuccess();
             },
@@ -127,7 +153,7 @@
                     successTitle = gettext('Check Your Email'),
                     successMessageHtml = HtmlUtils.interpolateHtml(
                         gettext('{paragraphStart}You entered {boldStart}{email}{boldEnd}. If this email address is associated with your {platform_name} account, we will send a message with password reset instructions to this email address.{paragraphEnd}' + // eslint-disable-line max-len
-                        '{paragraphStart}If you do not receive a password reset message, verify that you entered the correct email address, or check your spam folder.{paragraphEnd}' + // eslint-disable-line max-len
+                        '{paragraphStart}If you do not receive a password reset message after 1 minute, verify that you entered the correct email address, or check your spam folder.{paragraphEnd}' + // eslint-disable-line max-len
                         '{paragraphStart}If you need further assistance, {anchorStart}contact technical support{anchorEnd}.{paragraphEnd}'), { // eslint-disable-line max-len
                             boldStart: HtmlUtils.HTML('<b>'),
                             boldEnd: HtmlUtils.HTML('</b>'),

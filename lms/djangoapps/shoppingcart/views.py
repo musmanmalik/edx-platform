@@ -8,7 +8,7 @@ from config_models.decorators import require_config
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Q
 from django.http import (
     Http404,
@@ -24,7 +24,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from ipware.ip import get_ip
 from opaque_keys import InvalidKeyError
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import CourseLocator
 
 from course_modes.models import CourseMode
@@ -39,7 +39,7 @@ from shoppingcart.reports import (
     UniversityRevenueShareReport
 )
 from student.models import AlreadyEnrolledError, CourseEnrollment, CourseFullError, EnrollmentClosedError
-from util.bad_request_rate_limiter import BadRequestRateLimiter
+from util.request_rate_limiter import BadRequestRateLimiter
 from util.date_utils import get_default_time_display
 from util.json_request import JsonResponse
 
@@ -106,11 +106,11 @@ def add_course_to_cart(request, course_id):
     """
 
     assert isinstance(course_id, basestring)
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         log.info(u"Anon user trying to add course %s to cart", course_id)
         return HttpResponseForbidden(_('You must be logged-in to add to a shopping cart'))
     cart = Order.get_cart_for_user(request.user)
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+    course_key = CourseKey.from_string(course_id)
     # All logging from here handled by the model
     try:
         paid_course_item = PaidCourseRegistration.add_to_order(cart, course_key)
@@ -250,7 +250,9 @@ def remove_item(request):
             item_id
         )
     else:
-        item = items[0]
+        # Reload the item directly to prevent select_subclasses() hackery from interfering with
+        # deletion of all objects in the model inheritance hierarchy
+        item = items[0].__class__.objects.get(id=item_id)
         if item.user == request.user:
             Order.remove_cart_item_from_order(item, request.user)
             item.order.update_order_type()
@@ -317,7 +319,7 @@ def get_reg_code_validity(registration_code, request, limiter):
     if not reg_code_is_valid:
         # tick the rate limiter counter
         AUDIT_LOG.info("Redemption of a invalid RegistrationCode %s", registration_code)
-        limiter.tick_bad_request_counter(request)
+        limiter.tick_request_counter(request)
         raise Http404()
 
     return reg_code_is_valid, reg_code_already_redeemed, course_registration
@@ -395,6 +397,9 @@ def register_code_redemption(request, registration_code):
             else:
                 for cart_item in cart_items:
                     if isinstance(cart_item, PaidCourseRegistration) or isinstance(cart_item, CourseRegCodeItem):
+                        # Reload the item directly to prevent select_subclasses() hackery from interfering with
+                        # deletion of all objects in the model inheritance hierarchy
+                        cart_item = cart_item.__class__.objects.get(id=cart_item.id)
                         cart_item.delete()
 
             #now redeem the reg code.
@@ -525,6 +530,7 @@ def use_coupon_code(coupons, user):
 
 
 @require_config(DonationConfiguration)
+@csrf_exempt
 @require_POST
 @login_required
 def donate(request):

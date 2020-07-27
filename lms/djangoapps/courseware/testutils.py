@@ -1,7 +1,6 @@
 """
 Common test utilities for courseware functionality
 """
-# pylint: disable=attribute-defined-outside-init
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
@@ -12,6 +11,7 @@ from mock import patch
 
 from lms.djangoapps.courseware.field_overrides import OverrideModulestoreFieldData
 from lms.djangoapps.courseware.url_helpers import get_redirect_url
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
@@ -104,6 +104,12 @@ class RenderXBlockTestMixin(object):
                 category='html',
                 data="<p>Test HTML Content<p>"
             )
+            self.problem_block = ItemFactory.create(
+                parent=self.vertical_block,
+                category='problem',
+                display_name='Problem'
+            )
+        CourseOverview.load_from_module_store(self.course.id)
 
         # block_name_to_be_tested can be `html_block` or `vertical_block`.
         # These attributes help ensure the positive and negative tests are in sync.
@@ -148,9 +154,9 @@ class RenderXBlockTestMixin(object):
         return response
 
     @ddt.data(
-        ('vertical_block', ModuleStoreEnum.Type.mongo, 14),
+        ('vertical_block', ModuleStoreEnum.Type.mongo, 11),
         ('vertical_block', ModuleStoreEnum.Type.split, 6),
-        ('html_block', ModuleStoreEnum.Type.mongo, 15),
+        ('html_block', ModuleStoreEnum.Type.mongo, 12),
         ('html_block', ModuleStoreEnum.Type.split, 6),
     )
     @ddt.unpack
@@ -176,7 +182,7 @@ class RenderXBlockTestMixin(object):
                     self.assertContains(response, chrome_element)
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 10),
+        (ModuleStoreEnum.Type.mongo, 5),
         (ModuleStoreEnum.Type.split, 5),
     )
     @ddt.unpack
@@ -210,7 +216,7 @@ class RenderXBlockTestMixin(object):
         Helper method used by test_success_enrolled_staff because one test
         class using this mixin has an increased number of mongo (only) queries.
         """
-        return 9
+        return 5
 
     def test_success_unenrolled_staff(self):
         self.setup_course()

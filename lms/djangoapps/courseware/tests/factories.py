@@ -6,7 +6,8 @@ from functools import partial
 import factory
 from django.test.client import RequestFactory
 from factory.django import DjangoModelFactory
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locator import CourseLocator
 
 from courseware.models import (
     StudentModule,
@@ -28,7 +29,7 @@ from student.tests.factories import UserFactory  # Imported to re-export
 
 # TODO fix this (course_id and location are invalid names as constants, and course_id should really be COURSE_KEY)
 # pylint: disable=invalid-name
-course_id = SlashSeparatedCourseKey(u'edX', u'test_course', u'test')
+course_id = CourseKey.from_string('edX/test_course/test')
 location = partial(course_id.make_usage_key, u'problem')
 
 
@@ -129,7 +130,7 @@ class StudentModuleFactory(DjangoModelFactory):
 
     module_type = "problem"
     student = factory.SubFactory(UserFactory)
-    course_id = SlashSeparatedCourseKey("MITx", "999", "Robot_Super_Course")
+    course_id = CourseLocator("MITx", "999", "Robot_Super_Course")
     state = None
     grade = None
     max_grade = None
@@ -170,5 +171,5 @@ class RequestFactoryNoCsrf(RequestFactory):
     """
     def request(self, **kwargs):
         request = super(RequestFactoryNoCsrf, self).request(**kwargs)
-        setattr(request, '_dont_enforce_csrf_checks', True)
+        setattr(request, '_dont_enforce_csrf_checks', True)  # pylint: disable=literal-used-as-attribute
         return request

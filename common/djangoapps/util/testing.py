@@ -6,7 +6,7 @@ import json
 import sys
 
 from django.conf import settings
-from django.core.urlresolvers import clear_url_caches, resolve
+from django.urls import clear_url_caches, resolve
 from django.test import TestCase
 from mock import patch
 
@@ -76,8 +76,7 @@ class EventTestMixin(object):
     """
     def setUp(self, tracker):
         super(EventTestMixin, self).setUp()
-        self.tracker = tracker
-        patcher = patch(self.tracker)
+        patcher = patch(tracker)
         self.mock_tracker = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -96,11 +95,28 @@ class EventTestMixin(object):
             kwargs
         )
 
+    def assert_event_emission_count(self, event_name, expected_count):
+        """
+        Verify that the event with the given name was emitted
+        a specific number of times.
+        """
+        actual_count = 0
+        for call_args in self.mock_tracker.emit.call_args_list:
+            if call_args[0][0] == event_name:
+                actual_count += 1
+        self.assertEqual(actual_count, expected_count)
+
     def reset_tracker(self):
         """
         Reset the mock tracker in order to forget about old events.
         """
         self.mock_tracker.reset_mock()
+
+    def get_latest_call_args(self):
+        """
+        Return the arguments of the latest call to emit.
+        """
+        return self.mock_tracker.emit.call_args[0]
 
 
 class PatchMediaTypeMixin(object):

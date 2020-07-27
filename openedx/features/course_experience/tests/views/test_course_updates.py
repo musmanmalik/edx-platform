@@ -1,10 +1,13 @@
 """
 Tests for the course updates page.
 """
+from datetime import datetime
+
 from courseware.courses import get_course_info_usage_key
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from openedx.core.djangoapps.waffle_utils.testutils import WAFFLE_TABLES
-from openedx.features.course_experience.views.course_updates import CourseUpdatesFragmentView
+from openedx.features.content_type_gating.models import ContentTypeGatingConfig
+from openedx.features.course_experience.views.course_updates import STATUS_VISIBLE
 from student.models import CourseEnrollment
 from student.tests.factories import UserFactory
 from xmodule.modulestore import ModuleStoreEnum
@@ -43,7 +46,7 @@ def create_course_update(course, user, content, date='December 31, 1999'):
         "id": len(course_updates.items) + 1,
         "date": date,
         "content": content,
-        "status": CourseUpdatesFragmentView.STATUS_VISIBLE
+        "status": STATUS_VISIBLE
     })
     modulestore().update_item(course_updates, user.id)
 
@@ -70,9 +73,8 @@ def remove_course_updates(user, course):
     updates_usage_key = get_course_info_usage_key(course, 'updates')
     try:
         course_updates = modulestore().get_item(updates_usage_key)
-        course_updates.items = []
-        modulestore().update_item(course_updates, user.id)
-    except ItemNotFoundError:
+        modulestore().delete_item(course_updates.location, user.id)
+    except (ItemNotFoundError, ValueError):
         pass
 
 
@@ -83,7 +85,6 @@ class TestCourseUpdatesPage(SharedModuleStoreTestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the simplest course possible."""
-        # setUpClassAndTestData() already calls setUpClass on SharedModuleStoreTestCase
         # pylint: disable=super-method-not-called
         with super(TestCourseUpdatesPage, cls).setUpClassAndTestData():
             with cls.store.default_store(ModuleStoreEnum.Type.split):
@@ -121,13 +122,15 @@ class TestCourseUpdatesPage(SharedModuleStoreTestCase):
         self.assertContains(response, 'Second Message')
 
     def test_queries(self):
+        ContentTypeGatingConfig.objects.create(enabled=True, enabled_as_of=datetime(2018, 1, 1))
         create_course_update(self.course, self.user, 'First Message')
 
         # Pre-fetch the view to populate any caches
         course_updates_url(self.course)
 
         # Fetch the view and verify that the query counts haven't changed
-        with self.assertNumQueries(32, table_blacklist=QUERY_COUNT_TABLE_BLACKLIST):
+        # TODO: decrease query count as part of REVO-28
+        with self.assertNumQueries(53, table_blacklist=QUERY_COUNT_TABLE_BLACKLIST):
             with check_mongo_calls(4):
                 url = course_updates_url(self.course)
                 self.client.get(url)
