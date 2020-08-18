@@ -7068,7 +7068,7 @@ msgstr "参与讨论"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Vote for good posts and responses"
-msgstr "为出色的发帖和回复投票"
+msgstr "为出色的帖子和回复投票"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Report abuse, topics, and responses"
