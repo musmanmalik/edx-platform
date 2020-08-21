@@ -1932,7 +1932,7 @@
     "Visible to Staff Only": "\u4ec5\u5de5\u4f5c\u4eba\u5458\u53ef\u89c1", 
     "Visual aids": "\u7f51\u683c\u7ebf", 
     "Volume": "\u97f3\u91cf", 
-    "Vote for good posts and responses": "\u4e3a\u51fa\u8272\u7684\u53d1\u5e16\u548c\u56de\u590d\u6295\u7968", 
+    "Vote for good posts and responses": "\u4e3a\u51fa\u8272\u7684\u5e16\u5b50\u548c\u56de\u590d\u6295\u7968", 
     "Vote for this post,": "\u4e3a\u8be5\u5e16\u6295\u7968", 
     "Want to confirm your identity later?": "\u5e0c\u671b\u7a0d\u540e\u518d\u9a8c\u8bc1\u60a8\u7684\u8eab\u4efd\uff1f", 
     "Warning": "\u8b66\u544a", 
