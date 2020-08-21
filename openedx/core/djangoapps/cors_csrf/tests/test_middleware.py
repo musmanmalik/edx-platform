@@ -269,7 +269,9 @@ class TestCsrfCrossDomainCookieMiddleware(TestCase):
                 domain=self.COOKIE_DOMAIN
             )
             self.assertIn(expected, cookie_header)
-            self.assertIn('Max-Age=31449600; Path=/; secure', cookie_header)
+            self.assertIn('Max-Age=31449600;', cookie_header)
+            self.assertIn('Path=/;', cookie_header)
+            self.assertIn('secure', cookie_header.lower())
 
         else:
             self.assertNotIn(self.COOKIE_NAME, response.cookies)
