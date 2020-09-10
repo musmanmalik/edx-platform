@@ -28,7 +28,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL("""
+        migrations.RunSQL(
+            """
             -- Drop a procedure if it already exists - safety check.
             DROP PROCEDURE IF EXISTS drop_foreign_key_from_table;
 
@@ -60,5 +61,11 @@ class Migration(migrations.Migration):
 
             -- Clean up.
             DROP PROCEDURE IF EXISTS drop_foreign_key_from_table;
-        """)
+        """,
+            reverse_sql="""
+            ALTER TABLE progress_coursemodulecompletion ADD FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`);
+            ALTER TABLE progress_studentprogress ADD FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`);
+            ALTER TABLE progress_studentprogresshistory ADD FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`);
+        """,
+        )
     ]
