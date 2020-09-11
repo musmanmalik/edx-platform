@@ -4,7 +4,6 @@ Decorators that can be used to interact with third_party_auth.
 
 
 from functools import wraps
-from urlparse import urlparse, urlunparse
 
 from django.conf import settings
 from django.shortcuts import redirect

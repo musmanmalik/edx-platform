@@ -38,6 +38,7 @@ from edx_rest_framework_extensions.auth.session.authentication import SessionAut
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey, UsageKey
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -1019,7 +1020,7 @@ class ProblemResponseReport(DeveloperErrorViewMixin, APIView):
         }
         Responds with BadRequest if problem location is faulty.
     """
-    authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser, SessionAuthentication,)
+    authentication_classes = (JwtAuthentication, BearerAuthenticationAllowInactiveUser, SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated, IsCourseStaff)
 
     # The non-atomic decorator is required because this view calls a celery
@@ -2465,7 +2466,7 @@ class InstructorTasks(DeveloperErrorViewMixin, APIView):
           ]
         }
     """
-    authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser, SessionAuthentication,)
+    authentication_classes = (JwtAuthentication, BearerAuthenticationAllowInactiveUser, SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated, IsCourseStaff)
 
     @cache_control(no_cache=True, no_store=True, must_revalidate=True)
@@ -2506,10 +2507,10 @@ class InstructorTasks(DeveloperErrorViewMixin, APIView):
             # If no problem or student, just get currently running tasks
             tasks = task_api.get_running_instructor_tasks(course_id)
 
-    response_payload = {
-        'tasks': list(map(extract_task_features, tasks)),
-    }
-    return JsonResponse(response_payload)
+        response_payload = {
+            'tasks': list(map(extract_task_features, tasks)),
+        }
+        return JsonResponse(response_payload)
 
 
 @require_POST
@@ -2572,7 +2573,7 @@ class ReportDownloadsList(DeveloperErrorViewMixin, APIView):
             ]
         }
     """
-    authentication_classes = (JwtAuthentication, OAuth2AuthenticationAllowInactiveUser, SessionAuthentication,)
+    authentication_classes = (JwtAuthentication, BearerAuthenticationAllowInactiveUser, SessionAuthentication,)
     permission_classes = (permissions.IsAuthenticated, IsCourseStaff)
 
     @cache_control(no_cache=True, no_store=True, must_revalidate=True)
@@ -2586,13 +2587,13 @@ class ReportDownloadsList(DeveloperErrorViewMixin, APIView):
         report_store = ReportStore.from_config(config_name='GRADES_DOWNLOAD')
         report_name = request.POST.get("report_name", None)
 
-    response_payload = {
-        'downloads': [
-            dict(name=name, url=url, link=HTML(u'<a href="{}">{}</a>').format(HTML(url), Text(name)))
-            for name, url in report_store.links_for(course_id) if report_name is None or name == report_name
-        ]
-    }
-    return JsonResponse(response_payload)
+        response_payload = {
+            'downloads': [
+                dict(name=name, url=url, link=HTML(u'<a href="{}">{}</a>').format(HTML(url), Text(name)))
+                for name, url in report_store.links_for(course_id) if report_name is None or name == report_name
+            ]
+        }
+        return JsonResponse(response_payload)
 
 
 @require_POST

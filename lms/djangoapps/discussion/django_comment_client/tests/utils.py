@@ -6,7 +6,7 @@ Utilities for tests within the django_comment_client module.
 from mock import patch
 from django.test.client import RequestFactory
 
-from django_comment_client import base
+from lms.djangoapps.discussion.django_comment_client import base
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
 from openedx.core.djangoapps.django_comment_common.models import ForumsConfig, Role
 from openedx.core.djangoapps.django_comment_common.utils import (

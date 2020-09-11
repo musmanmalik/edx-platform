@@ -4221,7 +4221,6 @@ class TestInstructorAPITaskLists(SharedModuleStoreTestCase, LoginEnrollmentTestC
         self.assertEqual(actual_tasks, expected_tasks)
 
 
-@attr(shard=1)
 class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase):
     """
     Test instructor API OAuth endpoint support.

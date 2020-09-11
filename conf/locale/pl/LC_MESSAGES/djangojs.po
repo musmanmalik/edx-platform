@@ -7339,6 +7339,14 @@ msgid "Open"
 msgstr ""
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
+msgid ""
+"Earn points for your engagement by adding a new post of responding to an "
+"existing post."
+msgstr ""
+"Zwiększ swoją punktację „Poziomu zaangażowania”, publikując nowe posty lub "
+"odpowiedzi do już istniejących."
+
+#: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Discussion Home"
 msgstr "Strona główna dyskusji"
 

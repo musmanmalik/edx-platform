@@ -188,10 +188,10 @@ if settings.FEATURES.get('EDX_SOLUTIONS_API'):
 
 # COMPLETION
 
-urlpatterns += (
+urlpatterns += [
     url(r'^api/completion/', include('completion.api.urls', namespace='completion_api')),
     url(r'^api/completion-aggregator/', include('completion_aggregator.urls')),
-)
+]
 
 if settings.FEATURES.get('ENABLE_OPENBADGES'):
     urlpatterns += [

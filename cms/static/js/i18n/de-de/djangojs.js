@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=(n != 1);
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "\n\nThis email is to let you know that the status of your proctoring session review for %(exam_name)s in\n<a href=\"%(course_url)s\">%(course_name)s </a> is %(status)s. If you have any questions about proctoring,\ncontact %(platform)s support at %(contact_email)s.\n\n": "\n\nIn dieser E-Mail erfahren Sie den Stand Ihrer Aufsichtssitzung der Reviews f\u00fcr %(exam_name)s in\n<a href=\"%(course_url)s\">%(course_name)s </a> is %(status)s. Falls Sie weitere Fragen zur Aufsicht haben,\nkontaktieren Sie den %(platform)s Support unter %(contact_email)s.\n\n",
     "\n                    Make sure you are on a computer with a webcam, and that you have valid photo identification\n                    such as a driver's license or passport, before you continue.\n                ": "\nStellen Sie sicher, dass Sie sich auf einem Computer mit einer Webcam befinden und dass Sie sich mit einem g\u00fcltigen Lichtbildausweis ausweisen k\u00f6nnen.\n beispielsweise ein F\u00fchrerschein oder ein Personalausweis.",
@@ -695,6 +695,7 @@
     "Duplicate": "Dupliziere",
     "Duplicating": "Duplizieren",
     "Duration (sec)": "Dauer (Sek.)",
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "Erhalten Sie Punkte f\u00fcr Ihr Engagement, indem Sie einen neuen Post erstellen oder auf einen bestehenden Post antworten.",
     "Earned %(created)s.": "Hat %(created)s verdient.",
     "Earned Certificates": "Erhaltene Zertifikate",
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "EdX hat f\u00fcr dieses Video in Studio kein zeitgesteuertes Transkript, aber in YouTube wurde ein Transkript gefunden. Sie k\u00f6nnen das YouTube-Transkript importieren oder Ihre eigene .srt-Transkriptdatei hochladen.",
@@ -2474,7 +2475,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

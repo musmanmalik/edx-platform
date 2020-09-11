@@ -574,7 +574,6 @@ class AccountSettingsOnCreationTest(CreateAccountMixin, TestCase):
         expected_user_password = make_password(unicodedata.normalize('NFKC', u'Ṗŕệṿïệẅ Ṯệẍt'), salt_val)
         self.assertEqual(expected_user_password, user.password)
 
-@attr(shard=2)
 @ddt.ddt
 class UserDeletionTest(TestCase):
     """

@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=0;
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "\n      Because the due date has passed, you are no longer able to take this exam.\n    ": "\n\u7de0\u5207\u65e5\u304c\u904e\u304e\u305f\u305f\u3081\u3001\u672c\u8a66\u9a13\u3092\u53d7\u3051\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u305b\u3093\u3002",
     "\n      The due date for this exam has passed\n    ": "\n\u3053\u306e\u8a66\u9a13\u306e\u7de0\u5207\u306f\u65e2\u306b\u904e\u304e\u3066\u3044\u307e\u3059\u3002",
@@ -413,6 +413,7 @@
     "Due:": "\u7de0\u5207: ",
     "Duplicate": "\u8907\u88fd",
     "Duration (sec)": "\u7d99\u7d9a\u6642\u9593 (\u79d2)",
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "\u65b0\u898f\u6295\u7a3f\u3092\u8ffd\u52a0\u3057\u305f\u308a\u3001\u65e2\u5b58\u306e\u6295\u7a3f\u306b\u56de\u7b54\u3057\u305f\u308a\u3059\u308b\u3068\u3001\u30a8\u30f3\u30b2\u30fc\u30b8\u30e1\u30f3\u30c8\u306b\u5fdc\u3058\u305f\u30dd\u30a4\u30f3\u30c8\u3092\u7372\u5f97\u3067\u304d\u307e\u3059\u3002",
     "Earned %(created)s.": "%(created)s\u3092\u7372\u5f97\u6e08\u3002",
     "Earned Certificates": "\u53d6\u5f97\u6e08\u307f\u4fee\u4e86\u8a3c",
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "Studio\u306b\u306f\u3053\u306e\u52d5\u753b\u7528\u306e\u6642\u9593\u4ed8\u304d\u5b57\u5e55\u304c\u3042\u308a\u307e\u305b\u3093\u304c\u3001YouTube\u306b\u306f\u5b57\u5e55\u304c\u3042\u308a\u307e\u3057\u305f\u3002YouTube\u306e\u5b57\u5e55\u3092\u30a4\u30f3\u30dd\u30fc\u30c8\u3059\u308b\u304b\u3001\u72ec\u81ea\u306e.srt\u30d5\u30a1\u30a4\u30eb\u3092\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u3059\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u3059\u3002",
@@ -1601,7 +1602,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

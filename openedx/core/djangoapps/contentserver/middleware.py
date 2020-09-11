@@ -5,6 +5,7 @@ Middleware to serve assets.
 
 import datetime
 import logging
+from importlib import import_module
 
 import six
 from cryptography.fernet import Fernet, InvalidToken
@@ -19,7 +20,6 @@ from django.http import (
     HttpResponsePermanentRedirect
 )
 from django.utils.deprecation import MiddlewareMixin
-from importlib import import_module
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.locator import AssetLocator
 from six import text_type

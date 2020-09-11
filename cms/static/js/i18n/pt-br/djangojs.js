@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=(n > 1);
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     " learner does not exist in LMS and not added to the exception list": "aluno n\u00e3o existe no LMS e n\u00e3o est\u00e1 adicionado na lista de exce\u00e7\u00e3o",
     " learner is successfully added to the exception list": "aluno \u00e9 adicionado com sucesso na lista de exce\u00e7\u00e3o",
@@ -296,6 +296,7 @@
     "Due date cannot be before start date.": "Data de entrega n\u00e3o pode ser anterior \u00e0 data de in\u00edcio.",
     "Due:": "Prazo final:",
     "Duration (sec)": "Dura\u00e7\u00e3o (segundos)",
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "Ganhe pontos pelo seu engajamento adicionando uma nova publica\u00e7\u00e3o ou respondendo a uma publica\u00e7\u00e3o existente.",
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "EdX n\u00e3o possui uma transcri\u00e7\u00e3o cronometrada para este v\u00eddeo no Studio, mas encontramos uma transcri\u00e7\u00e3o no YouTube. Voc\u00ea pode importar a transcri\u00e7\u00e3o presente no YouTube ou realizar o upload do seu pr\u00f3prio arquivo .srt .",
     "EdX doesn\\'t have a timed transcript for this video. Please upload an .srt file.": "O EdX n\u00e3o possui uma transcri\u00e7\u00e3o sincronizada para este v\u00eddeo. Por favor, fa\u00e7a o envio de um arquivo .srt",
     "EdX has a timed transcript for this video. If you want to edit this transcript, you can download, edit, and re-upload the existing transcript. If you want to replace this transcript, upload a new .srt transcript file.": "O EdX tem uma transcri\u00e7\u00e3o sincronizada para este v\u00eddeo. Se voc\u00ea deseja editar esta transcri\u00e7\u00e3o, voc\u00ea pode baixar, editar e re-enviar a transcri\u00e7\u00e3o existente. Se voc\u00ea quiser substituir essa transcri\u00e7\u00e3o, fa\u00e7a o envio de um novo arquivo de transcri\u00e7\u00e3o do tipo .srt.",
@@ -1079,7 +1080,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {
