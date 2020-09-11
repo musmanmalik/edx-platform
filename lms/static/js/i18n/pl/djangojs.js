@@ -5,7 +5,14 @@
   var django = globals.django || (globals.django = {});
 
 
-  django.pluralidx = function(count) { return (count == 1) ? 0 : 1; };
+  django.pluralidx = function(n) {
+    var v=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);
+    if (typeof(v) == 'boolean') {
+      return v ? 1 : 0;
+    } else {
+      return v;
+    }
+  };
 
 
   /* gettext library */
@@ -361,7 +368,7 @@
       if (typeof(value) == 'undefined') {
         return (count == 1) ? singular : plural;
       } else {
-        return value[django.pluralidx(count)];
+        return value.constructor === Array ? value[django.pluralidx(count)] : value;
       }
     };
 
@@ -414,9 +421,9 @@
       "%Y-%m-%d"
     ],
     "DECIMAL_SEPARATOR": ",",
-    "FIRST_DAY_OF_WEEK": "1",
-    "MONTH_DAY_FORMAT": "j F",
-    "NUMBER_GROUPING": "3",
+    "FIRST_DAY_OF_WEEK": 1,
+    "MONTH_DAY_FORMAT": "j E",
+    "NUMBER_GROUPING": 3,
     "SHORT_DATETIME_FORMAT": "d-m-Y  H:i",
     "SHORT_DATE_FORMAT": "d-m-Y",
     "THOUSAND_SEPARATOR": "\u00a0",
