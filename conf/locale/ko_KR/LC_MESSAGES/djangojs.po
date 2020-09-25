@@ -10853,7 +10853,7 @@ msgid "Use the"
 msgstr "다음"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
-msgid " menu to see a list of all topics."
+msgid "menu to see a list of all topics."
 msgstr " 메뉴를 사용하여 모든 주제의 목록을 볼 수 있습니다."
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
@@ -11059,3 +11059,11 @@ msgstr "이 팀을 삭제하시겠습니까?"
 #: lms/djangoapps/teams/static/teams/js/views/instructor_tools.js
 msgid "Team \"{team}\" successfully deleted."
 msgstr "팀 \"{team}\"이(가) 성공적으로 삭제되었습니다."
+
+#: discussions/views/new_post_view_spec.js
+msgid "Title can't be empty"
+msgstr "제목은 비워둘 수 없습니다."
+
+#: discussions/views/new_post_view_spec.js
+msgid "Body can't be empty"
+msgstr "본문은 비워둘 수 없습니다."
