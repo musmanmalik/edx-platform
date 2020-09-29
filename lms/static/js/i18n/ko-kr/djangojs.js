@@ -422,6 +422,7 @@
     "This vote could not be processed. Refresh the page and try again.": "\uc774 \ud22c\ud45c\ub97c \ucc98\ub9ac\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ud398\uc774\uc9c0\ub97c \uc0c8\ub85c\uace0\uce68\ud55c \ub2e4\uc74c \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \ubcf4\uc2ed\uc2dc\uc624.", 
     "Time Sent": "\ubcf4\ub0b8 \uc2dc\uac04", 
     "Time Sent:": "\ubcf4\ub0b8 \uc2dc\uac04:", 
+    "Title": "\uc81c\ubaa9", 
     "Title can't be empty": "\uc81c\ubaa9\uc740 \ube44\uc6cc\ub458 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.", 
     "Today": "\uc624\ub298", 
     "Toggle Notifications Setting": "\uc54c\ub9bc \uc124\uc815 \uc804\ud658", 
