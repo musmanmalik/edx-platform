@@ -11071,3 +11071,7 @@ msgstr "제목은 비워둘 수 없습니다."
 #: discussions/views/new_post_view_spec.js
 msgid "Body can't be empty"
 msgstr "본문은 비워둘 수 없습니다."
+
+#: common/static/common/templates/discussion/new-post-visibility.underscore
+msgid "This post will be visible to everyone."
+msgstr "이 게시물은 모든 사용자에게 표시됩니다."

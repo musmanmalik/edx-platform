@@ -1346,3 +1346,7 @@ msgstr "tytuł nie może być pusty"
 #: discussions/views/new_post_view_spec.js
 msgid "Body can't be empty"
 msgstr "treść nie może być pusta"
+
+#: common/static/common/templates/discussion/new-post-visibility.underscore
+msgid "This post will be visible to everyone."
+msgstr "Ten post będzie widoczny dla wszystkich"

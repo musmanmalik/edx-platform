@@ -6861,7 +6861,7 @@ msgstr ""
 
 #: common/static/common/templates/discussion/new-post-visibility.underscore
 msgid "This post will be visible to everyone."
-msgstr ""
+msgstr "Esta publicação estará visível para todos."
 
 #: common/static/common/templates/discussion/new-post.underscore
 msgid "Add a Post"

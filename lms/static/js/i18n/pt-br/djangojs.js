@@ -968,6 +968,7 @@
     "This learner will be removed from the team, allowing another learner to take the available spot.": "Este estudante ser\u00e1 removido desta equipe. Seu lugar estar\u00e1 dispon\u00edvel para outro estudante.", 
     "This post is visible only to %(group_name)s.": "Este post \u00e9 vis\u00edvel apenas para %(group_name)s.", 
     "This post is visible to everyone.": "Este post est\u00e1 vis\u00edvel para todos.", 
+    "This post will be visible to everyone.": "Esta publica\u00e7\u00e3o estar\u00e1 vis\u00edvel para todos.", 
     "This problem could not be saved.": "Este problema n\u00e3o p\u00f4de ser salvo.", 
     "This problem has already been released. Any changes will apply only to future assessments.": "A solu\u00e7\u00e3o deste problema j\u00e1 foi colocada no software. Quaisquer altera\u00e7\u00f5es ser\u00e3o aplicadas apenas em avalia\u00e7\u00f5es futuras.", 
     "This response could not be saved.": "Esta resposta n\u00e3o p\u00f4de ser salva.", 
