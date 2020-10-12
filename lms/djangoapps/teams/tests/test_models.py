@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Tests for the teams API at the HTTP request level.
 """
@@ -64,7 +63,7 @@ class TestModelStrings(SharedModuleStoreTestCase):
     """
     @classmethod
     def setUpClass(cls):
-        super(TestModelStrings, cls).setUpClass()
+        super().setUpClass()
         cls.course_id = "edx/the-course/1"
         cls.course1 = create_course(CourseKey.from_string(cls.course_id), TEAMS_CONFIG_1)
         cls.user = UserFactory.create(username="the-user")
@@ -89,7 +88,7 @@ class TestModelStrings(SharedModuleStoreTestCase):
         )
 
     def test_team_text(self):
-        assert six.text_type(self.team) == (
+        assert str(self.team) == (
             "The Team in edx/the-course/1"
         )
 
@@ -99,7 +98,7 @@ class TestModelStrings(SharedModuleStoreTestCase):
         )
 
     def test_team_membership_text_type(self):
-        assert six.text_type(self.team_membership) == (
+        assert str(self.team_membership) == (
             "the-user is member of The Team in edx/the-course/1"
         )
 
@@ -109,7 +108,7 @@ class CourseTeamTest(SharedModuleStoreTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(CourseTeamTest, cls).setUpClass()
+        super().setUpClass()
         cls.course_id = "edx/the-course/1"
         cls.course1 = create_course(CourseKey.from_string(cls.course_id), TEAMS_CONFIG_1)
 
@@ -153,7 +152,7 @@ class TeamMembershipTest(SharedModuleStoreTestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TeamMembershipTest, cls).setUpClass()
+        super().setUpClass()
         create_course(COURSE_KEY1, TEAMS_CONFIG_1)
         create_course(COURSE_KEY2, TEAMS_CONFIG_2)
 
@@ -161,7 +160,7 @@ class TeamMembershipTest(SharedModuleStoreTestCase):
         """
         Set up tests.
         """
-        super(TeamMembershipTest, self).setUp()
+        super().setUp()
 
         self.user1 = UserFactory.create(username='user1')
         self.user2 = UserFactory.create(username='user2')
@@ -279,7 +278,7 @@ class TeamSignalsTest(EventTestMixin, SharedModuleStoreTestCase):
 
     def setUp(self):  # pylint: disable=arguments-differ
         """Create a user with a team to test signals."""
-        super(TeamSignalsTest, self).setUp('lms.djangoapps.teams.utils.tracker')
+        super().setUp('lms.djangoapps.teams.utils.tracker')
         self.user = UserFactory.create(username="user")
         self.moderator = UserFactory.create(username="moderator")
         self.team = CourseTeamFactory(discussion_topic_id=self.DISCUSSION_TOPIC_ID)
@@ -330,7 +329,7 @@ class TeamSignalsTest(EventTestMixin, SharedModuleStoreTestCase):
         )
     )
     @ddt.unpack
-    @patch('lms.lib.comment_client.thread.Thread.__getattr__')
+    @patch('openedx.core.djangoapps.django_comment_common.comment_client.thread.Thread.__getattr__')
     def test_signals(self, signal_name, user_should_update, mock_func):
         """Test that `last_activity_at` is correctly updated when team-related
         signals are sent.
@@ -351,7 +350,7 @@ class TeamSignalsTest(EventTestMixin, SharedModuleStoreTestCase):
             signal.send(sender=None, user=self.user, post=self.mock_comment(user=self.moderator))
 
     @ddt.data(*list(SIGNALS.keys()))
-    @patch('lms.lib.comment_client.thread.Thread.__getattr__')
+    @patch('openedx.core.djangoapps.django_comment_common.comment_client.thread.Thread.__getattr__')
     def test_signals_course_context(self, signal_name, mock_func):
         """Test that `last_activity_at` is not updated when activity takes
         place in discussions outside of a team.

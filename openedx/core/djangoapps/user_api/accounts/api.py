@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=missing-docstring
 """
 Programmatic integration point for User API Accounts sub-application
@@ -7,7 +6,6 @@ Programmatic integration point for User API Accounts sub-application
 
 import datetime
 
-import six
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import ValidationError, validate_email
@@ -16,7 +14,6 @@ from django.utils.translation import ugettext as _
 from edx_notifications.lib import admin as notification_admin
 from openedx.core.djangoapps.profile_images.tasks import delete_profile_images
 from pytz import UTC
-from six import text_type  # pylint: disable=ungrouped-imports
 from student import views as student_views
 from student.models import (
     AccountRecovery,
@@ -27,8 +24,8 @@ from student.models import (
 )
 from util.model_utils import emit_setting_changed_event
 from util.password_policy_validators import validate_password
-from lms.lib.comment_client.user import User as CCUser
-from lms.lib.comment_client.utils import CommentClientRequestError
+from openedx.core.djangoapps.django_comment_common.comment_client.user import User as CCUser
+from openedx.core.djangoapps.django_comment_common.comment_client.utils import CommentClientRequestError
 
 from openedx.core.djangoapps.user_api import accounts, errors, helpers
 from openedx.core.djangoapps.user_api.errors import (
@@ -170,7 +167,7 @@ def update_account_settings(requesting_user, update, username=None):
         raise err
     except Exception as err:
         raise AccountUpdateError(
-            u"Error thrown when saving account updates: '{}'".format(text_type(err))
+            "Error thrown when saving account updates: '{}'".format(str(err))
         )
 
     _send_email_change_requests_if_needed(update, user)
@@ -180,15 +177,15 @@ def _validate_read_only_fields(user, data, field_errors):
     # Check for fields that are not editable. Marking them read-only causes them to be ignored, but we wish to 400.
     read_only_fields = set(data.keys()).intersection(
         # Remove email since it is handled separately below when checking for changing_email.
-        (set(AccountUserSerializer.get_read_only_fields()) - set(["email"])) |
+        (set(AccountUserSerializer.get_read_only_fields()) - {"email"}) |
         set(AccountLegacyProfileSerializer.get_read_only_fields() or set()) |
         get_enterprise_readonly_account_fields(user)
     )
 
     for read_only_field in read_only_fields:
         field_errors[read_only_field] = {
-            "developer_message": u"This field is not editable via this API",
-            "user_message": _(u"The '{field_name}' field cannot be edited.").format(field_name=read_only_field)
+            "developer_message": "This field is not editable via this API",
+            "user_message": _("The '{field_name}' field cannot be edited.").format(field_name=read_only_field)
         }
         del data[read_only_field]
 
@@ -200,15 +197,15 @@ def _validate_email_change(user, data, field_errors):
         return
 
     if not settings.FEATURES['ALLOW_EMAIL_ADDRESS_CHANGE']:
-        raise AccountUpdateError(u"Email address changes have been disabled by the site operators.")
+        raise AccountUpdateError("Email address changes have been disabled by the site operators.")
 
     new_email = data["email"]
     try:
         student_views.validate_new_email(user, new_email)
     except ValueError as err:
         field_errors["email"] = {
-            "developer_message": u"Error thrown from validate_new_email: '{}'".format(text_type(err)),
-            "user_message": text_type(err)
+            "developer_message": "Error thrown from validate_new_email: '{}'".format(str(err)),
+            "user_message": str(err)
         }
         return
 
@@ -229,8 +226,8 @@ def _validate_secondary_email(user, data, field_errors):
         student_views.validate_secondary_email(user, secondary_email)
     except ValueError as err:
         field_errors["secondary_email"] = {
-            "developer_message": u"Error thrown from validate_secondary_email: '{}'".format(text_type(err)),
-            "user_message": text_type(err)
+            "developer_message": "Error thrown from validate_secondary_email: '{}'".format(str(err)),
+            "user_message": str(err)
         }
     else:
         # Don't process with sending email to given new email, if it is already associated with
@@ -251,7 +248,7 @@ def _validate_name_change(user_profile, data, field_errors):
         validate_name(data['name'])
     except ValidationError as err:
         field_errors["name"] = {
-            "developer_message": u"Error thrown from validate_name: '{}'".format(err.message),
+            "developer_message": "Error thrown from validate_name: '{}'".format(err.message),
             "user_message": err.message
         }
         return None
@@ -311,7 +308,7 @@ def _store_old_name_if_needed(old_name, user_profile, requesting_user):
             meta['old_names'] = []
         meta['old_names'].append([
             old_name,
-            u"Name change requested through account API by {0}".format(requesting_user.username),
+            "Name change requested through account API by {}".format(requesting_user.username),
             datetime.datetime.now(UTC).isoformat()
         ])
         user_profile.set_meta(meta)
@@ -325,8 +322,8 @@ def _send_email_change_requests_if_needed(data, user):
             student_views.do_email_change_request(user, new_email)
         except ValueError as err:
             raise AccountUpdateError(
-                u"Error thrown from do_email_change_request: '{}'".format(text_type(err)),
-                user_message=text_type(err)
+                "Error thrown from do_email_change_request: '{}'".format(str(err)),
+                user_message=str(err)
             )
 
     new_secondary_email = data.get("secondary_email")
@@ -339,8 +336,8 @@ def _send_email_change_requests_if_needed(data, user):
             )
         except ValueError as err:
             raise AccountUpdateError(
-                u"Error thrown from do_email_change_request: '{}'".format(text_type(err)),
-                user_message=text_type(err)
+                "Error thrown from do_email_change_request: '{}'".format(str(err)),
+                user_message=str(err)
             )
 
 
@@ -481,7 +478,7 @@ def _validate(validation_func, err, *args):
     try:
         validation_func(*args)
     except err as validation_err:
-        return text_type(validation_err)
+        return str(validation_err)
     return ''
 
 
@@ -500,7 +497,7 @@ def _validate_username(username):
     """
     try:
         _validate_unicode(username)
-        _validate_type(username, six.string_types, accounts.USERNAME_BAD_TYPE_MSG)
+        _validate_type(username, (str,), accounts.USERNAME_BAD_TYPE_MSG)
         _validate_length(
             username,
             accounts.USERNAME_MIN_LENGTH,
@@ -512,7 +509,7 @@ def _validate_username(username):
             # message by convention.
             validate_username(username)
     except (UnicodeError, errors.AccountDataBadType, errors.AccountDataBadLength) as username_err:
-        raise errors.AccountUsernameInvalid(text_type(username_err))
+        raise errors.AccountUsernameInvalid(str(username_err))
     except ValidationError as validation_err:
         raise errors.AccountUsernameInvalid(validation_err.message)
 
@@ -532,12 +529,12 @@ def _validate_email(email):
     """
     try:
         _validate_unicode(email)
-        _validate_type(email, six.string_types, accounts.EMAIL_BAD_TYPE_MSG)
+        _validate_type(email, (str,), accounts.EMAIL_BAD_TYPE_MSG)
         _validate_length(email, accounts.EMAIL_MIN_LENGTH, accounts.EMAIL_MAX_LENGTH, accounts.EMAIL_BAD_LENGTH_MSG)
         validate_email.message = accounts.EMAIL_INVALID_MSG.format(email=email)
         validate_email(email)
     except (UnicodeError, errors.AccountDataBadType, errors.AccountDataBadLength) as invalid_email_err:
-        raise errors.AccountEmailInvalid(text_type(invalid_email_err))
+        raise errors.AccountEmailInvalid(str(invalid_email_err))
     except ValidationError as validation_err:
         raise errors.AccountEmailInvalid(validation_err.message)
 
@@ -574,11 +571,11 @@ def _validate_password(password, username=None, email=None):
 
     """
     try:
-        _validate_type(password, six.string_types, accounts.PASSWORD_BAD_TYPE_MSG)
+        _validate_type(password, (str,), accounts.PASSWORD_BAD_TYPE_MSG)
         temp_user = User(username=username, email=email) if username else None
         validate_password(password, user=temp_user)
     except errors.AccountDataBadType as invalid_password_err:
-        raise errors.AccountPasswordInvalid(text_type(invalid_password_err))
+        raise errors.AccountPasswordInvalid(str(invalid_password_err))
     except ValidationError as validation_err:
         raise errors.AccountPasswordInvalid(' '.join(validation_err.messages))
 
@@ -681,7 +678,7 @@ def _validate_length(data, min, max, err):
         raise errors.AccountDataBadLength(err)
 
 
-def _validate_unicode(data, err=u"Input not valid unicode"):
+def _validate_unicode(data, err="Input not valid unicode"):
     """Checks whether the input data is valid unicode or not.
 
     :param data: The data to check for unicode validity.
@@ -691,10 +688,10 @@ def _validate_unicode(data, err=u"Input not valid unicode"):
 
     """
     try:
-        if not isinstance(data, str) and not isinstance(data, six.text_type):
+        if not isinstance(data, str) and not isinstance(data, str):
             raise UnicodeError(err)
         # In some cases we pass the above, but it's still inappropriate utf-8.
-        six.text_type(data)
+        str(data)
     except UnicodeError:
         raise UnicodeError(err)
 

@@ -23,12 +23,12 @@ from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
 
-class ForumsEnableMixin(object):
+class ForumsEnableMixin:
     """
     Ensures that the forums are enabled for a given test class.
     """
     def setUp(self):
-        super(ForumsEnableMixin, self).setUp()
+        super().setUp()
 
         config = ForumsConfig.current()
         config.enabled = True
@@ -42,7 +42,7 @@ class CohortedTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCa
     @classmethod
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUpClass(cls):
-        super(CohortedTestCase, cls).setUpClass()
+        super().setUpClass()
         cls.course = CourseFactory.create(
             cohort_config={
                 "cohorted": True,
@@ -63,7 +63,7 @@ class CohortedTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCa
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
-        super(CohortedTestCase, self).setUp()
+        super().setUp()
 
         seed_permissions_roles(self.course.id)
         self.student = UserFactory.create()
@@ -101,7 +101,7 @@ class CohortedTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStoreTestCa
 
         response = base.views.create_thread(
             request,
-            course_id=self.course.id.to_deprecated_string(),
+            course_id=str(self.course.id),
             commentable_id=commentable_id
         )
         self.assertEqual(response.status_code, expected_status_code)
@@ -149,8 +149,8 @@ def config_course_discussions(
         division_scheme=CourseDiscussionSettings.COHORT,
     )
 
-    course.discussion_topics = dict((name, {"sort_key": "A", "id": to_id(name)})
-                                    for name in discussion_topics)
+    course.discussion_topics = {name: {"sort_key": "A", "id": to_id(name)}
+                                    for name in discussion_topics}
     try:
         # Not implemented for XMLModulestore, which is used by test_cohorts.
         modulestore().update_item(course, ModuleStoreEnum.UserID.test)

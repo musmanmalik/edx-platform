@@ -1,5 +1,4 @@
 # pylint: skip-file
-# -*- coding: utf-8 -*-
 """Tests for django comment client views."""
 
 
@@ -9,7 +8,6 @@ from contextlib import contextmanager
 
 import ddt
 import mock
-import six
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.test.client import RequestFactory
@@ -17,8 +15,6 @@ from django.urls import reverse
 from eventtracking.processors.exceptions import EventEmissionExit
 from mock import ANY, Mock, patch
 from opaque_keys.edx.keys import CourseKey
-from six import text_type
-from six.moves import range
 from unittest import skip
 
 from common.test.utils import MockSignalHandlerMixin, disable_signal
@@ -31,7 +27,7 @@ from lms.djangoapps.discussion.django_comment_client.tests.group_id import (
     GroupIdAssertionMixin,
     NonCohortedTopicGroupIdTestMixin
 )
-from lms.djangoapps.discussion.django_comment_client.tests.unicode import UnicodeTestMixin
+from lms.djangoapps.discussion.django_comment_client.tests.six.text_type import UnicodeTestMixin
 from lms.djangoapps.discussion.django_comment_client.tests.utils import CohortedTestCase, ForumsEnableMixin
 from lms.djangoapps.teams.tests.factories import CourseTeamFactory, CourseTeamMembershipFactory
 from openedx.core.djangoapps.course_groups.cohorts import set_course_cohorted
@@ -81,7 +77,7 @@ QUERY_COUNT_TABLE_BLACKLIST = WAFFLE_TABLES
 # pylint: disable=missing-docstring
 
 
-class MockRequestSetupMixin(object):
+class MockRequestSetupMixin:
     def _create_response_mock(self, data):
         return Mock(
             text=json.dumps(data),
@@ -113,7 +109,7 @@ class CreateThreadGroupIdTestCase(
 
         return views.create_thread(
             request,
-            course_id=six.text_type(self.course.id),
+            course_id=str(self.course.id),
             commentable_id=commentable_id
         )
 
@@ -162,7 +158,7 @@ class ThreadActionGroupIdTestCase(
 
         return getattr(views, view_name)(
             request,
-            course_id=six.text_type(self.course.id),
+            course_id=str(self.course.id),
             thread_id="dummy",
             **(view_args or {})
         )
@@ -329,7 +325,7 @@ class CreateNonCohortedThreadTestCase(CohortedTestCase):
         self._assert_mock_request_called_without_group_id(mock_request)
 
 
-class ViewsTestCaseMixin(object):
+class ViewsTestCaseMixin:
 
     def set_up_course(self, module_count=0):
         """
@@ -351,12 +347,12 @@ class ViewsTestCaseMixin(object):
                 parent_location=self.course.location,
                 category='discussion',
                 discussion_id='id_module_{}'.format(i),
-                discussion_category=u'Category {}'.format(i),
-                discussion_target=u'Discussion {}'.format(i)
+                discussion_category='Category {}'.format(i),
+                discussion_target='Discussion {}'.format(i)
             )
 
         # seed the forums permissions and roles
-        call_command('seed_permissions_roles', six.text_type(self.course_id))
+        call_command('seed_permissions_roles', str(self.course_id))
 
         # Patch the comment client user save method so it does not try
         # to create a new cc user when creating a django user
@@ -442,18 +438,18 @@ class ViewsTestCaseMixin(object):
         if extra_request_data:
             thread.update(extra_request_data)
         url = reverse('create_thread', kwargs={'commentable_id': 'i4x-MITx-999-course-Robot_Super_Course',
-                                               'course_id': six.text_type(self.course_id)})
+                                               'course_id': str(self.course_id)})
         response = self.client.post(url, data=thread)
         assert mock_request.called
         expected_data = {
             'thread_type': 'discussion',
-            'body': u'this is a post',
+            'body': 'this is a post',
             'context': ThreadContext.COURSE,
             'anonymous_to_peers': False, 'user_id': 1,
-            'title': u'Hello',
-            'commentable_id': u'i4x-MITx-999-course-Robot_Super_Course',
+            'title': 'Hello',
+            'commentable_id': 'i4x-MITx-999-course-Robot_Super_Course',
             'anonymous': False,
-            'course_id': six.text_type(self.course_id),
+            'course_id': str(self.course_id),
         }
         if extra_response_data:
             expected_data.update(extra_response_data)
@@ -480,7 +476,7 @@ class ViewsTestCaseMixin(object):
             response = self.client.post(
                 reverse("update_thread", kwargs={
                     "thread_id": "dummy",
-                    "course_id": six.text_type(self.course_id)
+                    "course_id": str(self.course_id)
                 }),
                 data={"body": "foo", "title": "foo", "commentable_id": "some_topic"}
             )
@@ -509,7 +505,7 @@ class ViewsQueryCountTestCase(
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
-        super(ViewsQueryCountTestCase, self).setUp()
+        super().setUp()
 
     def count_queries(func):  # pylint: disable=no-self-argument
         """
@@ -559,7 +555,7 @@ class ViewsTestCase(
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(ViewsTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create(
                 org='MITx', course='999',
                 discussion_topics={"Some Topic": {"id": "some_topic"}},
@@ -568,19 +564,19 @@ class ViewsTestCase(
 
     @classmethod
     def setUpTestData(cls):
-        super(ViewsTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.course_id = cls.course.id
 
         # seed the forums permissions and roles
-        call_command('seed_permissions_roles', six.text_type(cls.course_id))
+        call_command('seed_permissions_roles', str(cls.course_id))
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
         # Patching the ENABLE_DISCUSSION_SERVICE value affects the contents of urls.py,
         # so we need to call super.setUp() which reloads urls.py (because
         # of the UrlResetMixin)
-        super(ViewsTestCase, self).setUp()
+        super().setUp()
 
         # Patch the comment client user save method so it does not try
         # to create a new cc user when creating a django user
@@ -647,7 +643,7 @@ class ViewsTestCase(
             response = self.client.post(
                 reverse(
                     view_name,
-                    kwargs={"course_id": six.text_type(self.course_id), "thread_id": 'i4x-MITx-999-course-Robot_Super_Course'}
+                    kwargs={"course_id": str(self.course_id), "thread_id": 'i4x-MITx-999-course-Robot_Super_Course'}
                 )
             )
         self.assertEqual(response.status_code, 200)
@@ -746,7 +742,7 @@ class ViewsTestCase(
             }
 
             url = reverse('create_thread', kwargs={'commentable_id': commentable_id,
-                                                   'course_id': self.course_id.to_deprecated_string()})
+                                                   'course_id': str(self.course_id)})
             response = self.client.post(url, data=thread)
             assert response.status_code == 200
 
@@ -841,7 +837,7 @@ class ViewsTestCase(
             }
 
             url = reverse('create_thread', kwargs={'commentable_id': commentable_id,
-                                                   'course_id': self.course_id.to_deprecated_string()})
+                                                   'course_id': str(self.course_id)})
             response = self.client.post(url, data=thread)
             assert response.status_code == 200
 
@@ -898,7 +894,7 @@ class ViewsTestCase(
         with self.assert_discussion_signals('thread_deleted'):
             response = views.delete_thread(
                 request,
-                course_id=six.text_type(self.course.id),
+                course_id=str(self.course.id),
                 thread_id=test_thread_id
             )
         self.assertEqual(response.status_code, 200)
@@ -918,7 +914,7 @@ class ViewsTestCase(
         with self.assert_discussion_signals('comment_deleted'):
             response = views.delete_comment(
                 request,
-                course_id=six.text_type(self.course.id),
+                course_id=str(self.course.id),
                 comment_id=test_comment_id
             )
         self.assertEqual(response.status_code, 200)
@@ -943,7 +939,7 @@ class ViewsTestCase(
     def test_create_thread_no_title(self, mock_request):
         self._test_request_error(
             "create_thread",
-            {"commentable_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"commentable_id": "dummy", "course_id": str(self.course_id)},
             {"body": "foo"},
             mock_request
         )
@@ -951,7 +947,7 @@ class ViewsTestCase(
     def test_create_thread_empty_title(self, mock_request):
         self._test_request_error(
             "create_thread",
-            {"commentable_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"commentable_id": "dummy", "course_id": str(self.course_id)},
             {"body": "foo", "title": " "},
             mock_request
         )
@@ -959,7 +955,7 @@ class ViewsTestCase(
     def test_create_thread_no_body(self, mock_request):
         self._test_request_error(
             "create_thread",
-            {"commentable_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"commentable_id": "dummy", "course_id": str(self.course_id)},
             {"title": "foo"},
             mock_request
         )
@@ -967,7 +963,7 @@ class ViewsTestCase(
     def test_create_thread_empty_body(self, mock_request):
         self._test_request_error(
             "create_thread",
-            {"commentable_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"commentable_id": "dummy", "course_id": str(self.course_id)},
             {"body": " ", "title": "foo"},
             mock_request
         )
@@ -975,7 +971,7 @@ class ViewsTestCase(
     def test_update_thread_no_title(self, mock_request):
         self._test_request_error(
             "update_thread",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {"body": "foo"},
             mock_request
         )
@@ -983,7 +979,7 @@ class ViewsTestCase(
     def test_update_thread_empty_title(self, mock_request):
         self._test_request_error(
             "update_thread",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {"body": "foo", "title": " "},
             mock_request
         )
@@ -991,7 +987,7 @@ class ViewsTestCase(
     def test_update_thread_no_body(self, mock_request):
         self._test_request_error(
             "update_thread",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {"title": "foo"},
             mock_request
         )
@@ -999,7 +995,7 @@ class ViewsTestCase(
     def test_update_thread_empty_body(self, mock_request):
         self._test_request_error(
             "update_thread",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {"body": " ", "title": "foo"},
             mock_request
         )
@@ -1015,7 +1011,7 @@ class ViewsTestCase(
     def test_update_thread_wrong_commentable_id(self, mock_get_discussion_id_map, mock_request):
         self._test_request_error(
             "update_thread",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {"body": "foo", "title": "foo", "commentable_id": "wrong_commentable"},
             mock_request
         )
@@ -1026,7 +1022,7 @@ class ViewsTestCase(
             response = self.client.post(
                 reverse(
                     "create_comment",
-                    kwargs={"course_id": six.text_type(self.course_id), "thread_id": "dummy"}
+                    kwargs={"course_id": str(self.course_id), "thread_id": "dummy"}
                 ),
                 data={"body": "body"}
             )
@@ -1035,7 +1031,7 @@ class ViewsTestCase(
     def test_create_comment_no_body(self, mock_request):
         self._test_request_error(
             "create_comment",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {},
             mock_request
         )
@@ -1043,7 +1039,7 @@ class ViewsTestCase(
     def test_create_comment_empty_body(self, mock_request):
         self._test_request_error(
             "create_comment",
-            {"thread_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"thread_id": "dummy", "course_id": str(self.course_id)},
             {"body": " "},
             mock_request
         )
@@ -1051,7 +1047,7 @@ class ViewsTestCase(
     def test_create_sub_comment_no_body(self, mock_request):
         self._test_request_error(
             "create_sub_comment",
-            {"comment_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"comment_id": "dummy", "course_id": str(self.course_id)},
             {},
             mock_request
         )
@@ -1059,7 +1055,7 @@ class ViewsTestCase(
     def test_create_sub_comment_empty_body(self, mock_request):
         self._test_request_error(
             "create_sub_comment",
-            {"comment_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"comment_id": "dummy", "course_id": str(self.course_id)},
             {"body": " "},
             mock_request
         )
@@ -1067,7 +1063,7 @@ class ViewsTestCase(
     def test_update_comment_no_body(self, mock_request):
         self._test_request_error(
             "update_comment",
-            {"comment_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"comment_id": "dummy", "course_id": str(self.course_id)},
             {},
             mock_request
         )
@@ -1075,7 +1071,7 @@ class ViewsTestCase(
     def test_update_comment_empty_body(self, mock_request):
         self._test_request_error(
             "update_comment",
-            {"comment_id": "dummy", "course_id": six.text_type(self.course_id)},
+            {"comment_id": "dummy", "course_id": str(self.course_id)},
             {"body": " "},
             mock_request
         )
@@ -1088,7 +1084,7 @@ class ViewsTestCase(
             response = self.client.post(
                 reverse(
                     "update_comment",
-                    kwargs={"course_id": six.text_type(self.course_id), "comment_id": comment_id}
+                    kwargs={"course_id": str(self.course_id), "comment_id": comment_id}
                 ),
                 data={"body": updated_body}
             )
@@ -1139,7 +1135,7 @@ class ViewsTestCase(
         })
         url = reverse('flag_abuse_for_thread', kwargs={
             'thread_id': '518d4237b023791dca00000d',
-            'course_id': six.text_type(self.course_id)
+            'course_id': str(self.course_id)
         })
         response = self.client.post(url)
         assert mock_request.called
@@ -1216,7 +1212,7 @@ class ViewsTestCase(
         })
         url = reverse('un_flag_abuse_for_thread', kwargs={
             'thread_id': '518d4237b023791dca00000d',
-            'course_id': six.text_type(self.course_id)
+            'course_id': str(self.course_id)
         })
         response = self.client.post(url)
         assert mock_request.called
@@ -1287,7 +1283,7 @@ class ViewsTestCase(
         })
         url = reverse('flag_abuse_for_comment', kwargs={
             'comment_id': '518d4237b023791dca00000d',
-            'course_id': six.text_type(self.course_id)
+            'course_id': str(self.course_id)
         })
         response = self.client.post(url)
         assert mock_request.called
@@ -1358,7 +1354,7 @@ class ViewsTestCase(
         })
         url = reverse('un_flag_abuse_for_comment', kwargs={
             'comment_id': '518d4237b023791dca00000d',
-            'course_id': six.text_type(self.course_id)
+            'course_id': str(self.course_id)
         })
         response = self.client.post(url)
         assert mock_request.called
@@ -1410,7 +1406,7 @@ class ViewsTestCase(
             response = self.client.post(
                 reverse(
                     view_name,
-                    kwargs={item_id: 'dummy', 'course_id': six.text_type(self.course_id)}
+                    kwargs={item_id: 'dummy', 'course_id': str(self.course_id)}
                 )
             )
         self.assertEqual(response.status_code, 200)
@@ -1422,7 +1418,7 @@ class ViewsTestCase(
             response = self.client.post(
                 reverse(
                     'endorse_comment',
-                    kwargs={'comment_id': 'dummy', 'course_id': six.text_type(self.course_id)}
+                    kwargs={'comment_id': 'dummy', 'course_id': str(self.course_id)}
                 )
             )
         self.assertEqual(response.status_code, 200)
@@ -1436,12 +1432,12 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(ViewPermissionsTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(ViewPermissionsTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
 
@@ -1456,13 +1452,13 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
-        super(ViewPermissionsTestCase, self).setUp()
+        super().setUp()
 
     def test_pin_thread_as_student(self, mock_request):
         self._set_mock_request_data(mock_request, {})
         self.client.login(username=self.student.username, password=self.password)
         response = self.client.post(
-            reverse("pin_thread", kwargs={"course_id": six.text_type(self.course.id), "thread_id": "dummy"})
+            reverse("pin_thread", kwargs={"course_id": str(self.course.id), "thread_id": "dummy"})
         )
         self.assertEqual(response.status_code, 401)
 
@@ -1470,7 +1466,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         self._set_mock_request_data(mock_request, {})
         self.client.login(username=self.moderator.username, password=self.password)
         response = self.client.post(
-            reverse("pin_thread", kwargs={"course_id": six.text_type(self.course.id), "thread_id": "dummy"})
+            reverse("pin_thread", kwargs={"course_id": str(self.course.id), "thread_id": "dummy"})
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1478,7 +1474,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         self._set_mock_request_data(mock_request, {})
         self.client.login(username=self.student.username, password=self.password)
         response = self.client.post(
-            reverse("un_pin_thread", kwargs={"course_id": six.text_type(self.course.id), "thread_id": "dummy"})
+            reverse("un_pin_thread", kwargs={"course_id": str(self.course.id), "thread_id": "dummy"})
         )
         self.assertEqual(response.status_code, 401)
 
@@ -1486,7 +1482,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         self._set_mock_request_data(mock_request, {})
         self.client.login(username=self.moderator.username, password=self.password)
         response = self.client.post(
-            reverse("un_pin_thread", kwargs={"course_id": six.text_type(self.course.id), "thread_id": "dummy"})
+            reverse("un_pin_thread", kwargs={"course_id": str(self.course.id), "thread_id": "dummy"})
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1509,7 +1505,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         )
         self.client.login(username=self.moderator.username, password=self.password)
         response = self.client.post(
-            reverse("endorse_comment", kwargs={"course_id": six.text_type(self.course.id), "comment_id": "dummy"})
+            reverse("endorse_comment", kwargs={"course_id": str(self.course.id), "comment_id": "dummy"})
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1521,7 +1517,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         )
         self.client.login(username=self.student.username, password=self.password)
         response = self.client.post(
-            reverse("endorse_comment", kwargs={"course_id": six.text_type(self.course.id), "comment_id": "dummy"})
+            reverse("endorse_comment", kwargs={"course_id": str(self.course.id), "comment_id": "dummy"})
         )
         self.assertEqual(response.status_code, 401)
 
@@ -1533,7 +1529,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         )
         self.client.login(username=self.student.username, password=self.password)
         response = self.client.post(
-            reverse("endorse_comment", kwargs={"course_id": six.text_type(self.course.id), "comment_id": "dummy"})
+            reverse("endorse_comment", kwargs={"course_id": str(self.course.id), "comment_id": "dummy"})
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1547,12 +1543,12 @@ class CreateThreadUnicodeTestCase(
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(CreateThreadUnicodeTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(CreateThreadUnicodeTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
         cls.student = UserFactory.create()
@@ -1569,7 +1565,7 @@ class CreateThreadUnicodeTestCase(
         request.view_name = "create_thread"
         response = views.create_thread(
             # The commentable ID contains a username, the Unicode char below ensures it works fine
-            request, course_id=six.text_type(self.course.id), commentable_id=u"non_tåem_dummy_id"
+            request, course_id=str(self.course.id), commentable_id="non_tåem_dummy_id"
         )
 
         self.assertEqual(response.status_code, 200)
@@ -1590,12 +1586,12 @@ class UpdateThreadUnicodeTestCase(
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(UpdateThreadUnicodeTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(UpdateThreadUnicodeTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
         cls.student = UserFactory.create()
@@ -1614,7 +1610,7 @@ class UpdateThreadUnicodeTestCase(
         request = RequestFactory().post("dummy_url", {"body": text, "title": text, "thread_type": "question", "commentable_id": "test_commentable"})
         request.user = self.student
         request.view_name = "update_thread"
-        response = views.update_thread(request, course_id=six.text_type(self.course.id), thread_id="dummy_thread_id")
+        response = views.update_thread(request, course_id=str(self.course.id), thread_id="dummy_thread_id")
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(mock_request.called)
@@ -1636,12 +1632,12 @@ class CreateCommentUnicodeTestCase(
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(CreateCommentUnicodeTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(CreateCommentUnicodeTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
         cls.student = UserFactory.create()
@@ -1662,7 +1658,7 @@ class CreateCommentUnicodeTestCase(
             request.user = self.student
             request.view_name = "create_comment"
             response = views.create_comment(
-                request, course_id=six.text_type(self.course.id), thread_id="dummy_thread_id"
+                request, course_id=str(self.course.id), thread_id="dummy_thread_id"
             )
 
             self.assertEqual(response.status_code, 200)
@@ -1684,12 +1680,12 @@ class UpdateCommentUnicodeTestCase(
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(UpdateCommentUnicodeTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(UpdateCommentUnicodeTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
         cls.student = UserFactory.create()
@@ -1704,7 +1700,7 @@ class UpdateCommentUnicodeTestCase(
         request = RequestFactory().post("dummy_url", {"body": text})
         request.user = self.student
         request.view_name = "update_comment"
-        response = views.update_comment(request, course_id=six.text_type(self.course.id), comment_id="dummy_comment_id")
+        response = views.update_comment(request, course_id=str(self.course.id), comment_id="dummy_comment_id")
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(mock_request.called)
@@ -1725,12 +1721,12 @@ class CreateSubCommentUnicodeTestCase(
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(CreateSubCommentUnicodeTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(CreateSubCommentUnicodeTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
         cls.student = UserFactory.create()
@@ -1753,7 +1749,7 @@ class CreateSubCommentUnicodeTestCase(
         Thread.commentable_id = "test_commentable"
         try:
             response = views.create_sub_comment(
-                request, course_id=six.text_type(self.course.id), comment_id="dummy_comment_id"
+                request, course_id=str(self.course.id), comment_id="dummy_comment_id"
             )
 
             self.assertEqual(response.status_code, 200)
@@ -1806,7 +1802,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(TeamsPermissionsTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             teams_config_data = {
                 'topics': [{'id': "topic_id", 'name': 'Solar Power', 'description': 'Solar power is hot'}]
             }
@@ -1814,7 +1810,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
 
     @classmethod
     def setUpTestData(cls):
-        super(TeamsPermissionsTestCase, cls).setUpTestData()
+        super().setUpTestData()
         cls.course = CourseFactory.create()
         cls.password = "test password"
         seed_permissions_roles(cls.course.id)
@@ -1856,7 +1852,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
         # Create a team
         cls.team_commentable_id = "team_discussion_id"
         cls.team = CourseTeamFactory.create(
-            name=u'The Only Team',
+            name='The Only Team',
             course_id=cls.course.id,
             topic_id='topic_id',
             discussion_topic_id=cls.team_commentable_id
@@ -1875,7 +1871,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
 
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
-        super(TeamsPermissionsTestCase, self).setUp()
+        super().setUp()
 
     def _setup_mock(self, user, mock_request, data):
         user = getattr(self, user)
@@ -1920,14 +1916,14 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
                 "closed": False, "commentable_id": commentable_id,
                 "context": "standalone",
                 "username": thread_author.username,
-                "course_id": six.text_type(self.course.id)
+                "course_id": str(self.course.id)
             }
         )
         response = self.client.post(
             reverse(
                 "update_thread",
                 kwargs={
-                    "course_id": six.text_type(self.course.id),
+                    "course_id": str(self.course.id),
                     "thread_id": "dummy"
                 }
             ),
@@ -1964,7 +1960,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
             "commentable_id": commentable_id,
             "user_id": str(comment_author.id),
             "username": comment_author.username,
-            "course_id": six.text_type(self.course.id),
+            "course_id": str(self.course.id),
             "votes": {"count": 0},
             "abuse_flaggers": [],
         })
@@ -1973,7 +1969,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
             reverse(
                 "delete_comment",
                 kwargs={
-                    "course_id": six.text_type(self.course.id),
+                    "course_id": str(self.course.id),
                     "comment_id": "dummy"
                 }
             ),
@@ -1994,7 +1990,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
             reverse(
                 "create_comment",
                 kwargs={
-                    "course_id": six.text_type(self.course.id),
+                    "course_id": str(self.course.id),
                     "thread_id": "dummy"
                 }
             ),
@@ -2017,7 +2013,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
             reverse(
                 "create_sub_comment",
                 kwargs={
-                    "course_id": six.text_type(self.course.id),
+                    "course_id": str(self.course.id),
                     "comment_id": "dummy_comment"
                 }
             ),
@@ -2041,7 +2037,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
             response = self.client.post(
                 reverse(
                     action,
-                    kwargs={"course_id": six.text_type(self.course.id), "comment_id": "dummy_comment"}
+                    kwargs={"course_id": str(self.course.id), "comment_id": "dummy_comment"}
                 )
             )
             self.assertEqual(response.status_code, status_code)
@@ -2063,7 +2059,7 @@ class TeamsPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleSto
             response = self.client.post(
                 reverse(
                     action,
-                    kwargs={"course_id": six.text_type(self.course.id), "thread_id": "dummy_thread"}
+                    kwargs={"course_id": str(self.course.id), "thread_id": "dummy_thread"}
                 )
             )
             self.assertEqual(response.status_code, status_code)
@@ -2081,12 +2077,12 @@ class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockReque
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(ForumEventTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(ForumEventTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
 
@@ -2109,7 +2105,7 @@ class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockReque
         request = RequestFactory().post("dummy_url", {"body": "Test comment", 'auto_subscribe': True})
         request.user = self.student
         request.view_name = "create_comment"
-        views.create_comment(request, course_id=six.text_type(self.course.id), thread_id='test_thread_id')
+        views.create_comment(request, course_id=str(self.course.id), thread_id='test_thread_id')
 
         event_name, event = mock_emit.call_args[0]
         self.assertEqual(event_name, 'edx.forum.response.created')
@@ -2136,7 +2132,7 @@ class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockReque
         request = RequestFactory().post("dummy_url", {"body": "Another comment"})
         request.user = self.student
         request.view_name = "create_sub_comment"
-        views.create_sub_comment(request, course_id=six.text_type(self.course.id), comment_id="dummy_comment_id")
+        views.create_sub_comment(request, course_id=str(self.course.id), comment_id="dummy_comment_id")
 
         event_name, event = mock_emit.call_args[0]
         self.assertEqual(event_name, "edx.forum.comment.created")
@@ -2185,7 +2181,7 @@ class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockReque
         request.user = user
         request.view_name = view_name
 
-        getattr(views, view_name)(request, course_id=six.text_type(self.course.id), **view_kwargs)
+        getattr(views, view_name)(request, course_id=str(self.course.id), **view_kwargs)
 
         name, event = mock_emit.call_args[0]
         self.assertEqual(name, event_name)
@@ -2212,7 +2208,7 @@ class ForumEventTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockReque
         request.user = self.student
         request.view_name = view_name
         view_function = getattr(views, view_name)
-        kwargs = dict(course_id=six.text_type(self.course.id))
+        kwargs = dict(course_id=str(self.course.id))
         kwargs[obj_id_name] = obj_id_name
         if not undo:
             kwargs.update(value='up')
@@ -2232,12 +2228,12 @@ class UsersEndpointTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockRe
     @classmethod
     def setUpClass(cls):
         # pylint: disable=super-method-not-called
-        with super(UsersEndpointTestCase, cls).setUpClassAndTestData():
+        with super().setUpClassAndTestData():
             cls.course = CourseFactory.create()
 
     @classmethod
     def setUpTestData(cls):
-        super(UsersEndpointTestCase, cls).setUpTestData()
+        super().setUpTestData()
 
         seed_permissions_roles(cls.course.id)
 
@@ -2260,7 +2256,7 @@ class UsersEndpointTestCase(ForumsEnableMixin, SharedModuleStoreTestCase, MockRe
         request = getattr(RequestFactory(), method)("dummy_url", kwargs)
         request.user = self.student
         request.view_name = "users"
-        return views.users(request, course_id=text_type(course_id))
+        return views.users(request, course_id=str(course_id))
 
     @patch('openedx.core.djangoapps.django_comment_common.comment_client.utils.requests.request', autospec=True)
     def test_finds_exact_match(self, mock_request):
@@ -2421,7 +2417,7 @@ class ForumThreadViewedEventTransformerTestCase(ForumsEnableMixin, UrlResetMixin
 
     @mock.patch.dict("student.models.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
-        super(ForumThreadViewedEventTransformerTestCase, self).setUp()
+        super().setUp()
         self.courses_by_store = {
             ModuleStoreEnum.Type.mongo: CourseFactory.create(
                 org='TestX',
@@ -2569,7 +2565,7 @@ class ForumThreadViewedEventTransformerTestCase(ForumsEnableMixin, UrlResetMixin
             topic_id=commentable_id,
             thread_id=thread_id,
         )
-        expected_path = '/courses/{0}/discussion/forum/{1}/threads/{2}'.format(
+        expected_path = '/courses/{}/discussion/forum/{}/threads/{}'.format(
             course.id, commentable_id, thread_id
         )
         self.assertTrue(event_trans['event'].get('url').endswith(expected_path))
@@ -2592,7 +2588,7 @@ class ForumThreadViewedEventTransformerTestCase(ForumsEnableMixin, UrlResetMixin
             topic_id=self.category.discussion_id,
         )
         self.assertEqual(event_trans_2['event'].get('category_id'), self.category.discussion_id)
-        full_category_name = u'{0} / {1}'.format(self.category.discussion_category, self.category.discussion_target)
+        full_category_name = '{} / {}'.format(self.category.discussion_category, self.category.discussion_target)
         self.assertEqual(event_trans_2['event'].get('category_name'), full_category_name)
 
     def test_roles(self):

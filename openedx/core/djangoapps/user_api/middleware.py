@@ -35,9 +35,9 @@ class UserTagsEventContextMiddleware(MiddlewareMixin):
 
         if course_key:
             try:
-                context['course_id'] = course_key.to_deprecated_string()
+                context['course_id'] = str(course_key)
             except AttributeError:
-                context['course_id'] = unicode(course_key)
+                context['course_id'] = str(course_key)
 
             if request.user.is_authenticated:
                 context['course_user_tags'] = dict(

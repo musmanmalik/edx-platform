@@ -8,7 +8,7 @@ from student.models import CourseAccessRole
 from django.contrib.auth.models import Group
 from edx_solutions_api_integration.models import CourseGroupRelationship
 from edx_solutions_api_integration.courseware_access import get_course_key
-from courseware import courses
+from lms.djangoapps.courseware import courses
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ Options:
 
     def handle(self, *args, **options):
         if len(args) < 1 or len(args) > 2:
-            print Command.help
+            print(Command.help)
             return
 
         dry_run = True
@@ -136,4 +136,4 @@ Options:
         log.info('--------------------------------------------------------------------------------------------------------------------')
 
         if create_log:
-            print 'Script started in create log mode, please open repair_internal_admin_instructor_role.log file.'
+            print('Script started in create log mode, please open repair_internal_admin_instructor_role.log file.')
