@@ -786,8 +786,8 @@ class TestHandleXBlockCallback(SharedModuleStoreTestCase, LoginEnrollmentTestCas
             request.user = self.mock_user
             response = render.handle_xblock_callback(
                 request,
-                unicode(course.id),
-                quote_slashes(unicode(block.scope_ids.usage_id)),
+                str(course.id),
+                quote_slashes(str(block.scope_ids.usage_id)),
                 'grade',
                 '',
             )
@@ -807,8 +807,8 @@ class TestHandleXBlockCallback(SharedModuleStoreTestCase, LoginEnrollmentTestCas
             request.user = self.mock_user
             response = render.handle_xblock_callback(
                 request,
-                unicode(course.id),
-                quote_slashes(unicode(block.scope_ids.usage_id)),
+                str(course.id),
+                quote_slashes(str(block.scope_ids.usage_id)),
                 'grade',
                 '',
             )

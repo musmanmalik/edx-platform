@@ -1154,7 +1154,7 @@ def _compose_message_reverification_email(
         re_verification_link = reverse(
             'verify_student_incourse_reverify',
             args=(
-                unicode(course_key),
+                str(course_key),
                 related_assessment_location
             )
         )
@@ -1471,7 +1471,7 @@ class InCourseReverifyView(View):
         self._track_reverification_events('edx.bi.reverify.started', user.id, course_id, checkpoint.checkpoint_name)
 
         context = {
-            'course_key': unicode(course_key),
+            'course_key': str(course_key),
             'course_name': course.display_name_with_default_escaped,
             'checkpoint_name': checkpoint.checkpoint_name,
             'platform_name': configuration_helpers.get_value('PLATFORM_NAME', settings.PLATFORM_NAME),
@@ -1505,7 +1505,7 @@ class InCourseReverifyView(View):
                 event_name,
                 {
                     'category': "verification",
-                    'label': unicode(course_id),
+                    'label': str(course_id),
                     'checkpoint': checkpoint
                 },
                 context={
@@ -1541,7 +1541,7 @@ class InCourseReverifyView(View):
             u"for the course %s.",
             user.id, course_key
         )
-        base_url = reverse('verify_student_verify_now', kwargs={'course_id': unicode(course_key)})
+        base_url = reverse('verify_student_verify_now', kwargs={'course_id': str(course_key)})
         params = urllib.urlencode({"checkpoint": checkpoint})
         full_url = u"{base}?{params}".format(base=base_url, params=params)
         return redirect(full_url)

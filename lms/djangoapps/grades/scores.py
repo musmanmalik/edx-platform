@@ -35,7 +35,7 @@ def get_score(submissions_scores, csm_scores, persisted_block, block):
     order of precedence.  If no value for the block is found in a
     given storage, the next storage is checked.
 
-    submissions_scores (dict of {unicode(usage_key): (earned, possible)}):
+    submissions_scores (dict of {str(usage_key): (earned, possible)}):
 
         A python dictionary of serialized UsageKeys to (earned, possible)
         tuples. These values, retrieved using the Submissions API by the

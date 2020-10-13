@@ -314,7 +314,7 @@ class LibraryTestCase(_BaseTestCase):
                     parent=cls.vertical,
                     parent_location=cls.vertical.location,
                     max_count=2,
-                    source_library_id=unicode(cls.library.location.library_key),
+                    source_library_id=str(cls.library.location.library_key),
                     modulestore=cls.store,
                 )
                 # copy children from library to content block (LibaryContentDescriptor.tools.update_children?)

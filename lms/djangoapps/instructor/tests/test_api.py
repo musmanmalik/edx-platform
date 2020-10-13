@@ -4244,7 +4244,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         Test if list_instructor_tasks endpoints supports OAuth
         """
         act.return_value = []
-        url = reverse('api_instructor:list_instructor_tasks', kwargs={'course_id': unicode(self.course.id)})
+        url = reverse('api_instructor:list_instructor_tasks', kwargs={'course_id': str(self.course.id)})
         # OAuth Client
         oauth_client = ClientFactory.create()
         access_token = AccessTokenFactory.create(
@@ -4266,7 +4266,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         """
         Test whether get_problem_responses allows access via OAuth
         """
-        url = reverse('api_instructor:get_problem_responses', kwargs={'course_id': unicode(self.course.id)})
+        url = reverse('api_instructor:get_problem_responses', kwargs={'course_id': str(self.course.id)})
         problem_location = ''
 
         # OAuth Client
@@ -4287,7 +4287,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         """
         Test whether list_report_downloads allows access via OAuth
         """
-        url = reverse('api_instructor:list_report_downloads', kwargs={'course_id': unicode(self.course.id)})
+        url = reverse('api_instructor:list_report_downloads', kwargs={'course_id': str(self.course.id)})
 
         # OAuth Client
         oauth_client = ClientFactory.create()
