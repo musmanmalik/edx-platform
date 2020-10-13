@@ -6,8 +6,8 @@ from datetime import datetime
 from django.test import TestCase
 
 from opaque_keys.edx.locator import CourseLocator
-from lms.lib.comment_client import User, CommentClientRequestError
-from lms.lib.comment_client.user import get_user_social_stats
+from openedx.core.djangoapps.django_comment_common.comment_client import User, CommentClientRequestError
+from openedx.core.djangoapps.django_comment_common.comment_client.user import get_user_social_stats
 
 TEST_ORG = 'test_org'
 TEST_COURSE_ID = 'test_id'
@@ -36,7 +36,7 @@ class UserTests(TestCase):
         Tests that all_social_stats classmethod invokes get_user_social_stats with correct parameters
         when optional parameters are explicitly specified
         """
-        with mock.patch("lms.lib.comment_client.user.get_user_social_stats") as patched_stats:
+        with mock.patch("openedx.core.djangoapps.django_comment_common.comment_client.user.get_user_social_stats") as patched_stats:
             patched_stats.return_value = expected_result
             result = User.all_social_stats(course_key, end_date, thread_type, thread_ids)
             self.assertEqual(result, expected_result)
@@ -49,7 +49,7 @@ class UserTests(TestCase):
         Tests that all_social_stats classmethod invokes get_user_social_stats with correct parameters
         when optional parameters are omitted
         """
-        with mock.patch("lms.lib.comment_client.user.get_user_social_stats") as patched_stats:
+        with mock.patch("openedx.core.djangoapps.django_comment_common.comment_client.user.get_user_social_stats") as patched_stats:
             patched_stats.return_value = {}
             course_key = CourseLocator("edX", "demoX", "now")
             User.all_social_stats(course_key)
@@ -85,8 +85,8 @@ class UtilityTests(TestCase):
                                    expected_url, expected_data, expected_result):
         """ Tests get_user_social_stats utility function """
         expected_data['course_id'] = course_id
-        with mock.patch("lms.lib.comment_client.user._url_for_user_social_stats") as patched_url_for_social_stats, \
-                mock.patch("lms.lib.comment_client.utils.perform_request") as patched_perform_request:
+        with mock.patch("openedx.core.djangoapps.django_comment_common.comment_client.user._url_for_user_social_stats") as patched_url_for_social_stats, \
+                mock.patch("openedx.core.djangoapps.django_comment_common.comment_client.utils.perform_request") as patched_perform_request:
             patched_perform_request.return_value = expected_result
             patched_url_for_social_stats.return_value = expected_url
             result = get_user_social_stats(user_id, course_id, end_date=end_date, thread_type=thread_type)

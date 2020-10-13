@@ -20,7 +20,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import require_GET, require_POST
 from opaque_keys.edx.keys import CourseKey
 from six import text_type
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.locator import CourseLocator
 
 from edx_notifications.lib.publisher import (
     publish_notification_to_user,
@@ -255,7 +255,7 @@ def _get_excerpt(body, max_len=None):
 
     excerpt = strip_tags(body).replace('\n', '').replace('\r', '')
     if len(excerpt) > max_len:
-        excerpt = u'{}...'.format(excerpt[:max_len])
+        excerpt = '{}...'.format(excerpt[:max_len])
     return excerpt
 
 
@@ -267,7 +267,7 @@ def create_thread(request, course_id, commentable_id):
     Given a course and commentable ID, create the thread
     """
 
-    log.debug(u"Creating new thread in %r, id %r", course_id, commentable_id)
+    log.debug("Creating new thread in %r, id %r", course_id, commentable_id)
     course_key = CourseKey.from_string(course_id)
     course = get_course_with_access(request.user, 'load', course_key)
     post = request.POST
@@ -292,7 +292,7 @@ def create_thread(request, course_id, commentable_id):
         'anonymous': anonymous,
         'anonymous_to_peers': anonymous_to_peers,
         'commentable_id': commentable_id,
-        'course_id': text_type(course_key),
+        'course_id': str(course_key),
         'user_id': user.id,
         'thread_type': post["thread_type"],
         'body': post["body"],
@@ -341,7 +341,7 @@ def create_thread(request, course_id, commentable_id):
         # a cohorted/private discussion, except the poster him/herself
         _send_discussion_notification(
             'open-edx.lms.discussions.cohorted-thread-added',
-            unicode(course_key),
+            str(course_key),
             thread,
             request.user,
             excerpt=_get_excerpt(thread.body),
@@ -445,7 +445,7 @@ def _send_discussion_notification(
                     msg,
                     exclude_user_ids=recipient_exclude_user_ids
                 )
-    except Exception, ex:
+    except Exception as ex:
         # Notifications are never critical, so we don't want to disrupt any
         # other logic processing. So log and continue.
         log.exception(ex)
@@ -519,7 +519,7 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None):
         anonymous=anonymous,
         anonymous_to_peers=anonymous_to_peers,
         user_id=user.id,
-        course_id=text_type(course_key),
+        course_id=str(course_key),
         thread_id=thread_id,
         parent_id=parent_id,
         body=post["body"]
@@ -577,7 +577,7 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None):
 
             _send_discussion_notification(
                 'open-edx.lms.discussions.cohorted-comment-added',
-                unicode(course_key),
+                str(course_key),
                 thread,
                 request.user,
                 excerpt=_get_excerpt(post["body"]),
@@ -596,7 +596,7 @@ def _create_comment(request, course_key, thread_id=None, parent_id=None):
 
             _send_discussion_notification(
                 'open-edx.lms.discussions.reply-to-thread',
-                unicode(course_key),
+                str(course_key),
                 thread,
                 request.user,
                 excerpt=_get_excerpt(post["body"]),
@@ -758,7 +758,7 @@ def vote_for_comment(request, course_id, comment_id, value):
     result = _vote_or_unvote(request, course_id, comment, value)
     comment_voted.send(sender=None, user=request.user, post=comment)
 
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+    course_key = CourseLocator.from_string(course_id)
     # Feature Flag to check that notifications are enabled or not.
     if value == 'up' and settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
         action_user_id = request.user.id
@@ -776,7 +776,7 @@ def vote_for_comment(request, course_id, comment_id, value):
         if action_user_id != original_poster_id:
             _send_discussion_notification(
                 'open-edx.lms.discussions.comment-upvoted',
-                unicode(course_key),
+                str(course_key),
                 thread,
                 request.user,
                 recipient_user_id=original_poster_id,
@@ -810,7 +810,7 @@ def vote_for_thread(request, course_id, thread_id, value):
     thread = cc.Thread.find(thread_id)
     result = _vote_or_unvote(request, course_id, thread, value)
 
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+    course_key = CourseLocator.from_string(course_id)
 
     # Feature Flag to check that notifications are enabled or not.
     if value == 'up' and settings.FEATURES.get("ENABLE_NOTIFICATIONS", False):
@@ -826,7 +826,7 @@ def vote_for_thread(request, course_id, thread_id, value):
         if action_user_id != original_poster_id:
             _send_discussion_notification(
                 'open-edx.lms.discussions.post-upvoted',
-                unicode(course_key),
+                str(course_key),
                 thread,
                 request.user,
                 recipient_user_id=original_poster_id,
@@ -963,7 +963,7 @@ def un_pin_thread(request, course_id, thread_id):
 @login_required
 @permitted
 def follow_thread(request, course_id, thread_id):
-    course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
+    course_key = CourseLocator.from_string(course_id)
     user = cc.User.from_django_user(request.user)
     thread = cc.Thread.find(thread_id)
     user.follow(thread)
@@ -984,7 +984,7 @@ def follow_thread(request, course_id, thread_id):
             if original_poster_id != action_user_id:
                 _send_discussion_notification(
                     'open-edx.lms.discussions.thread-followed',
-                    unicode(course_key),
+                    str(course_key),
                     thread,
                     request.user,
                     recipient_user_id=original_poster_id,
@@ -992,7 +992,7 @@ def follow_thread(request, course_id, thread_id):
                         'num_followers': num_followers,
                     }
                 )
-        except Exception, ex:
+        except Exception as ex:
             # sending notifications is not critical,
             # so log error and continue
             log.exception(ex)
@@ -1070,10 +1070,10 @@ def upload(request, course_id):  # ajax upload file to a question or answer
         )
 
     except exceptions.PermissionDenied as err:
-        error = six.text_type(err)
+        error = str(err)
     except Exception as err:      # pylint: disable=broad-except
         print(err)
-        logging.critical(six.text_type(err))
+        logging.critical(str(err))
         error = _('Error uploading file. Please contact the site administrator. Thank you.')
 
     if error == '':

@@ -9,8 +9,8 @@ from django.contrib.auth.models import User
 from opaque_keys.edx.locator import CourseLocator
 from opaque_keys import InvalidKeyError
 
-import django_comment_client.utils as utils
-from django_comment_client.management.commands.export_discussion_participation import (
+from lms.djangoapps.discussion.django_comment_client import utils
+from lms.djangoapps.discussion.management.commands.export_discussion_participation import (
     Command as ExportDiscussionCommand, Extractor, Exporter, DiscussionExportFields
 )
 from datetime import datetime
@@ -42,7 +42,7 @@ class CommandTest(TestCase):
     """
     def setUp(self):
         """ Test setup """
-        super(CommandTest, self).setUp()
+        super().setUp()
         self.command = ExportDiscussionCommand()
         self.command.stdout = mock.Mock()
         self.command.stderr = mock.Mock()
@@ -250,7 +250,7 @@ def _make_result(user_id, **kwargs):
 class ExtractorTest(TestCase):
     """ Tests that Extractor extracts correct data and transforms it into expected format """
     def setUp(self):
-        super(ExtractorTest, self).setUp()
+        super().setUp()
         self.extractor = Extractor()
 
     @ddt.unpack
@@ -325,7 +325,7 @@ class ExporterTest(TestCase):
         exporter = Exporter(stream)
         exporter.export([
             _make_result(
-                1, username=u"Q", email=u"q@e.com", first_name=u"w", last_name=u"e",
+                1, username="Q", email="q@e.com", first_name="w", last_name="e",
                 num_threads=1, num_comments=3, num_replies=7,
                 num_upvotes=2, num_thread_followers=4, num_comments_generated=4,
                 num_threads_read=2,
@@ -339,7 +339,7 @@ class ExporterTest(TestCase):
         ])
         lines = stream.getvalue().split("\r\n")
         self.assertEqual(len(lines), 4)
-        self.assertEqual(lines[0], u",".join(exporter.row_order))
-        self.assertEqual(lines[1], u"A,a@d.com,s,d,2,7,15,3,4,5,19,3")
-        self.assertEqual(lines[2], u"Q,q@e.com,w,e,1,1,3,7,2,4,4,2")
-        self.assertEqual(lines[3], u"")
+        self.assertEqual(lines[0], ",".join(exporter.row_order))
+        self.assertEqual(lines[1], "A,a@d.com,s,d,2,7,15,3,4,5,19,3")
+        self.assertEqual(lines[2], "Q,q@e.com,w,e,1,1,3,7,2,4,4,2")
+        self.assertEqual(lines[3], "")

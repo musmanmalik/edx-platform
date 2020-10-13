@@ -1,7 +1,6 @@
 import csv
 import dateutil
 from datetime import datetime
-from optparse import make_option
 
 from django.core.management.base import BaseCommand, CommandError
 import os
@@ -9,14 +8,14 @@ from path import path
 
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.locator import CourseLocator
 
-from courseware.courses import get_course
+from lms.djangoapps.courseware.courses import get_course
 from openedx.core.djangoapps.course_groups.cohorts import get_legacy_discussion_settings
 from student.models import CourseEnrollment
 
-from lms.lib.comment_client.user import User
-import django_comment_client.utils as utils
+from openedx.core.djangoapps.django_comment_common.comment_client.user import User
+from lms.djangoapps.discussion.django_comment_client import utils
 from xmodule.modulestore.django import modulestore
 
 
@@ -25,20 +24,20 @@ class MissingCohortedConfigCommandError(CommandError):  # pylint: disable=no-ini
     pass
 
 
-class DiscussionExportFields(object):
+class DiscussionExportFields:
     """ Container class for field names """
-    USER_ID = u"id"
-    USERNAME = u"username"
-    EMAIL = u"email"
-    FIRST_NAME = u"first_name"
-    LAST_NAME = u"last_name"
-    THREADS = u"num_threads"
-    COMMENTS = u"num_comments"
-    REPLIES = u"num_replies"
-    UPVOTES = u"num_upvotes"
-    FOLOWERS = u"num_thread_followers"
-    COMMENTS_GENERATED = u"num_comments_generated"
-    THREADS_READ = u"num_threads_read"
+    USER_ID = "id"
+    USERNAME = "username"
+    EMAIL = "email"
+    FIRST_NAME = "first_name"
+    LAST_NAME = "last_name"
+    THREADS = "num_threads"
+    COMMENTS = "num_comments"
+    REPLIES = "num_replies"
+    UPVOTES = "num_upvotes"
+    FOLOWERS = "num_thread_followers"
+    COMMENTS_GENERATED = "num_comments_generated"
+    THREADS_READ = "num_threads_read"
 
 
 class Command(BaseCommand):
@@ -152,7 +151,7 @@ class Command(BaseCommand):
             os.makedirs(dir_name)
 
         for course in self.get_all_courses():
-            raw_course_key = unicode(course.location.course_key)
+            raw_course_key = str(course.location.course_key)
             args = [
                 raw_course_key,
                 dir_name / self.get_default_file_location(raw_course_key)
@@ -177,7 +176,7 @@ class Command(BaseCommand):
         try:
             course_key = CourseKey.from_string(raw_course_key)
         except InvalidKeyError:
-            course_key = SlashSeparatedCourseKey.from_deprecated_string(raw_course_key)
+            course_key = CourseLocator.from_string(raw_course_key)
 
         course = get_course(course_key)
         if not course:
@@ -218,7 +217,7 @@ class Command(BaseCommand):
         self.stdout.write("Success!\n")
 
 
-class Extractor(object):
+class Extractor:
     """ Extracts discussion participation data from db and cs_comments_service """
 
     @classmethod
@@ -247,13 +246,13 @@ class Extractor(object):
             int(user_id): data for user_id, data
             in User.all_social_stats(
                 str(course_key), end_date=end_date, thread_type=thread_type, thread_ids=thread_ids
-            ).iteritems()
+            ).items()
         }
 
     def _merge_user_data_and_social_stats(self, userdata, social_stats):
         """ Merges user data (email, username, etc.) and discussion stats """
         result = []
-        for user_id, user in userdata.iteritems():
+        for user_id, user in userdata.items():
             user_record = {
                 DiscussionExportFields.USER_ID: user.id,
                 DiscussionExportFields.USERNAME: user.username,
@@ -278,7 +277,7 @@ class Extractor(object):
         return self._merge_user_data_and_social_stats(users, social_stats)
 
 
-class Exporter(object):
+class Exporter:
     """ Exports data to csv """
     def __init__(self, output_stream):
         self.stream = output_stream
