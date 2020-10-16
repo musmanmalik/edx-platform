@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('course_id', CourseKeyField(max_length=255, db_index=True)),
                 ('created', models.DateTimeField(db_index=True, auto_now_add=True, null=True)),
                 ('is_active', models.BooleanField(default=True)),
-                ('mode', models.CharField(default=b'honor', max_length=100)),
+                ('mode', models.CharField(default='honor', max_length=100)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
             options={

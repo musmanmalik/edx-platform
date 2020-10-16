@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
                 ('self_paced', models.BooleanField(default=False)),
                 ('marketing_url', models.TextField(null=True)),
                 ('eligible_for_financial_aid', models.BooleanField(default=True)),
-                ('language', models.TextField(null=True)),
+                ('language', models.CharField(max_length=255, null=True)),
                 ('history_id', models.AutoField(primary_key=True, serialize=False)),
                 ('history_date', models.DateTimeField()),
                 ('history_change_reason', models.CharField(max_length=100, null=True)),

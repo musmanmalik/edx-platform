@@ -2,7 +2,7 @@
 Helper HTML related utility functions
 """
 
-from HTMLParser import HTMLParser
+from html.parser import HTMLParser
 
 
 class MLStripper(HTMLParser):

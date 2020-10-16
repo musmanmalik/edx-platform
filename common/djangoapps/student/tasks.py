@@ -101,7 +101,7 @@ def publish_course_notifications_task(course_id, notification_msg, exclude_user_
                         preferred_channel=preferred_channel,
                         channel_context=channel_context
                     )
-    except Exception, ex:
+    except Exception as ex:
         # Notifications are never critical, so we don't want to disrupt any
         # other logic processing. So log and continue.
         log.exception(ex)
