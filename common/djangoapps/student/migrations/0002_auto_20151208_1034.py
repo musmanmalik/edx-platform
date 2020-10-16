@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('course_id', CourseKeyField(max_length=255, db_index=True)),
                 ('created', models.DateTimeField(db_index=True, null=True, editable=False, blank=True)),
                 ('is_active', models.BooleanField(default=True)),
-                ('mode', models.CharField(default=b'honor', max_length=100)),
+                ('mode', models.CharField(default='honor', max_length=100)),
                 ('history_id', models.AutoField(serialize=False, primary_key=True)),
                 ('history_date', models.DateTimeField()),
                 ('history_type', models.CharField(max_length=1, choices=[('+', 'Created'), ('~', 'Changed'), ('-', 'Deleted')])),

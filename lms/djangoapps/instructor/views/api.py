@@ -1021,7 +1021,7 @@ class ProblemResponseReport(DeveloperErrorViewMixin, APIView):
         Responds with BadRequest if problem location is faulty.
     """
     authentication_classes = (JwtAuthentication, BearerAuthenticationAllowInactiveUser, SessionAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, IsCourseStaff)
+    permission_classes = (IsAuthenticated, IsCourseStaff,)
 
     # The non-atomic decorator is required because this view calls a celery
     # task which uses the 'outer_atomic' context manager.
@@ -2467,7 +2467,7 @@ class InstructorTasks(DeveloperErrorViewMixin, APIView):
         }
     """
     authentication_classes = (JwtAuthentication, BearerAuthenticationAllowInactiveUser, SessionAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, IsCourseStaff)
+    permission_classes = (IsAuthenticated, IsCourseStaff)
 
     @cache_control(no_cache=True, no_store=True, must_revalidate=True)
     def post(self, request, course_id):
@@ -2574,7 +2574,7 @@ class ReportDownloadsList(DeveloperErrorViewMixin, APIView):
         }
     """
     authentication_classes = (JwtAuthentication, BearerAuthenticationAllowInactiveUser, SessionAuthentication,)
-    permission_classes = (permissions.IsAuthenticated, IsCourseStaff)
+    permission_classes = (IsAuthenticated, IsCourseStaff)
 
     @cache_control(no_cache=True, no_store=True, must_revalidate=True)
     def post(self, request, course_id):

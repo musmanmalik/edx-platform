@@ -5,7 +5,6 @@ from django.db import migrations, models
 from django.conf import settings
 import django.db.models.deletion
 from openedx.core.lib.hash_utils import create_hash256
-import provider.utils
 
 
 class Migration(migrations.Migration):

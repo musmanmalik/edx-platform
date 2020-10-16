@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
                 ('course', models.ForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='course_overviews.CourseOverview')),
                 ('created', models.DateTimeField(auto_now_add=True, db_index=True, null=True)),
                 ('is_active', models.BooleanField(default=True)),
-                ('mode', models.CharField(default=b'honor', max_length=100)),
+                ('mode', models.CharField(default='honor', max_length=100)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
             options={
@@ -195,6 +195,15 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name='PasswordHistory',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('password', models.CharField(max_length=128)),
+                ('time_set', models.DateTimeField(default=django.utils.timezone.now)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
             name='PendingEmailChange',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -236,12 +245,14 @@ class Migration(migrations.Migration):
                 ('gender', models.CharField(blank=True, choices=[('m', 'Male'), ('f', 'Female'), ('o', 'Other/Prefer Not to Say')], db_index=True, max_length=6, null=True)),
                 ('level_of_education', models.CharField(blank=True, choices=[('p', 'Doctorate'), ('m', "Master's or professional degree"), ('b', "Bachelor's degree"), ('a', 'Associate degree'), ('hs', 'Secondary/high school'), ('jhs', 'Junior secondary/junior high/middle school'), ('el', 'Elementary/primary school'), ('none', 'No formal education'), ('other', 'Other education')], db_index=True, max_length=6, null=True)),
                 ('mailing_address', models.TextField(blank=True, null=True)),
-                ('city', models.TextField(blank=True, null=True)),
+                ('city', models.CharField(blank=True, db_index=True, max_length=255, null=True)),
                 ('country', django_countries.fields.CountryField(blank=True, max_length=2, null=True)),
                 ('goals', models.TextField(blank=True, null=True)),
                 ('allow_certificate', models.BooleanField(default=1)),
                 ('bio', models.CharField(blank=True, max_length=3000, null=True)),
                 ('profile_image_uploaded_at', models.DateTimeField(blank=True, null=True)),
+                ('title', models.CharField(max_length=255, null=True, blank=True)),
+                ('avatar_url', models.CharField(max_length=255, null=True, blank=True)),
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='profile', to=settings.AUTH_USER_MODEL)),
             ],
             options={
