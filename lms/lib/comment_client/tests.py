@@ -20,12 +20,12 @@ class UserTests(TestCase):
     @ddt.unpack
     @ddt.data(
         (CourseLocator(TEST_ORG, TEST_COURSE_ID, TEST_RUN), None, None, None, {}),
-        (CourseLocator(TEST_ORG, TEST_COURSE_ID, TEST_RUN), datetime(2015, 01, 01), None, None, {'1': 1}),
-        (CourseLocator("edX", "DemoX", "now"), datetime(2014, 12, 03, 18, 15, 44), None, [1, 2, 3], {
+        (CourseLocator(TEST_ORG, TEST_COURSE_ID, TEST_RUN), datetime(2015, 1, 1), None, None, {'1': 1}),
+        (CourseLocator("edX", "DemoX", "now"), datetime(2014, 12, 3, 18, 15, 44), None, [1, 2, 3], {
             '1': {'num_threads': 10}
         }),
-        (CourseLocator("edX", "DemoX", "now"), datetime(2016, 03, 17, 22, 54, 03), 'discussion', [2, 4, 5], {}),
-        (CourseLocator("Umbrella", "ZMB101", "T1"), datetime(2016, 03, 17, 22, 54, 03), 'question', None, {
+        (CourseLocator("edX", "DemoX", "now"), datetime(2016, 3, 17, 22, 54, 3), 'discussion', [2, 4, 5], {}),
+        (CourseLocator("Umbrella", "ZMB101", "T1"), datetime(2016, 3, 17, 22, 54, 3), 'question', None, {
             'num_threads': 5
         }),
     )
@@ -67,16 +67,16 @@ class UtilityTests(TestCase):
     @ddt.data(
         (1, CourseLocator("edX", "DemoX", "now"), None, None, "api/v1/users/1/social_stats", {}, {}),
         (
-            2, CourseLocator("edX", "DemoX", "now"), datetime(2015, 01, 01), None,
+            2, CourseLocator("edX", "DemoX", "now"), datetime(2015, 1, 1), None,
             "api/v1/users/2/social_stats", {'end_date': "2015-01-01T00:00:00"}, {'2': {'num_threads': 2}}
         ),
         (
-            17, CourseLocator("otherX", "CourseX", "later"), datetime(2016, 07, 15), 'discussion',
+            17, CourseLocator("otherX", "CourseX", "later"), datetime(2016, 7, 15), 'discussion',
             "api/v1/users/44/social_stats", {'end_date': "2016-07-15T00:00:00", 'thread_type': 'discussion'},
             {'2': {'num_threads': 42, 'num_comments': 7}}
         ),
         (
-            42, CourseLocator("otherX", "CourseX", "later"), datetime(2011, 01, 9, 17, 24, 22), 'question',
+            42, CourseLocator("otherX", "CourseX", "later"), datetime(2011, 1, 9, 17, 24, 22), 'question',
             "some/unrelated/url", {'end_date': "2011-01-09T17:24:22", 'thread_type': 'question'},
             {'28': {'num_threads': 15, 'num_comments': 96}}
         ),
