@@ -37,8 +37,7 @@ try:
 except ImportError:
     HAS_CPROFILE = False
 
-from io import StringIO
-
+from io import BytesIO as StringIO
 
 THREAD_LOCAL = threading.local()
 
@@ -165,7 +164,7 @@ class BaseProfilerMiddleware(object):
         profile_name = '{}_{}'.format(self.profiler_type(), time.time())
         profile_data = '/tmp/{}.dat'.format(profile_name)
         shutil.copy(THREAD_LOCAL.data_file.name, profile_data)
-        os.chmod(profile_data, 0666)
+        os.chmod(profile_data, 0o666)
         # Create the output file
         profile_svg = '/tmp/{}.svg'.format(profile_name)
         old = os.path.abspath('.')
@@ -196,7 +195,7 @@ class BaseProfilerMiddleware(object):
         profile_name = '{}_{}'.format(self.profiler_type(), time.time())
         profile_data = '/tmp/{}.dat'.format(profile_name)
         shutil.copy(THREAD_LOCAL.data_file.name, profile_data)
-        os.chmod(profile_data, 0666)
+        os.chmod(profile_data, 0o666)
         # Return the raw data directly to the caller/browser (useful for API scenarios)
         f = open(profile_data)
         response.content = f.read()
@@ -334,7 +333,7 @@ class BaseProfilerMiddleware(object):
         result = results[:40]
         res = "      tottime\n"
         for item in result:
-            res += "%4.1f%% %7.3f %s\n" % (100 * item[0] / total if total else 0, item[0], item[1])
+            res += "{:4.1f}% {:7.3f} {}\n".format(100 * item[0] / total if total else 0, item[0], item[1])
         return res
 
     def summary_for_files(self, stats_str):
