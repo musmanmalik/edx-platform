@@ -7189,6 +7189,10 @@ msgstr "Discussion"
 msgid "answered question"
 msgstr "Question répondue"
 
+#: wiki/templates/wiki/includes/revision_info.html
+msgid "by"
+msgstr "par"
+
 #: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "unanswered question"
 msgstr "Question non répondue"

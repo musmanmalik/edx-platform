@@ -2351,7 +2351,7 @@ msgstr ""
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "No posts matched your query."
-msgstr ""
+msgstr "لا توجد منشورات تطابق استعلامك."
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "Show posts by {username}."
@@ -7155,7 +7155,11 @@ msgstr "إضافة تعليق "
 #: common/static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "discussion posted %(time_ago)s by %(author)s"
-msgstr "مناقشة نشرت %(time_ago)s by %(author)s"
+msgstr "مناقشة نشرت %(time_ago)s بواسطة %(author)s"
+
+#: wiki/templates/wiki/includes/revision_info.html
+msgid "by"
+msgstr "بواسطة"
 
 #: common/static/common/templates/discussion/thread-show.underscore
 #, python-format

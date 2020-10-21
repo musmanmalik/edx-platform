@@ -7189,6 +7189,10 @@ msgstr "Einen Kommentar hinzufügen"
 msgid "discussion posted %(time_ago)s by %(author)s"
 msgstr "Diskussion wurde vor %(time_ago)s eröffnet durch  %(author)s"
 
+#: wiki/templates/wiki/includes/revision_info.html
+msgid "by"
+msgstr "durch"
+
 #: common/static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "question posted %(time_ago)s by %(author)s"

@@ -1852,6 +1852,7 @@
     "answer": "beantworten", 
     "answered question": "beantwortete Frage", 
     "asset_path is required": "asset_path ist erforderlich", 
+    "by": "durch", 
     "bytes": "bytes", 
     "certificate": "Zertifikat", 
     "close": "schlie\u00dfen", 

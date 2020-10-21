@@ -22,6 +22,10 @@
       "Zaznaczono %(sel)s z %(cnt)s", 
       "Zaznaczono %(sel)s z %(cnt)s"
     ], 
+    "%d day": [
+      "%d dzie\u0144", 
+      "%d dni"
+    ], 
     "%d minute": [
       "%d minute"
     ], 
@@ -323,6 +327,7 @@
     "about an hour": "oko\u0142o godziny", 
     "anonymous": "u\u017cytkownik anonimowy", 
     "answered question": "pytanie posiadaj\u0105ce odpowied\u017a", 
+    "by": "przez", 
     "discussion": "dyskusja", 
     "discussion posted": "opublikowana dyskusja", 
     "discussion posted %(time_ago)s by %(author)s": "opublikowana dyskusja %(time_ago)s przez %(author)s", 

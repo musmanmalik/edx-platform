@@ -2404,7 +2404,7 @@ msgstr ""
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "No posts matched your query."
-msgstr ""
+msgstr "Nenhuma publicação corresponde à sua consulta."
 
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "Show posts by {username}."
@@ -7040,7 +7040,11 @@ msgstr "Adicionar comentário"
 #: common/static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "discussion posted %(time_ago)s by %(author)s"
-msgstr "discussão postada %(time_ago)s by %(author)s"
+msgstr "discussão postada %(time_ago)s por %(author)s"
+
+#: wiki/templates/wiki/includes/revision_info.html
+msgid "by"
+msgstr "por"
 
 #: common/static/common/templates/discussion/thread-show.underscore
 #, python-format
@@ -7173,7 +7177,7 @@ msgstr "Ganhe pontos pelo seu engajamento adicionando uma nova publicação ou r
 
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
 msgid "All Posts"
-msgstr ""
+msgstr "Todas as Publicações"
 
 #: lms/djangoapps/support/static/support/templates/certificates.underscore
 msgid "username or email"

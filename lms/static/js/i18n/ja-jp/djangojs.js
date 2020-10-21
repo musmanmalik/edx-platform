@@ -66,6 +66,9 @@
       "%(team_count)s \u30c1\u30fc\u30e0"
     ], 
     "%(type)s Component Template Menu": "%(type)s \u30b3\u30f3\u30dd\u30fc\u30cd\u30f3\u30c8\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8\u30e1\u30cb\u30e5\u30fc", 
+    "%d day": [
+      "%d\u65e5"
+    ], 
     "%d minute": [
       "%d \u5206"
     ], 
