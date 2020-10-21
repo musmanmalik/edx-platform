@@ -26,7 +26,7 @@ Options:
 
     def handle(self, *args, **options):
         if len(args) < 1 or len(args) > 2:
-            print Command.help
+            print(Command.help)
             return
 
         dry_run = True
@@ -131,4 +131,4 @@ Options:
         log.info('--------------------------------------------------------------------------------------------------------------------')
 
         if create_log:
-            print "Script started in create log mode, please open repair_users_roles_on_all_courses.log file."
+            print("Script started in create log mode, please open repair_users_roles_on_all_courses.log file.")
