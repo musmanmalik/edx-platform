@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.core.management.base import BaseCommand, CommandError
 import os
-from path import path
+from path import Path as path
 
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey

@@ -1,11 +1,11 @@
 """ Tests for export discussion participation statistics command"""
 import ddt
-from StringIO import StringIO
 import mock
+from io import StringIO
+
 from django.test import TestCase
 from django.core.management.base import CommandError
 from django.contrib.auth.models import User
-
 from opaque_keys.edx.locator import CourseLocator
 from opaque_keys import InvalidKeyError
 

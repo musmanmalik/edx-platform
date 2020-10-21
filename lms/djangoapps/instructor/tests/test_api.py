@@ -25,7 +25,7 @@ from django.test import RequestFactory, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse as django_reverse
 from django.utils.translation import ugettext as _
-from edx_oauth2_provider.tests.factories import AccessTokenFactory, ClientFactory
+from openedx.core.djangoapps.oauth_dispatch.tests.factories import ApplicationFactory, AccessTokenFactory
 from edx_when.api import get_overrides_for_user
 from mock import Mock, NonCallableMock, patch
 from opaque_keys.edx.keys import CourseKey
@@ -50,6 +50,7 @@ from lms.djangoapps.courseware.tests.helpers import LoginEnrollmentTestCase
 from lms.djangoapps.certificates.api import generate_user_certificates
 from lms.djangoapps.certificates.models import CertificateStatuses
 from lms.djangoapps.certificates.tests.factories import GeneratedCertificateFactory
+from lms.djangoapps.instructor_task import api
 from lms.djangoapps.instructor.tests.utils import FakeContentTask, FakeEmail, FakeEmailInfo
 from lms.djangoapps.instructor.views.api import (
     _split_input_list,
@@ -4238,7 +4239,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         super(TestInstructorAPIOAuth, self).setUp()
         self.instructor = InstructorFactory(course_key=self.course.id)
 
-    @patch.object(lms.djangoapps.instructor_task.api, 'get_running_instructor_tasks')
+    @patch.object(api, 'get_running_instructor_tasks')
     def test_list_instructor_tasks_oauth(self, act):
         """
         Test if list_instructor_tasks endpoints supports OAuth
@@ -4246,7 +4247,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         act.return_value = []
         url = reverse('api_instructor:list_instructor_tasks', kwargs={'course_id': str(self.course.id)})
         # OAuth Client
-        oauth_client = ClientFactory.create()
+        oauth_client = ApplicationFactory.create()
         access_token = AccessTokenFactory.create(
             user=self.instructor,
             client=oauth_client
@@ -4270,7 +4271,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         problem_location = ''
 
         # OAuth Client
-        oauth_client = ClientFactory.create()
+        oauth_client = ApplicationFactory.create()
         access_token = AccessTokenFactory.create(
             user=self.instructor,
             client=oauth_client
@@ -4290,7 +4291,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         url = reverse('api_instructor:list_report_downloads', kwargs={'course_id': str(self.course.id)})
 
         # OAuth Client
-        oauth_client = ClientFactory.create()
+        oauth_client = ApplicationFactory.create()
         access_token = AccessTokenFactory.create(
             user=self.instructor,
             client=oauth_client

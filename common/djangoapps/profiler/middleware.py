@@ -37,10 +37,8 @@ try:
 except ImportError:
     HAS_CPROFILE = False
 
-try:
-    import cStringIO as StringIO
-except ImportError:
-    import StringIO
+from io import StringIO
+
 
 THREAD_LOCAL = threading.local()
 
@@ -79,7 +77,7 @@ class BaseProfilerMiddleware(object):
         """
         Set up the profiler for use
         """
-        print 'process_request'
+        print('process_request')
         # Capture some values/references to use across the operations
         THREAD_LOCAL.profiler_requested = request.GET.get('prof', False)
 
@@ -117,8 +115,8 @@ class BaseProfilerMiddleware(object):
         Output directly to the console -- helpful during unit testing or
         for viewing code executions in devstack
         """
-        print stats_str
-        print stats_summary
+        print(stats_str)
+        print(stats_summary)
 
     def _generate_text_response(self, stats_str, stats_summary, response):
         """
@@ -225,7 +223,7 @@ class BaseProfilerMiddleware(object):
 
             # Set up a redirected stdout location (hides output from console)
             old_stdout = sys.stdout
-            temp_stdout = StringIO.StringIO()
+            temp_stdout = StringIO()
             sys.stdout = temp_stdout
 
             # Load the statistics collected by the profiler
