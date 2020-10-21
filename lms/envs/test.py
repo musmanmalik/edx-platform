@@ -164,6 +164,7 @@ STATICFILES_STORAGE = 'pipeline.storage.NonPackagingPipelineStorage'
 # Don't use compression during tests
 PIPELINE['JS_COMPRESSOR'] = None
 
+# Custom change: Set password to None in doc_store_settings to avoid Mongo DB authentication failure.
 update_module_store_settings(
     MODULESTORE,
     module_store_options={
@@ -173,6 +174,7 @@ update_module_store_settings(
         'data_dir': mkdtemp_clean(dir=TEST_ROOT),  # never inadvertently load all the XML courses
     },
     doc_store_settings={
+        'password': None,
         'host': MONGO_HOST,
         'port': MONGO_PORT_NUM,
         'db': 'test_xmodule_{}'.format(THIS_UUID),
