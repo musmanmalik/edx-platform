@@ -28,6 +28,8 @@ set -o pipefail
 # There is no need to install the prereqs, as this was already
 # just done via the dependencies override section of circle.yml.
 export NO_PREREQ_INSTALL='true'
+export BOTO_CONFIG='/tmp/nowhere'
+
 
 EXIT=0
 
