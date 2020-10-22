@@ -28,7 +28,7 @@ thread_or_comment_flagged = Signal(providing_args=['user', 'post', 'undo'])
 
 @receiver(post_save, sender=CourseCohortsSettings)
 def update_cohorted_discussions(sender, instance, **kwargs):
-    from lms.djangoapps.django_comment_client.utils import enrollment_track_group_count
+    from lms.djangoapps.discussion.django_comment_client.utils import enrollment_track_group_count
     try:
         course_discussion_settings = CourseDiscussionSettings.objects.get(course_id=instance.course_id)
         division_scheme = course_discussion_settings.division_scheme
