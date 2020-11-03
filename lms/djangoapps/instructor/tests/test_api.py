@@ -2998,7 +2998,7 @@ class TestInstructorAPILevelsDataDump(SharedModuleStoreTestCase, LoginEnrollment
             error = AlreadyRunningError()
             submit_task_function.side_effect = error
             response = self.client.post(url, {})
-            res_json = json.loads(response.content)
+            res_json = json.loads(response.content.decode('utf-8'))
 
             self.assertEqual(response.status_code, 200)
             self.assertIn('status', res_json)
@@ -4250,7 +4250,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         oauth_client = ApplicationFactory.create()
         access_token = AccessTokenFactory.create(
             user=self.instructor,
-            client=oauth_client
+            application=oauth_client
         ).token
         headers = {
             'HTTP_AUTHORIZATION': 'Bearer ' + access_token
@@ -4274,7 +4274,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         oauth_client = ApplicationFactory.create()
         access_token = AccessTokenFactory.create(
             user=self.instructor,
-            client=oauth_client
+            application=oauth_client
         ).token
         headers = {
             'HTTP_AUTHORIZATION': 'Bearer ' + access_token
@@ -4294,7 +4294,7 @@ class TestInstructorAPIOAuth(SharedModuleStoreTestCase, LoginEnrollmentTestCase)
         oauth_client = ApplicationFactory.create()
         access_token = AccessTokenFactory.create(
             user=self.instructor,
-            client=oauth_client
+            application=oauth_client
         ).token
         headers = {
             'HTTP_AUTHORIZATION': 'Bearer ' + access_token
