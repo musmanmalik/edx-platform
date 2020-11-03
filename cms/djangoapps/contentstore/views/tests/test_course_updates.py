@@ -149,7 +149,7 @@ class CourseUpdateTest(CourseTestCase):
             url, payload, REQUEST_METHOD="POST"
         )
         self.assertEqual(resp.status_code, 200)
-        self.assertHTMLEqual(content, json.loads(resp.content)['content'])
+        self.assertHTMLEqual(content, json.loads(resp.content.decode('utf-8'))['content'])
 
         # now the enrolled users should get notification about the
         # course update where they are enrolled as student.
