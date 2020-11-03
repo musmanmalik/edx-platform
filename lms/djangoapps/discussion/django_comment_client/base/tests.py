@@ -234,11 +234,11 @@ class CreateCohortedThreadTestCase(CohortedTestCase):
         self._create_thread(user, "cohorted_topic", mock_request, group_id, pass_group_id, expected_status_code)
 
     def test_student_without_group_id(self, mock_request):
-        self._create_thread_in_cohorted_topic(self.student, mock_request, None, pass_group_id=False)
+        self._create_thread_in_cohorted_topic(self.student, mock_request, '', pass_group_id=False)
         self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
 
     def test_student_none_group_id(self, mock_request):
-        self._create_thread_in_cohorted_topic(self.student, mock_request, None)
+        self._create_thread_in_cohorted_topic(self.student, mock_request, '')
         self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
 
     def test_student_with_own_group_id(self, mock_request):
@@ -250,11 +250,11 @@ class CreateCohortedThreadTestCase(CohortedTestCase):
         self._assert_mock_request_called_with_group_id(mock_request, self.student_cohort.id)
 
     def test_moderator_without_group_id(self, mock_request):
-        self._create_thread_in_cohorted_topic(self.moderator, mock_request, None, pass_group_id=False)
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, '', pass_group_id=False)
         self._assert_mock_request_called_without_group_id(mock_request)
 
     def test_moderator_none_group_id(self, mock_request):
-        self._create_thread_in_cohorted_topic(self.moderator, mock_request, None, expected_status_code=500)
+        self._create_thread_in_cohorted_topic(self.moderator, mock_request, 'None', expected_status_code=500)
         self.assertFalse(mock_request.called)
 
     def test_moderator_with_own_group_id(self, mock_request):
@@ -288,11 +288,11 @@ class CreateNonCohortedThreadTestCase(CohortedTestCase):
         self._create_thread(user, "non_cohorted_topic", mock_request, group_id, pass_group_id, expected_status_code)
 
     def test_student_without_group_id(self, mock_request):
-        self._create_thread_in_non_cohorted_topic(self.student, mock_request, None, pass_group_id=False)
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, '', pass_group_id=False)
         self._assert_mock_request_called_without_group_id(mock_request)
 
     def test_student_none_group_id(self, mock_request):
-        self._create_thread_in_non_cohorted_topic(self.student, mock_request, None)
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, '')
         self._assert_mock_request_called_without_group_id(mock_request)
 
     def test_student_with_own_group_id(self, mock_request):
@@ -304,11 +304,11 @@ class CreateNonCohortedThreadTestCase(CohortedTestCase):
         self._assert_mock_request_called_without_group_id(mock_request)
 
     def test_moderator_without_group_id(self, mock_request):
-        self._create_thread_in_non_cohorted_topic(self.moderator, mock_request, None, pass_group_id=False)
+        self._create_thread_in_non_cohorted_topic(self.moderator, mock_request, '', pass_group_id=False)
         self._assert_mock_request_called_without_group_id(mock_request)
 
     def test_moderator_none_group_id(self, mock_request):
-        self._create_thread_in_non_cohorted_topic(self.student, mock_request, None)
+        self._create_thread_in_non_cohorted_topic(self.student, mock_request, '')
         self._assert_mock_request_called_without_group_id(mock_request)
 
     def test_moderator_with_own_group_id(self, mock_request):

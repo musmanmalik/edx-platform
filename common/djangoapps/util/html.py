@@ -14,6 +14,7 @@ class MLStripper(HTMLParser):
         """
         Initializer
         """
+        super().__init__()
         self.reset()
         self.fed = []
 
