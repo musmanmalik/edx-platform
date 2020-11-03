@@ -2645,8 +2645,12 @@ class TestIndexViewCompleteOnView(ModuleStoreTestCase, CompletionWaffleTestMixin
         self.assertEqual(json.loads(response.content.decode('utf-8')), {'result': "ok"})
 
         response = self.client.get(self.section_1_url)
-        self.assertContains(response, 'data-mark-completed-on-view-after-delay')
-        self.assertContains(response, 'data-mark-completed-on-view-after-delay', count=1)
+
+        # Custom change: The assertion value is changed to 'assertNotIn' as all html xblocks in a vertical are
+        # marked as completed while rendering them.
+        # custom change PR: https://github.com/edx-solutions/edx-platform/pull/159
+        self.assertNotIn('data-mark-completed-on-view-after-delay', response.content.decode('utf-8'))
+        self.assertEquals(response.content.decode('utf-8').count("data-mark-completed-on-view-after-delay"), 0)
 
         request = self.request_factory.post(
             '/',
@@ -2663,10 +2667,10 @@ class TestIndexViewCompleteOnView(ModuleStoreTestCase, CompletionWaffleTestMixin
         self.assertEqual(json.loads(response.content.decode('utf-8')), {'result': "ok"})
 
         response = self.client.get(self.section_1_url)
-        self.assertNotContains(response, 'data-mark-completed-on-view-after-delay')
+        self.assertNotIn('data-mark-completed-on-view-after-delay', response.content.decode('utf-8'))
 
         response = self.client.get(self.section_2_url)
-        self.assertNotContains(response, 'data-mark-completed-on-view-after-delay')
+        self.assertNotIn('data-mark-completed-on-view-after-delay', response.content.decode('utf-8'))
 
 
 @ddt.ddt

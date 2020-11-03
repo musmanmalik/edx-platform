@@ -1075,13 +1075,13 @@ class TestGetHtmlMethod(BaseTestVideoXBlock):
         }
 
         self.initialize_block(data=video_xml)
-        context = self.item_descriptor.render(STUDENT_VIEW).content
+        context = get_context_dict_from_string(self.item_descriptor.render(STUDENT_VIEW).content)
 
-        self.assertIn("'download_video_link': 'https://mp4.com/dm.mp4'", context)
-        self.assertIn('"streams": "1.00:https://yt.com/?v=v0TFmdO4ZP0"', context)
+        self.assertEqual('https://mp4.com/dm.mp4', context['download_video_link'])
+        self.assertEqual('1.00:https://yt.com/?v=v0TFmdO4ZP0', context['metadata']['streams'])
         self.assertEqual(
             sorted(["https://webm.com/dw.webm", "https://mp4.com/dm.mp4", "https://hls.com/hls.m3u8"]),
-            sorted(get_context_dict_from_string(context)['metadata']['sources'])
+            sorted(context['metadata']['sources'])
         )
 
     def test_get_html_hls_no_video_id(self):
@@ -1123,9 +1123,9 @@ class TestGetHtmlMethod(BaseTestVideoXBlock):
         get_course_video_image_url.return_value = '/media/video-images/poster.png'
 
         self.initialize_block(data=video_xml)
-        context = self.item_descriptor.render(STUDENT_VIEW).content
+        context = get_context_dict_from_string(self.item_descriptor.render(STUDENT_VIEW).content)
 
-        self.assertIn('"poster": "/media/video-images/poster.png"', context)
+        self.assertEqual('/media/video-images/poster.png', context['metadata']['poster'])
 
     @patch('xmodule.video_module.video_module.edxval_api.get_course_video_image_url')
     def test_poster_image_without_edx_video_id(self, get_course_video_image_url):
