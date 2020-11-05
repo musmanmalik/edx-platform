@@ -14,7 +14,6 @@ from django.contrib.auth import login
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from oauth2_provider import models as dot_models
 from oauth2_provider.views.base import TokenView as DOTAccessTokenView
 from rest_framework import permissions
 from rest_framework.response import Response

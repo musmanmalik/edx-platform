@@ -1,6 +1,6 @@
 """Models for the util app. """
 
-
+import base64
 import gzip
 import logging
 from io import BytesIO
@@ -36,11 +36,12 @@ def decompress_string(value):
     """
 
     try:
-        val = value.encode('utf').decode('base64')
+        val = base64.b64decode(value.encode('utf8'))
         zbuf = BytesIO(val)
         zfile = gzip.GzipFile(fileobj=zbuf)
         ret = zfile.read()
         zfile.close()
+        ret = ret.decode('utf8')
     except Exception as e:
         logger.error('String decompression failed. There may be corrupted data in the database: %s', e)
         ret = value
@@ -61,7 +62,7 @@ class CompressedTextField(CreatorMixin, models.TextField):
             if isinstance(value, six.text_type):
                 value = value.encode('utf8')
             value = compress_string(value)
-            value = value.encode('base64').decode('utf8')
+            value = base64.b64encode(value).decode('utf8')
         return value
 
     def to_python(self, value):

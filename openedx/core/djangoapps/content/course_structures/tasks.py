@@ -72,7 +72,7 @@ def update_course_structure(course_key):
 
     # Ideally we'd like to accept a CourseLocator; however, CourseLocator is not JSON-serializable (by default) so
     # Celery's delayed tasks fail to start. For this reason, callers should pass the course key as a string.
-    if not isinstance(course_key, basestring):
+    if not isinstance(course_key, str):
         raise ValueError('course_key must be a string. {} is not acceptable.'.format(type(course_key)))
 
     course_key = CourseKey.from_string(course_key)

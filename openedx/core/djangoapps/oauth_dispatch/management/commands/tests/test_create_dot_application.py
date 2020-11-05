@@ -12,6 +12,8 @@ from openedx.core.djangolib.testing.utils import skip_unless_lms
 from openedx.core.djangoapps.oauth_dispatch.models import ApplicationAccess
 from student.tests.factories import UserFactory
 
+from ..create_dot_application import Command
+
 Application = get_application_model()
 
 

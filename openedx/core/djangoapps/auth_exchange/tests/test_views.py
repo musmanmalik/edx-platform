@@ -16,11 +16,11 @@ import mock
 from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
-from oauth2_provider.models import Application
+from django.utils.timezone import now
+from oauth2_provider.models import Application, AccessToken
 from rest_framework.test import APIClient
 from social_django.models import Partial
 
-from openedx.core.djangoapps.oauth_dispatch.tests import factories as dot_factories
 from student.tests.factories import UserFactory
 from third_party_auth.tests.utils import ThirdPartyOAuthTestMixinFacebook, ThirdPartyOAuthTestMixinGoogle
 
@@ -173,28 +173,21 @@ class TestLoginWithAccessTokenView(TestCase):
         Calls the login_with_access_token endpoint and verifies the response given the expected values.
         """
         url = reverse("login_with_access_token")
-        response = self.client.post(url, HTTP_AUTHORIZATION=u"Bearer {0}".format(access_token).encode('utf-8'))
+        response = self.client.post(url, HTTP_AUTHORIZATION="Bearer {0}".format(access_token).encode('utf-8'))
         self.assertEqual(response.status_code, expected_status_code)
         if expected_cookie_name:
             self.assertIn(expected_cookie_name, response.cookies)
 
-    def _create_dot_access_token(self, grant_type='Client credentials'):
-        """
-        Create dot based access token
-        """
-        dot_application = dot_factories.ApplicationFactory(user=self.user, authorization_grant_type=grant_type)
-        return dot_factories.AccessTokenFactory(user=self.user, application=dot_application)
-
-    def test_invalid_token(self):
-        self._verify_response("invalid_token", expected_status_code=401)
-        self.assertNotIn("session_key", self.client.session)
-
-    def test_dot_password_grant_supported(self):
-        access_token = self._create_dot_access_token(grant_type='password')
-
+    def test_success(self):
+        access_token = AccessToken.objects.create(
+            token="test_access_token",
+            application=self.oauth2_client,
+            expires=now() + timedelta(days=30),
+            user=self.user,
+        )
         self._verify_response(access_token, expected_status_code=204, expected_cookie_name='sessionid')
         self.assertEqual(int(self.client.session['_auth_user_id']), self.user.id)
 
-    def test_dot_client_credentials_unsupported(self):
-        access_token = self._create_dot_access_token()
-        self._verify_response(access_token, expected_status_code=401)
+    def test_unauthenticated(self):
+        self._verify_response("invalid_token", expected_status_code=401)
+        self.assertNotIn("session_key", self.client.session)

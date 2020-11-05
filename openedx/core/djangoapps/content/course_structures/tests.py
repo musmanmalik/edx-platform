@@ -150,7 +150,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
             course_id=self.course.id, structure_json=structure_json
         )
 
-        self.assertEqual(retrieved_course_structure.ordered_blocks.keys(), in_order_blocks)
+        self.assertEqual(list(retrieved_course_structure.ordered_blocks.keys()), in_order_blocks)
 
     def test_block_with_missing_fields(self):
         """
@@ -214,7 +214,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
         structure = CourseStructure.objects.create(course_id=self.course.id, discussion_id_map_json=id_map_json)
         expected_id_map = {
             key: UsageKey.from_string(value).map_into_course(self.course.id)
-            for key, value in id_map.iteritems()
+            for key, value in id_map.items()
         }
         self.assertEqual(structure.discussion_id_map, expected_id_map)
 
@@ -239,5 +239,5 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
         self.assertEqual(structure.discussion_id_map.keys(), expected_structure['discussion_id_map'].keys())
         self.assertEqual(
             [str(value) for value in structure.discussion_id_map.values()],
-            expected_structure['discussion_id_map'].values()
+            list(expected_structure['discussion_id_map'].values())
         )
