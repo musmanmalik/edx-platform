@@ -14,7 +14,6 @@ import shutil
 import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from unittest import skip
 
 import ddt
 import unicodecsv
@@ -751,8 +750,6 @@ class TestInstructorDetailedEnrollmentReport(TestReportMixin, InstructorTaskCour
         )
         self._verify_cell_data_in_csv(student.username, 'Payment Status', 'TBD')
 
-    @skip('Juniper rebase: Temporarily commented below test as it was causing '
-          'segmentation fault error and blocking running of whole test suite.')
     def test_student_used_enrollment_code_for_course_enrollment(self):
         """
         test to check the user enrollment source and payment status in the

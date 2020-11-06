@@ -23,6 +23,14 @@ jobs:
            sudo chmod 0755 /data/db/
 
      - run:
+         name: Installing sqlite3 v3.14.1
+         command: |
+           cd ~/sqlite_3.14
+           wget https://s3.amazonaws.com/vagrant.testeng.edx.org/libsqlite3-0_3.14.1-1build1_amd64.deb
+           sudo dpkg -i libsqlite3-0_3.14.1-1build1_amd64.deb
+           sudo apt-get -f -y install
+
+     - run:
          name: Installing Python v3.5.2
          command: |
            cd ~/python_3.5.2
