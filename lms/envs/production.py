@@ -559,10 +559,8 @@ STUDENT_FILEUPLOAD_MAX_SIZE = ENV_TOKENS.get("STUDENT_FILEUPLOAD_MAX_SIZE", STUD
 PROGRESS_DETACHED_APPS = ['group_project_v2']
 for app in PROGRESS_DETACHED_APPS:
     try:
-        app_config = importlib.import_module('.app_config', app)
-    # TODO: Juniper rebae - modifying this exception to support gorup project xblock
-    # revert this changes once group project v2 is upgraded to py3 and added in custom.txt
-    except Exception:
+        app_config = importlib.import_module('app_config', app)
+    except ImportError:
         continue
 
     detached_module_categories = getattr(app_config, 'PROGRESS_DETACHED_CATEGORIES', [])
