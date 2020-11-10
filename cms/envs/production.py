@@ -293,10 +293,8 @@ STUDIO_SHORT_NAME = ENV_TOKENS.get('STUDIO_SHORT_NAME') or STUDIO_SHORT_NAME
 PROGRESS_DETACHED_APPS = ['group_project_v2']
 for app in PROGRESS_DETACHED_APPS:
     try:
-        app_config = importlib.import_module('.app_config', app)
-    # TODO: Juniper rebae - modifying this exception to support gorup project xblock
-    # revert this changes once group project v2 is upgraded to py3 and added in custom.txt
-    except Exception:
+        app_config = importlib.import_module('app_config', app)
+    except ImportError:
         continue
 
     detached_module_categories = getattr(app_config, 'PROGRESS_DETACHED_CATEGORIES', [])
