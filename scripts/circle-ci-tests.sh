@@ -29,6 +29,7 @@ set -o pipefail
 # just done via the dependencies override section of circle.yml.
 export NO_PREREQ_INSTALL='true'
 export BOTO_CONFIG='/tmp/nowhere'
+export PYTHONHASHSEED=0
 
 
 EXIT=0
