@@ -149,8 +149,8 @@ def config_course_discussions(
         division_scheme=CourseDiscussionSettings.COHORT,
     )
 
-    course.discussion_topics = {name: {"sort_key": "A", "id": to_id(name)}
-                                    for name in discussion_topics}
+    course.discussion_topics = dict((name, {"sort_key": "A", "id": to_id(name)})
+                                    for name in discussion_topics)
     try:
         # Not implemented for XMLModulestore, which is used by test_cohorts.
         modulestore().update_item(course, ModuleStoreEnum.UserID.test)

@@ -2115,7 +2115,7 @@ class CourseDiscussionsHandlerTestCase(DividedDiscussionsTestCase):
         )
         self.assertEqual(
             "Incorrect field type for `{}`. Type must be `{}`".format('always_divide_inline_discussions',
-                                                                       bool.__name__),
+                                                                      bool.__name__),
             response.get("error")
         )
 

@@ -67,8 +67,6 @@ from xmodule.modulestore.django import ModuleI18nService
 from xmodule.modulestore.django import modulestore
 
 
-
-
 log = logging.getLogger("edx.discussions")
 
 

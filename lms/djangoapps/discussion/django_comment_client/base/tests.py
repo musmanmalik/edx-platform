@@ -1533,6 +1533,7 @@ class ViewPermissionsTestCase(ForumsEnableMixin, UrlResetMixin, SharedModuleStor
         )
         self.assertEqual(response.status_code, 200)
 
+
 @patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": False})
 class CreateThreadUnicodeTestCase(
         ForumsEnableMixin,

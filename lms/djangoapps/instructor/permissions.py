@@ -14,7 +14,6 @@ from lms.djangoapps.courseware.access import has_access
 from lms.djangoapps.courseware.courses import get_course_by_id
 
 
-
 ALLOW_STUDENT_TO_BYPASS_ENTRANCE_EXAM = 'instructor.allow_student_to_bypass_entrance_exam'
 ASSIGN_TO_COHORTS = 'instructor.assign_to_cohorts'
 EDIT_COURSE_ACCESS = 'instructor.edit_course_access'

@@ -2554,6 +2554,7 @@ def list_entrance_exam_instructor_tasks(request, course_id):
     }
     return JsonResponse(response_payload)
 
+
 # TODO: juniper upgrade - adjust this method decorator in custom class based view
 # @require_course_permission(permissions.CAN_RESEARCH)
 class ReportDownloadsList(DeveloperErrorViewMixin, APIView):
