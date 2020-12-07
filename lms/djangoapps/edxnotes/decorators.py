@@ -33,13 +33,15 @@ def edxnotes(cls):
         is_studio = getattr(self.system, "is_author_mode", False)
         course = getattr(self, 'descriptor', self).runtime.modulestore.get_course(self.runtime.course_id)
 
+        # Custom code to render the HTML xblock.
+        anonymous_student_id = getattr(self.runtime, 'anonymous_student_id', None)
+        user = self.runtime.get_real_user(self.runtime.anonymous_student_id) if anonymous_student_id else None
+
         # Must be disabled when:
         # - in Studio
         # - Harvard Annotation Tool is enabled for the course
         # - the feature flag or `edxnotes` setting of the course is set to False
         # - the user is not authenticated
-        user = self.runtime.get_real_user(self.runtime.anonymous_student_id)
-
         if is_studio or not is_feature_enabled(course, user):
             return original_get_html(self, *args, **kwargs)
         else:
