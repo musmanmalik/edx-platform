@@ -4,14 +4,14 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(count) { return (count == 1) ? 0 : 1; };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "%(sel)s of %(cnt)s selected": [
       "%(sel)s of %(cnt)s selected",
@@ -47,7 +47,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {
