@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=0;
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "%(comments_count)s %(span_sr_open)scomments %(span_close)s": "%(comments_count)s\uac1c %(span_sr_open)s\ub313\uae00 %(span_close)s",
     "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s unread comments)%(span_close)s": "%(comments_count)s\uac1c %(span_sr_open)s\ub313\uae00(%(unread_comments_count)s\uac1c \uc77d\uc9c0 \uc54a\uc740 \ub313\uae00)%(span_close)s",
@@ -578,7 +578,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

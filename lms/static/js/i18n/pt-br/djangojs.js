@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=(n > 1);
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     " learner does not exist in LMS and not added to the exception list": "aluno n\u00e3o existe no LMS e n\u00e3o est\u00e1 adicionado na lista de exce\u00e7\u00e3o",
     " learner is successfully added to the exception list": "aluno \u00e9 adicionado com sucesso na lista de exce\u00e7\u00e3o",
@@ -1295,7 +1295,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

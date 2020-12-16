@@ -4,14 +4,14 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(count) { return (count == 1) ? 0 : 1; };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "%(comments_count)s %(span_sr_open)scomments %(span_close)s": "%(comments_count)s %(span_sr_open)s komentarze %(span_close)s",
     "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s unread comments)%(span_close)s": "%(comments_count)s %(span_sr_open)skomentarze (%(unread_comments_count)s nieprzeczytane komentarze)%(span_close)s",
@@ -371,7 +371,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

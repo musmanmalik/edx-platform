@@ -6965,11 +6965,6 @@ msgid "Related to: %(courseware_title_linked)s"
 msgstr ""
 
 #: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "This post is visible only to %(group_name)s."
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
 msgid "This post is visible to everyone."
 msgstr ""
 
@@ -6989,14 +6984,6 @@ msgstr ""
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Update post"
 msgstr "Atualizar publicação"
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "discussion posted"
-msgstr "discussão postada"
-
-#: common/static/common/templates/discussion/thread-list-item.underscore
-msgid "question posted"
-msgstr "pergunta postada"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
@@ -7062,7 +7049,15 @@ msgstr "questão respondida"
 msgid "unanswered question"
 msgstr "questão não respondida"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
+msgid "discussion posted"
+msgstr "discussão postada"
+
+#: common/static/common/templates/discussion/thread-list-item.underscore
+msgid "question posted"
+msgstr "pergunta postada"
+
+#: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "Following"
 msgstr "Seguindo"
 

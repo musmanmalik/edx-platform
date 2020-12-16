@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=(n != 1);
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "\n\nThis email is to let you know that the status of your proctoring session review for %(exam_name)s in\n<a href=\"%(course_url)s\">%(course_name)s </a> is %(status)s. If you have any questions about proctoring,\ncontact %(platform)s support at %(contact_email)s.\n\n": "\n\nEste mensaje es para avisarle que el estado de revisi\u00f3n de su examen supervisado para  %(exam_name)s en\n<a href=\"%(course_url)s\">%(course_name)s </a> es %(status)s. Si tiene preguntas sobre la supervisi\u00f3n,\ncomun\u00edquese con el equipo de ayuda para %(platform)s en %(contact_email)s.\n\n",
     "\n                    Make sure you are on a computer with a webcam, and that you have valid photo identification\n                    such as a driver's license or passport, before you continue.\n                ": "\nAseg\u00farese de que est\u00e9 usando una computadora con c\u00e1mara web, y que tiene una identificaci\u00f3n fotogr\u00e1fica v\u00e1lida\ncomo una licencia para conducir o un pasaporte, antes de seguir.",
@@ -2481,7 +2481,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

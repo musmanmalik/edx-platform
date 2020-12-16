@@ -161,21 +161,7 @@ msgstr "Zapisywanie"
 msgid "Delete"
 msgstr "Usuń"
 
-#: common/static/common/templates/discussion/thread-list-item.underscore
-#: test_root/staticfiles/common/templates/discussion/thread-list-item.underscore
-#: test_root/staticfiles/xmodule_js/common_static/common/templates/discussion/thread-list-item.underscore
-msgid "discussion posted"
-msgstr "opublikowana dyskusja"
 
-#: common/static/common/templates/discussion/thread-list-item.underscore
-msgid "question posted"
-msgstr "opublikowane pytanie"
-
-#: wiki/templates/wiki/includes/revision_info.html
-msgid "by"
-msgstr "przez"
-
-#. #-#-#-#-#  djangojs-partial.po (edx-platform)  #-#-#-#-#
 #. Translators: this is a message from the raw HTML editor displayed in the
 #. browser when a user needs to edit HTML
 #: cms/static/js/certificates/views/signatory_editor.js

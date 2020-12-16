@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-  
+
   django.pluralidx = function(n) {
     var v=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-  
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "\n                    Make sure you are on a computer with a webcam, and that you have valid photo identification\n                    such as a driver's license or passport, before you continue.\n                ": "\n\u062a\u0623\u0643\u062f \u0645\u0646 \u0623\u0646\u0643 \u0639\u0644\u0649 \u062c\u0647\u0627\u0632 \u0643\u0645\u0628\u064a\u0648\u062a\u0631 \u0645\u0639 \u0643\u0627\u0645\u064a\u0631\u0627 \u0648\u064a\u0628\u060c \u0648\u0628\u0623\u0646\u0647 \u0644\u062f\u064a\u0643 \u0647\u0648\u064a\u0629 \u0635\u0648\u0631\u0629\n\u0635\u0627\u0644\u062d\u0629\n\u0645\u062b\u0644 \u0631\u062e\u0635\u0629 \u0627\u0644\u0642\u064a\u0627\u062f\u0629 \u0623\u0648 \u062c\u0648\u0627\u0632 \u0627\u0644\u0633\u0641\u0631\u060c \u0642\u0628\u0644 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629",
     "\n                    Your verification attempt failed. Please read our guidelines to make\n                    sure you understand the requirements for successfully completing verification,\n                    then try again.\n                ": "\n\u0641\u0634\u0644\u062a \u0645\u062d\u0627\u0648\u0644\u0629 \u0627\u0644\u062a\u062d\u0642\u0642. \u064a\u0631\u062c\u0649 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0645\u0628\u0627\u062f\u0626 \u0627\u0644\u062a\u0648\u062c\u064a\u0647\u064a\u0629 \u0644\u062f\u064a\u0646\u0627\n\u0644\u0644\u062a\u0623\u0643\u062f \u0645\u0646 \u0623\u0646\u0643 \u062a\u0641\u0647\u0645 \u0645\u062a\u0637\u0644\u0628\u0627\u062a \u0627\u0633\u062a\u0643\u0645\u0627\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0628\u0646\u062c\u0627\u062d\u060c\n\u0648\u0645\u0646 \u062b\u0645 \u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649",
@@ -1764,7 +1764,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {
