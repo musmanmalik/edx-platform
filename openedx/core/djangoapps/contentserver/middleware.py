@@ -275,10 +275,10 @@ class StaticContentServer(MiddlewareMixin):
         # use token based auth if a token is passed and feature is enabled
         if request.GET.get('access_token') and settings.ASSETS_ACCESS_BY_TOKEN:
             access_token = request.GET.get('access_token')
-            encryption_key = Fernet(bytes(settings.ASSETS_TOKEN_ENCRYPTION_KEY))
+            encryption_key = Fernet(bytes(settings.ASSETS_TOKEN_ENCRYPTION_KEY, 'utf-8'))
 
             try:
-                session_id = encryption_key.decrypt(bytes(access_token), settings.ASSETS_TOKEN_TTL)
+                session_id = encryption_key.decrypt(bytes(access_token, 'utf-8'), settings.ASSETS_TOKEN_TTL)
             except (InvalidToken, TypeError):
                 return False
             else:
