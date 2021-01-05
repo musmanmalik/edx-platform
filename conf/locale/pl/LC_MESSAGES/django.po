@@ -2707,7 +2707,7 @@ msgstr ""
 #: openedx/core/djangoapps/theming/templates/theming/theming-admin-fragment.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "Submit"
-msgstr "Wyślij"
+msgstr "Prześlij"
 
 #: common/lib/xmodule/xmodule/capa_base.py
 msgid "Submitting"
