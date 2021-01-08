@@ -12,6 +12,7 @@ from six.moves.urllib.parse import urlencode, urlparse, urlunparse
 
 from third_party_auth.models import LTIProviderConfig, SAMLProviderData
 from third_party_auth.provider import Registry
+from edx_solutions_organizations.models import WhitelistedUrls
 
 
 def allow_frame_from_whitelisted_url(view_func):  # pylint: disable=invalid-name
@@ -37,7 +38,8 @@ def allow_frame_from_whitelisted_url(view_func):  # pylint: disable=invalid-name
                 sso_urls = SAMLProviderData.objects.values_list('sso_url', flat=True)
                 sso_urls = [url.rstrip('/') for url in sso_urls]
                 if referer_url in sso_urls:
-                    allowed_urls = ' '.join(settings.THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL)
+                    internal_allowed_urls = [url.url for url in WhitelistedUrls.objects.all()]
+                    allowed_urls = ' '.join(settings.THIRD_PARTY_AUTH_FRAME_ALLOWED_FROM_URL + internal_allowed_urls)
                     x_frame_option = 'ALLOW-FROM {}'.format(allowed_urls)
                     content_security_policy = "frame-ancestors {}".format(allowed_urls)
         resp['X-Frame-Options'] = x_frame_option

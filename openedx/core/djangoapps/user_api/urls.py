@@ -17,6 +17,7 @@ from .accounts.views import (
     LMSAccountRetirementView,
     UsernameReplacementView
 )
+from .completion.views import MigrateProgressView
 from .preferences.views import PreferencesDetailView, PreferencesView
 from .verification_api.views import IDVerificationStatusView
 
@@ -150,6 +151,11 @@ urlpatterns = [
         r'^v1/accounts/update_retirement_status/$',
         RETIREMENT_UPDATE,
         name='accounts_retirement_update'
+    ),
+    url(
+        r'^v1/progress/migrate/$',
+        MigrateProgressView.as_view(),
+        name='progress_migrate'
     ),
     url(
         r'^v1/accounts/replace_usernames/$',

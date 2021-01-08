@@ -51,14 +51,6 @@ jobs:
            cd && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
            python get-pip.py pip==20.0.2 wheel==0.35.1 setuptools==50.3.0
 
-     # This step is required to upgrade node version in CircleCI machine executor.
-     # CircleCI community discussion: https://discuss.circleci.com/t/nvm-does-not-change-node-version-on-machine/28973/14
-     - run:
-         name: Configure .bashrc to load nvm in each step
-         command: |
-           echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
-           echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
-
      - run:
          name: Installing Node v12.18.4 and Node packages
          command: |

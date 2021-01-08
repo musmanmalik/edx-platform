@@ -38,8 +38,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1a\n"
 "Report-Msgid-Bugs-To: openedx-translation@googlegroups.com\n"
-"POT-Creation-Date: 2021-01-05 18:12+0000\n"
-"PO-Revision-Date: 2021-01-05 18:12:29.022296\n"
+"POT-Creation-Date: 2021-01-08 12:24+0000\n"
+"PO-Revision-Date: 2021-01-08 12:24:47.742911\n"
 "Last-Translator: \n"
 "Language-Team: openedx-translation <openedx-translation@googlegroups.com>\n"
 "Language: en\n"
@@ -10571,6 +10571,14 @@ msgstr ""
 #: lms/templates/instructor/instructor_dashboard_2/e-commerce.html
 #: lms/templates/staff_problem_info.html
 msgid "Actions"
+msgstr ""
+
+#: openedx/core/djangoapps/user_api/completion/tasks.py
+msgid "Progress migration result"
+msgstr ""
+
+#: openedx/core/djangoapps/user_api/completion/tasks.py
+msgid "Migration is finished. Please review this email attachment."
 msgstr ""
 
 #: openedx/core/djangoapps/user_api/config/waffle.py
