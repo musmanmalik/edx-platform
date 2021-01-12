@@ -6830,11 +6830,11 @@ msgstr ""
 
 #: lms/djangoapps/django_comment_client/base/views.py
 msgid "Title can't be empty"
-msgstr "لا يمكن ترك العنوان فارغًا "
+msgstr "لا يمكن أن يكون العنوان فارغًا"
 
 #: lms/djangoapps/django_comment_client/base/views.py
 msgid "Body can't be empty"
-msgstr "لا يمكن ترك المحتوى فارغًا"
+msgstr "لا يمكن أن يكون النص فارغًا"
 
 #: lms/djangoapps/django_comment_client/base/views.py
 msgid "Topic doesn't exist"
