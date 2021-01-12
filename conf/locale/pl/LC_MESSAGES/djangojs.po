@@ -11245,6 +11245,7 @@ msgstr ""
 msgid "Use Current Transcript"
 msgstr "Użyj istniejącej transkrypcji"
 
+
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Questions raise issues that need answers. Discussions share ideas and start conversations."
 msgstr "Za pomocą Pytania możesz podnieść kwestie wymagające odpowiedzi. Za pomocą Dyskusji możesz podzielić się spostrzeżeniami i rozpocząć rozmowę."

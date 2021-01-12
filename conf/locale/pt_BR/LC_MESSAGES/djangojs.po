@@ -6940,7 +6940,7 @@ msgstr "Enviar"
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "discussion posted %(time_ago)s by %(author)s"
-msgstr "discussão postada %(time_ago)s by %(author)s"
+msgstr "discussão postada %(time_ago)s por %(author)s"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
