@@ -2853,9 +2853,11 @@ msgstr "Retirer ce membre de l'équipe ?"
 
 #: lms/djangoapps/teams/static/teams/js/views/edit_team_members.js
 msgid ""
-"This learner will be removed from the team,allowing another learner to take "
-"the available spot."
+"This learner will be removed from the team, allowing another learner to take"
+" the available spot."
 msgstr ""
+"Cet apprenant sera supprimé de l'équipe, permettant à un nouvel apprenant de"
+" prendre la place vacante."
 
 #: lms/djangoapps/teams/static/teams/js/views/instructor_tools.js
 msgid "Delete this team?"
@@ -2863,9 +2865,12 @@ msgstr "Supprimer cette équipe ?"
 
 #: lms/djangoapps/teams/static/teams/js/views/instructor_tools.js
 msgid ""
-"Deleting a team is permanent and cannot be undone.All members are removed "
+"Deleting a team is permanent and cannot be undone. All members are removed "
 "from the team, and team discussions can no longer be accessed."
 msgstr ""
+"Supprimer une équipe est une action à effet permanent et ne peut pas être "
+"annulée. Tous les membres seront retirés de l'équipe et les discussions "
+"d'équipe ne seront plus accessibles."
 
 #: lms/djangoapps/teams/static/teams/js/views/instructor_tools.js
 msgid "Team \"{team}\" successfully deleted."
@@ -2889,12 +2894,16 @@ msgstr "et autres"
 #. Translators: 'date' is a placeholder for a fuzzy,
 #. * relative timestamp (see: http://momentjs.com/)
 #: lms/djangoapps/teams/static/teams/js/views/team_card.js
-msgid "Last activity {date}"
-msgstr ""
+msgid "Last activity %(date)s"
+msgstr "Dernière activité %(date)s"
 
 #: lms/djangoapps/teams/static/teams/js/views/team_card.js
 msgid "View {span_start} {team_name} {span_end}"
 msgstr ""
+
+#: lms/djangoapps/teams/static/teams/js/views/team_card.js
+msgid "View %(span_start)s %(team_name)s %(span_end)s"
+msgstr "Voir %(span_start)s %(team_name)s %(span_end)s"
 
 #: lms/djangoapps/teams/static/teams/js/views/team_profile.js
 #: lms/djangoapps/teams/static/teams/js/views/team_profile_header_actions.js
@@ -2910,6 +2919,8 @@ msgid ""
 "If you leave, you can no longer post in this team's discussions.Your place "
 "will be available to another learner."
 msgstr ""
+"Si vous partez, vous ne pourrez plus poster dans les discussions de "
+"l'équipe. Votre place sera libérée pour un autre apprenant."
 
 #: lms/djangoapps/teams/static/teams/js/views/team_profile.js
 #: lms/static/js/verify_student/views/reverify_view.js
@@ -2922,12 +2933,22 @@ msgid "You already belong to another team in this team set."
 msgstr ""
 
 #: lms/djangoapps/teams/static/teams/js/views/team_profile_header_actions.js
+msgid "You already belong to another team."
+msgstr "Vous appartenez déjà à une autre équipe."
+
+#: lms/djangoapps/teams/static/teams/js/views/team_profile_header_actions.js
 msgid "This team is full."
 msgstr "Cette équipe est pleine."
 
 #: lms/djangoapps/teams/static/teams/js/views/team_profile_header_actions.js
 msgid "Cannot join instructor managed team"
 msgstr ""
+
+#: lms/djangoapps/teams/static/teams/js/views/team_utils.js
+msgid "%(memberCount)s / %(maxMemberCount)s Member"
+msgid_plural "%(memberCount)s / %(maxMemberCount)s Members"
+msgstr[0] "%(memberCount)s / %(maxMemberCount)s membre"
+msgstr[1] "%(memberCount)s / %(maxMemberCount)s membres"
 
 #: lms/djangoapps/teams/static/teams/js/views/team_utils.js
 msgid " Member"
@@ -2948,8 +2969,17 @@ msgid "Topics"
 msgstr "Sujets"
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
-msgid "My Teams"
+msgid ""
+"See all teams in your course, organized by topic. Join a team to collaborate"
+" with other learners who are interested in the same topic as you are."
 msgstr ""
+"Voir les équipes de cours organisées par sujets. Rejoindre une équipe pour "
+"collaborer avec d'autres apprenants intéressés par les mêmes sujets que "
+"vous."
+
+#: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
+msgid "My Team"
+msgstr "Mon équipe"
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
@@ -3056,14 +3086,14 @@ msgid "The team \"{team}\" could not be found."
 msgstr "L'équipe \"{team}\" n'a pu être trouvée."
 
 #: lms/djangoapps/teams/static/teams/js/views/topic_card.js
-msgid "{team_count} Team"
-msgid_plural "{team_count} Teams"
-msgstr[0] ""
-msgstr[1] ""
+msgid "%(team_count)s Team"
+msgid_plural "%(team_count)s Teams"
+msgstr[0] "%(team_count)s Equipe"
+msgstr[1] "%(team_count)s Équipes"
 
 #: lms/djangoapps/teams/static/teams/js/views/topic_card.js
-msgid "View Teams in the {topic_name} Topic"
-msgstr ""
+msgid "View Teams in the %(topic_name)s Topic"
+msgstr "Voir les équipes du sujet %(topic_name)s"
 
 #: lms/djangoapps/teams/static/teams/js/views/topic_teams.js
 msgid ""
@@ -3475,8 +3505,11 @@ msgid ""
 msgstr ""
 
 #: lms/static/js/dashboard/legacy.js
-msgid "Are you sure you want to unenroll from {courseName} ({courseNumber})?"
+msgid ""
+"Are you sure you want to unenroll from %(courseName)s (%(courseNumber)s)?"
 msgstr ""
+"Êtes-vous certain de vouloir vous désinscrire de %(courseName)s "
+"(%(courseNumber)s) ?"
 
 #: lms/static/js/dashboard/legacy.js
 msgid ""
@@ -5479,6 +5512,28 @@ msgstr ""
 "Vous ne pouvez pas voir le cours en tant qu'étudiant ou en tant que bêta "
 "testeur avant la date de publication du cours."
 
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "%(num_students)s student opened Subsection"
+msgid_plural "%(num_students)s students opened Subsection"
+msgstr[0] "%(num_students)s étudiant a ouvert cette sous-section"
+msgstr[1] "%(num_students)s étudiants ont ouvert la sous-section"
+
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "%(num_students)s student"
+msgid_plural "%(num_students)s students"
+msgstr[0] "%(num_students)s étudiant"
+msgstr[1] "%(num_students)s étudiants"
+
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "%(num_questions)s question"
+msgid_plural "%(num_questions)s questions"
+msgstr[0] "%(num_questions)s question"
+msgstr[1] "%(num_questions)s questions"
+
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "Number of Students"
+msgstr "Nombre d'étudiants"
+
 #: lms/templates/courseware/progress_graph.js
 msgid "Overall Score"
 msgstr "Score total"
@@ -5638,6 +5693,10 @@ msgstr ""
 #: cms/static/js/base.js
 msgid "This link will open in a modal window"
 msgstr "Ce lien s'ouvrira dans une nouvelle fenêtre contextuelle"
+
+#: cms/static/js/certificates/collections/certificates.js
+msgid "Could not parse certificate JSON. %(message)s"
+msgstr "Le certificat JSON n'a pas pu être analysé. %(message)s"
 
 #: cms/static/js/certificates/models/certificate.js
 msgid "Certificate name is required."
@@ -7186,17 +7245,65 @@ msgstr "Effacer la recherche"
 msgid "Search"
 msgstr "Recherche"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Add a Response"
-msgstr ""
+#: common/static/common/templates/discussion/forum-action-answer.underscore
+msgid "Mark as Answer"
+msgstr "Marquer comme Réponse"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "This thread is closed."
-msgstr ""
+#: common/static/common/templates/discussion/forum-action-answer.underscore
+msgid "Unmark as Answer"
+msgstr "Ne plus marquer comme Réponse"
+
+#: common/static/common/templates/discussion/forum-action-close.underscore
+msgid "Open"
+msgstr "Ouvrir"
+
+#: common/static/common/templates/discussion/forum-action-endorse.underscore
+msgid "Endorse"
+msgstr "Approuver"
+
+#: common/static/common/templates/discussion/forum-action-endorse.underscore
+msgid "Unendorse"
+msgstr "Ne plus approuver"
+
+#: common/static/common/templates/discussion/forum-action-follow.underscore
+msgid "Follow"
+msgstr "Suivre"
+
+#: common/static/common/templates/discussion/forum-action-follow.underscore
+msgid "Unfollow"
+msgstr "Ne plus suivre"
+
+#: common/static/common/templates/discussion/forum-action-pin.underscore
+msgid "Pin"
+msgstr "Épingler"
+
+#: common/static/common/templates/discussion/forum-action-pin.underscore
+msgid "Unpin"
+msgstr "Ne plus épingler"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Report abuse"
+msgstr "Dénoncer un abus"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Report"
+msgstr "Dénoncer"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Unreport"
+msgstr "Ne plus dénoncer"
+
+#: common/static/common/templates/discussion/forum-action-vote.underscore
+msgid "Vote for this post,"
+msgstr "Voter pour ce message, "
+
+#: common/static/common/templates/discussion/thread.underscore
+msgid "Add a Response"
+msgstr "Ajouter une réponse"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Add a response:"
-msgstr ""
+msgstr "Ajouter une réponse"
 
 #: common/static/common/templates/discussion/templates.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
@@ -7219,44 +7326,52 @@ msgstr "Épinglé"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Reported"
-msgstr ""
+msgstr "Reporté"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Closed"
-msgstr ""
+msgstr "Fermé"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "Related to: %(courseware_title_linked)s"
-msgstr ""
+msgstr "En rapport à: %(courseware_title_linked)s"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "This post is visible only to %(group_name)s."
-msgstr ""
+#: common/static/common/templates/discussion/profile-thread.underscore
+#: common/static/common/templates/discussion/thread.underscore
+msgid "This thread is closed."
+msgstr "Ce fil est fermé"
+
+#: common/static/common/templates/discussion/profile-thread.underscore
+msgid "View discussion"
+msgstr "Afficher la discussion"
+
+#: common/static/common/templates/discussion/response-comment-edit.underscore
+msgid "Editing comment"
+msgstr "Commentaire en cours de modification"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "This post is visible to everyone."
-msgstr ""
+msgstr "Ce message est visible par tous."
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Editing post"
-msgstr ""
+msgstr "Message en cours de modification"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid ""
 "Add a clear and descriptive title to encourage participation. (Required)"
 msgstr ""
+"Ajouter un titre clair et explicite pour encourager la participation. "
+"(obligatoire)"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Edit your post below."
-msgstr ""
+msgstr "Modifier votre message ci-dessous."
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Update post"
-msgstr ""
-
-
+msgstr "Mettre à jour le message"
 
 #: wiki/templates/wiki/includes/revision_info.html
 msgid "by"
@@ -7269,16 +7384,13 @@ msgstr "discussion publiée"
 #: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "question posted"
 msgstr "question publiée"
+
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "Show Comment (%(num_comments)s)"
 msgid_plural "Show Comments (%(num_comments)s)"
-msgstr[0] ""
-msgstr[1] ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Add a comment"
-msgstr ""
+msgstr[0] "Afficher (%(num_comments)s) Commentaire"
+msgstr[1] "Afficher (%(num_comments)s) Commentaires"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
@@ -7293,20 +7405,21 @@ msgstr "marqué comme réponse %(time_ago)s"
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "endorsed %(time_ago)s by %(user)s"
-msgstr ""
+msgstr "approuvé %(time_ago)s par %(user)s"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "endorsed %(time_ago)s"
-msgstr ""
+msgstr "approuvé %(time_ago)s"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-edit.underscore
 msgid "Editing response"
-msgstr ""
+msgstr "Réponse en cours de modification"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-edit.underscore
 msgid "Update response"
-msgstr ""
+msgstr "Mettre à jour la réponse"
+
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
@@ -7314,12 +7427,8 @@ msgid "posted %(time_ago)s by %(author)s"
 msgstr ""
 
 #: common/static/common/templates/discussion/templates.underscore
-msgid "Editing comment"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
 msgid "Update comment"
-msgstr ""
+msgstr "Mettre à jour le commentaire"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "discussion"
@@ -7328,6 +7437,10 @@ msgstr "Discussion"
 #: common/static/common/templates/discussion/templates.underscore
 msgid "answered question"
 msgstr "Question répondue"
+
+#: common/static/common/templates/discussion/thread-response.underscore
+msgid "Add a comment"
+msgstr "Ajouter un commentaire"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "unanswered question"
@@ -7351,58 +7464,63 @@ msgid ""
 "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s "
 "unread comments)%(span_close)s"
 msgstr ""
+"%(comments_count)s %(span_sr_open)scommentaires (%(unread_comments_count)s "
+"commentaires non lus)%(span_close)s"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "%(comments_count)s %(span_sr_open)scomments %(span_close)s"
-msgstr ""
+msgstr "%(comments_count)s %(span_sr_open)scommentaires %(span_close)s"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Add a Post"
-msgstr ""
+msgstr "Ajouter un  message"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Visible to"
-msgstr ""
+msgstr "Visible par"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid ""
 "Discussion admins, moderators, and TAs can make their posts visible to all "
 "students or specify a single group."
 msgstr ""
+"Les administrateurs de discussions, modérateurs, et assistants peuvent "
+"rendre leur message visible pour tous les apprenants ou seulement un groupe "
+"spécifique."
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "All Groups"
-msgstr ""
+msgstr "Tous les groupes"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post.underscore
 msgid "follow this post"
-msgstr ""
+msgstr "Suivre ce message"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post.underscore
 msgid "post anonymously"
-msgstr ""
+msgstr "Écrire anonymement"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post.underscore
 msgid "post anonymously to classmates"
-msgstr ""
+msgstr "Écrire anonymement aux autres participants"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post-alert.underscore
 msgid "Error posting your message."
-msgstr ""
+msgstr "Erreur lors de l'envoi de votre message."
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post-visibility.underscore
 #, python-format
 msgid "This post will be visible only to %(group_name)s."
-msgstr ""
+msgstr "Ce message sera visible seulement pour %(group_name)s."
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post-visibility.underscore
 msgid "This post will be visible to everyone."
-msgstr ""
+msgstr "Ce message sera visible de tous."
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Topic area"
-msgstr ""
+msgstr "Sujet"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Add your post to a relevant topic to help others find it. (Required)"
@@ -7411,6 +7529,11 @@ msgstr "Ajoutez votre message à un sujet pertinent pour aider les autres à le 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "(Community TA)"
 msgstr ""
+
+#: common/static/common/templates/discussion/thread-show.underscore
+#, python-format
+msgid "This post is visible only to %(group_name)s."
+msgstr "Ce message est visible seulement par %(group_name)s."
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "(Staff)"
@@ -7426,82 +7549,29 @@ msgid "Return to all posts"
 msgstr ""
 
 #: common/static/common/templates/discussion/templates.underscore
-msgid "View discussion"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
 msgid "Load more"
-msgstr ""
+msgstr "Afficher plus"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Post type"
-msgstr ""
+msgstr "Type de message"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid ""
 "Questions raise issues that need answers. Discussions share ideas and start "
 "conversations. (Required)"
 msgstr ""
+"Les questions sont adaptées pour les sujets qui nécessitent une réponse. Les"
+" discussions permettent de partager des idées et de commencer des "
+"conversations. (Obligatoire)"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Question"
-msgstr ""
+msgstr "Question"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Discussion"
 msgstr "Discussion"
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Endorse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unendorse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Mark as Answer"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unmark as Answer"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Follow"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unfollow"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Vote for this post,"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Report abuse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Report"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unreport"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Pin"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unpin"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Open"
-msgstr ""
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Discussion Home"
@@ -8127,6 +8197,8 @@ msgid ""
 "The following information is already a part of your {platform} profile. "
 "We've included it here for your application."
 msgstr ""
+"L'information suivante fait déjà partie de votre profil {platform}. Nous "
+"l\\'avons inclus ici pour votre demander."
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Email address"
@@ -8760,6 +8832,10 @@ msgstr ""
 msgid "Sign in"
 msgstr "Connexion"
 
+#: lms/templates/student_account/form_field.underscore
+msgid "Forgot password?"
+msgstr "Mot de passe oublié?"
+
 #: lms/templates/student_account/hinted_login.underscore
 #, python-format
 msgid "Would you like to sign in using your %(providerName)s credentials?"
@@ -8795,6 +8871,10 @@ msgstr "S'inscrire avec votre Institution/Campus"
 #: lms/templates/student_account/register.underscore
 msgid "Create an Account"
 msgstr "Créer un compte"
+
+#: lms/templates/student_account/institution_register.underscore
+msgid "Register through edX"
+msgstr "S'inscrire avec edX"
 
 #: lms/templates/student_account/login.underscore
 msgid "First time here?"
@@ -8881,6 +8961,10 @@ msgstr ""
 #: lms/templates/student_account/password_reset.underscore
 msgid "Recover my password"
 msgstr ""
+
+#: lms/templates/student_account/password_reset.underscore
+msgid "Reset my password"
+msgstr "Réinitialiser mon mot de passe"
 
 #: lms/templates/student_account/register.underscore
 msgid "Already have an {platformName} account?"
@@ -8970,12 +9054,29 @@ msgid ""
 msgstr ""
 
 #: lms/templates/verify_student/face_photo_step.underscore
+msgid ""
+"You need a computer that has a webcam. When you receive a browser prompt, "
+"make sure that you allow access to the camera."
+msgstr ""
+"Vous avez besoin d'un ordinateur doté d'une webcam. Lors que votre "
+"explorateur vous le demandera, assurez vous de lui donner l'autorisation "
+"d'accéder à la webcam."
+
+#: lms/templates/verify_student/face_photo_step.underscore
 msgid "Photo Identification"
 msgstr "Photo d'identité"
 
 #: lms/templates/verify_student/face_photo_step.underscore
 msgid "You need a valid ID that contains your full name and photo."
 msgstr ""
+
+#: lms/templates/verify_student/face_photo_step.underscore
+msgid ""
+"You need a driver's license, passport, or other government-issued ID that "
+"has your name and photo."
+msgstr ""
+"Vous avez besoin d'un permis de conduire, d'un passeport ou d'une pièce "
+"d'identité avec votre nom et photo."
 
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
@@ -8999,6 +9100,19 @@ msgstr "Votre visage est bien éclairé"
 #: lms/templates/verify_student/face_photo_step.underscore
 msgid "Your entire face fits inside the frame."
 msgstr " Votre visage est entièrement dans le cadre."
+
+#: lms/templates/verify_student/face_photo_step.underscore
+msgid "The photo of your face matches the photo on your ID."
+msgstr ""
+"La photo de votre visage concorde avec la photo sur votre pièce d'identité."
+
+#: lms/templates/verify_student/face_photo_step.underscore
+msgid ""
+"To use the current photo, select the camera button {icon}. To take another "
+"photo, select the retake button {icon}."
+msgstr ""
+"Pour utiliser la photo, sélectionnez le bouton de l'appareil photo {icon}. "
+"Pour prendre une autre photo, sélectionnez le bouton de reprise {icon}."
 
 #: lms/templates/verify_student/face_photo_step.underscore
 msgid ""
@@ -9103,6 +9217,15 @@ msgstr ""
 
 #: lms/templates/verify_student/id_photo_step.underscore
 msgid ""
+"Use your webcam to take a photo of your ID. We will match this photo with "
+"the photo of your face and the name on your account."
+msgstr ""
+"Utilisez votre webcam pour prendre une photo de votre pièce d'identité. Nous"
+" allons vérifier sa concordance avec la photo de votre visage et le nom de "
+"votre compte."
+
+#: lms/templates/verify_student/id_photo_step.underscore
+msgid ""
 "You need an ID with your name and photo. A driver's license, passport, or ID"
 " are all acceptable."
 msgstr ""
@@ -9128,6 +9251,15 @@ msgstr ""
 #: lms/templates/verify_student/incourse_reverify.underscore
 msgid "Use the Retake Photo button if you are not pleased with your photo"
 msgstr ""
+"Utilisez le bouton reprendre photo si vous n'êtes pas satisfait de votre "
+"photo"
+
+#: lms/templates/verify_student/id_photo_step.underscore
+#: lms/templates/verify_student/incourse_reverify.underscore
+msgid "Use the retake photo button if you are not pleased with your photo"
+msgstr ""
+"Utilisez le bouton reprendre photo si vous n'êtes pas satisfait de votre "
+"photo"
 
 #: lms/templates/verify_student/id_photo_step.underscore
 msgid ""
@@ -9486,6 +9618,10 @@ msgid "Does the photo of you show your whole face?"
 msgstr "Votre photo montre-t-elle votre visage en entier ?"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+msgid "Does the photo of you match your ID photo?"
+msgstr "Votre photo correspond-elle à celle de votre document d'identité ?"
+
+#: lms/templates/verify_student/review_photos_step.underscore
 msgid "Is your name on your ID readable?"
 msgstr "Le nom sur votre ID est-il lisible ?"
 
@@ -9619,6 +9755,17 @@ msgid ""
 "Create a {link_start}Mozilla Backpack{link_end} account, or log in to your "
 "existing account"
 msgstr ""
+"Créer un compte %(link_start)sMozilla Backpack%(link_end)s, or connectez-"
+"vous a votre compte existant"
+
+#: openedx/features/learner_profile/static/learner_profile/templates/share_modal.underscore
+#, python-format
+msgid ""
+"Create a %(link_start)sMozilla Backpack%(link_end)s account, or log in to "
+"your existing account"
+msgstr ""
+"Créer un compte %(link_start)sMozilla Backpack%(link_end)s, or connectez-"
+"vous a votre compte existant"
 
 #: openedx/features/learner_profile/static/learner_profile/templates/share_modal.underscore
 msgid ""
@@ -9626,6 +9773,17 @@ msgid ""
 "as){link_end} and then {upload_link_start}upload{link_end} it to your "
 "backpack."
 msgstr ""
+
+#: openedx/features/learner_profile/static/learner_profile/templates/share_modal.underscore
+#, python-format
+msgid ""
+"%(download_link_start)sDownload this image (right-click or option-click, "
+"save as)%(link_end)s and then %(upload_link_start)supload%(link_end)s it to "
+"your backpack.</li>"
+msgstr ""
+"%(download_link_start)sTélécharger cette image (clique-droite ou clique-"
+"option, sauvegarder comme%(link_end)s et ensuite "
+"%(upload_link_start)stéléverser%(link_end)s là dans votre backpack.</li>"
 
 #: cms/templates/js/access-editor.underscore
 msgid "Limit Access"
@@ -10347,6 +10505,14 @@ msgid ""
 msgstr ""
 "Votre proposition contient du code non valide. Veuillez vérifier que votre "
 "contenu est du HTML valide."
+
+#: cms/templates/js/course_info_update.underscore
+msgid "Send push notification to mobile apps"
+msgstr "Envoyer une notification push aux applications mobiles"
+
+#: cms/templates/js/course_info_update.underscore
+msgid "Send notification to mobile apps"
+msgstr "Envoyer une notification vers les applications mobiles"
 
 #: cms/templates/js/course_info_update.underscore
 msgid "Post"
