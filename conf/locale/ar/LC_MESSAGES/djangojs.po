@@ -5492,6 +5492,10 @@ msgstr ""
 msgid "This link will open in a modal window"
 msgstr ""
 
+#: cms/static/js/certificates/collections/certificates.js
+msgid "Could not parse certificate JSON. %(message)s"
+msgstr "تعذّر تفسير JSON الشهادة. %(message)s"
+
 #: cms/static/js/certificates/models/certificate.js
 msgid "Certificate name is required."
 msgstr "اسم الشهادة مطلوب."
@@ -7240,7 +7244,7 @@ msgstr "منطقة الموضوع"
 
 #: common/static/common/templates/discussion/topic.underscore
 msgid "Add your post to a relevant topic to help others find it. (Required)"
-msgstr ""
+msgstr "ضف مشاركتك إلى موضوع ذي صلة لمساعدة الآخرين في العثور عليه. (مطلوب)"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Discussion Home"
@@ -8485,6 +8489,10 @@ msgid "An error occurred. Please reload the page."
 msgstr "نأسف لحدوث خطأ. يُرجى إعادة فتح الصفحة."
 
 #: lms/templates/student_account/form_field.underscore
+msgid "Forgot password?"
+msgstr "هل نسيت كلمة المرور؟"
+
+#: lms/templates/student_account/form_field.underscore
 msgid "Need help logging in?"
 msgstr ""
 
@@ -8607,6 +8615,10 @@ msgstr ""
 #: lms/templates/student_account/password_reset.underscore
 msgid "Recover my password"
 msgstr ""
+
+#: lms/templates/student_account/password_reset.underscore
+msgid "Reset my password"
+msgstr "تغيير كلمة المرور"
 
 #: lms/templates/student_account/register.underscore
 msgid "Already have an {platformName} account?"
