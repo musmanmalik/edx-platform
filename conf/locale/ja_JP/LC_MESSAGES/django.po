@@ -362,6 +362,10 @@ msgid ""
 "set a price greater than or equal to {min_price}."
 msgstr ""
 
+#: common/djangoapps/course_modes/models.py
+msgid "Verified modes cannot be free."
+msgstr "認証モードは無料にはできません。"
+
 #. #-#-#-#-#  django-partial.po (edx-platform)  #-#-#-#-#
 #. Translators: This will look like '$50', where {currency_symbol} is a symbol
 #. such as '$' and {price} is a
@@ -437,6 +441,10 @@ msgid ""
 "Raw passwords are not stored, so there is no way to see this user's "
 "password."
 msgstr ""
+
+#: common/djangoapps/student/forms.py
+msgid "Your legal name must be a minimum of two characters long"
+msgstr "名前は2文字以上でなければなりません"
 
 #: common/djangoapps/student/admin.py
 #, python-format
@@ -797,6 +805,14 @@ msgstr "お探しの講座が開講される {date} までお待ちください�
 #, python-brace-format
 msgid "The course you are looking for is closed for enrollment as of {date}."
 msgstr "お探しの講座は{date}に受講申込受付を終了しています。"
+
+#: common/djangoapps/student/views/management.py
+msgid "No inactive user with this e-mail exists"
+msgstr "このメールでアクティブでないユーザーは存在しません"
+
+#: common/djangoapps/student/views/management.py
+msgid "Unable to send reactivation email"
+msgstr "再度有効化するためのメールが送信できません"
 
 #: common/djangoapps/student/views/management.py
 msgid "Course id not specified"
@@ -2259,7 +2275,7 @@ msgstr ""
 #: openedx/core/djangoapps/theming/templates/theming/theming-admin-fragment.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "Submit"
-msgstr "提出"
+msgstr "送信"
 
 #: common/lib/xmodule/xmodule/capa_base.py
 msgid "Submitting"
@@ -2647,18 +2663,18 @@ msgstr "ディスカッショントピックのマッピング"
 msgid ""
 "Enter discussion categories in the following format: \"CategoryName\": "
 "{\"id\": \"i4x-InstitutionName-CourseNumber-course-CourseRun\"}. For "
-"example, one discussion category may be \"Lydian Mode\": {\"id\": "
-"\"i4x-UniversityX-MUS101-course-2015_T1\"}. The \"id\" value for each "
-"category must be unique. In \"id\" values, the only special characters that "
-"are supported are underscore, hyphen, and period. You can also specify a "
+"example, one discussion category may be \"Lydian Mode\": {\"id\": \"i4x-"
+"UniversityX-MUS101-course-2015_T1\"}. The \"id\" value for each category "
+"must be unique. In \"id\" values, the only special characters that are "
+"supported are underscore, hyphen, and period. You can also specify a "
 "category as the default for new posts in the Discussion page by setting its "
-"\"default\" attribute to true. For example, \"Lydian Mode\": {\"id\": "
-"\"i4x-UniversityX-MUS101-course-2015_T1\", \"default\": true}."
+"\"default\" attribute to true. For example, \"Lydian Mode\": {\"id\": \"i4x-"
+"UniversityX-MUS101-course-2015_T1\", \"default\": true}."
 msgstr ""
-"ディスカッションカテゴリーを以下の形式で入力してください: \"CategoryName\": {\"id\": "
-"\"i4x-InstitutionName-CourseNumber-course-CourseRun\"}。例えば、あるディスカッションカテゴリーは "
-"\"Lydian Mode\": {\"id\": \"i4x-UniversityX-"
-"MUS101-course-2015_T1\"}。\"id\"の値は各カテゴリー固有でなければならず、使用できる記号はアンダースコア、ハイフン、ピリオドのみです。また、\"default\"をtrueと設定することにより、ディスカッションページの新規投稿のためのカテゴリーをデフォルトとして指定することができます。例えば、\"Lydian"
+"ディスカッションカテゴリーを以下の形式で入力してください: \"カテゴリー名\": {\"id\": \"i4x-機関名-講座番号-course-"
+"CourseRun\"}。例えば、あるディスカッションカテゴリーは \"Lydian Mode\": {\"id\": \"i4x-"
+"UniversityX-MUS101-course-"
+"2015_T1\"}。\"id\"の値は各カテゴリー固有でなければならず、使用できる記号はアンダースコア、ハイフン、ピリオドのみです。また、\"default\"をtrueと設定することにより、ディスカッションページの新規投稿のためのカテゴリーをデフォルトとして指定することができます。例えば、\"Lydian"
 " Mode\": {\"id\": \"i4x-UniversityX-MUS101-course-2015_T1\", \"default\": "
 "true}."
 
@@ -3128,6 +3144,10 @@ msgstr ""
 "'about' (Aboutページへのアクセスのみ可能), 'なし' (カタログの表示およびAboutページへのアクセス共に不可)。"
 
 #: common/lib/xmodule/xmodule/course_module.py
+msgid "Both"
+msgstr "両方"
+
+#: common/lib/xmodule/xmodule/course_module.py
 msgid "Entrance Exam Enabled"
 msgstr "受講前試験実施"
 
@@ -3325,6 +3345,18 @@ msgid ""
 "one of three values: 'private' (default visibility, only allowed for "
 "enrolled students), 'public_outline' (allow access to course outline) and "
 "'public' (allow access to both outline and course content)."
+msgstr ""
+
+#: common/lib/xmodule/xmodule/course_module.py
+msgid "private"
+msgstr ""
+
+#: common/lib/xmodule/xmodule/course_module.py
+msgid "public_outline"
+msgstr ""
+
+#: common/lib/xmodule/xmodule/course_module.py
+msgid "public"
 msgstr ""
 
 #: common/lib/xmodule/xmodule/course_module.py
@@ -3594,6 +3626,8 @@ msgid ""
 "Settings page.{break_tag}See {docs_anchor_open}the edX LTI "
 "documentation{anchor_close} for more details on this setting."
 msgstr ""
+"外部のLTIプロバイダ用のLTI IDを入力してください。この値は詳細設定ページのLTIパスポートに入力されたものと同じである必要があります。{break_tag}"
+"/>詳細は{docs_anchor_open}edX LTIドキュメント{anchor_close}を参照してください。"
 
 #: common/lib/xmodule/xmodule/lti_module.py
 msgid "LTI URL"
@@ -3607,6 +3641,8 @@ msgid ""
 "{docs_anchor_open}the edX LTI documentation{anchor_close} for more details "
 "on this setting."
 msgstr ""
+"このコンポーネントが起動する外部ツールのURLを入力してください。この設定は外部ツール非表示設定をFalseにした時のみ使用されます。{break_tag} "
+"/>詳細は{docs_anchor_open}edX LTIドキュメント{anchor_close}を参照してください。"
 
 #: common/lib/xmodule/xmodule/lti_module.py
 msgid "Custom Parameters"
@@ -3620,6 +3656,8 @@ msgid ""
 "component.{break_tag}See {docs_anchor_open}the edX LTI "
 "documentation{anchor_close} for more details on this setting."
 msgstr ""
+"カスタムパラメータ用のキー／値のペアを入力してください。パラメータの例としては、e-bookで開くページや、このコンポーネントの背景色などがあります。{break_tag}"
+" />詳細は{docs_anchor_open}edX LTIドキュメント{anchor_close}を参照してください。"
 
 #: common/lib/xmodule/xmodule/lti_module.py
 msgid "Open in New Page"
@@ -4309,6 +4347,14 @@ msgstr ""
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid "Video Stop Time"
 msgstr "動画の終了時間"
+
+#: common/lib/xmodule/xmodule/video_module/video_xfields.py
+msgid "The external URL to download the video."
+msgstr "動画をダウンロードするための外部URL。"
+
+#: common/lib/xmodule/xmodule/video_module/video_xfields.py
+msgid "Download Video"
+msgstr "動画をダウンロード"
 
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid ""
@@ -5397,6 +5443,36 @@ msgstr "おめでとうございます！このページはあなたが達成し
 msgid "More about {fullname}'s accomplishment"
 msgstr "{fullname} の業績についてもっと見る"
 
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Grade"
+msgstr "成績"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Percent"
+msgstr "パーセント"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "Opened by this number of students"
+msgstr "これだけの数の受講者によって開かれました"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "subsections"
+msgstr "サブセクション"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "Count of Students"
+msgstr "受講者の数"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "Percent of Students"
+msgstr "受講者の割合"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "problems"
+msgstr "問題"
+
 #: lms/djangoapps/commerce/api/v1/serializers.py
 #, python-brace-format
 msgid "{course_id} is not a valid course key."
@@ -5959,6 +6035,27 @@ msgid "Annual Household Income"
 msgstr "年間の世帯収入"
 
 #: lms/djangoapps/courseware/views/views.py
+msgid ""
+"Tell us about your current financial situation. Why do you need assistance?"
+msgstr "現在の経済状態についてご説明ください。なぜ援助が必要なのでしょうか？"
+
+#: lms/djangoapps/courseware/views/views.py
+msgid ""
+"Tell us about your learning or professional goals. How will a Verified "
+"Certificate in this course help you achieve these goals?"
+msgstr "あなたの学習や職業上の目標について教えてください。この講義の認証付き修了証がそれらの目標を達成する上でどのように役立ちますか？"
+
+#: lms/djangoapps/courseware/views/views.py
+msgid ""
+"Tell us about your plans for this course. What steps will you take to help "
+"you complete the course work and receive a certificate?"
+msgstr "この講義に関してどんな計画を立てているのか教えてください。どのような段階を経て修了し、修了証を取得する予定ですか？"
+
+#: lms/djangoapps/courseware/views/views.py
+msgid "Use between 250 and 500 words or so in your response."
+msgstr "回答は 250～500語としてください。"
+
+#: lms/djangoapps/courseware/views/views.py
 msgid "Use between 1250 and 2500 characters or so in your response."
 msgstr ""
 
@@ -5992,6 +6089,7 @@ msgid ""
 "Non usable git url provided. Expecting something like: "
 "git@github.com:edx/edx4edx_lite.git"
 msgstr ""
+"使用可能ではないgit urlです。想定されるのはgit@github.com:edx/edx4edx_lite.gitのような値です。"
 
 #: lms/djangoapps/dashboard/git_import.py
 msgid "Unable to get git log"
@@ -6029,6 +6127,37 @@ msgid ""
 " and optionally specified directory."
 msgstr "指定のgitレポジトリとオプションのブランチをモジュールストアおよびオプション指定のディレクトリにインポートしてください。"
 
+#. Translators: This message means that the user could not be authenticated
+#. (that is, we could
+#. not log them in for some reason - maybe they don't have permission, or
+#. their password was wrong)
+#: lms/djangoapps/dashboard/sysadmin.py
+#, python-brace-format
+msgid "Failed in authenticating {username}, error {error}\n"
+msgstr "{username} の認証に失敗しました。 エラー {error}\n"
+
+#. Translators: This message means that the user could not be authenticated
+#. (that is, we could
+#. not log them in for some reason - maybe they don't have permission, or
+#. their password was wrong)
+#: lms/djangoapps/dashboard/sysadmin.py
+#, python-brace-format
+msgid "Failed in authenticating {username}\n"
+msgstr "{username} の認証に失敗\n"
+
+#. Translators: this means that the password has been corrected (sometimes the
+#. database needs to be resynchronized)
+#. Translate this as meaning "the password was fixed" or "the password was
+#. corrected".
+#: lms/djangoapps/dashboard/sysadmin.py
+msgid "fixed password"
+msgstr "修正されたパスワード"
+
+#. Translators: this means everything happened successfully, yay!
+#: lms/djangoapps/dashboard/sysadmin.py
+msgid "All ok!"
+msgstr "完了！"
+
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "Must provide username"
 msgstr "ユーザー名は必須です"
@@ -6036,6 +6165,21 @@ msgstr "ユーザー名は必須です"
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "Must provide full name"
 msgstr "氏名は必須です"
+
+#. Translators: Domain is an email domain, such as "@gmail.com"
+#: lms/djangoapps/dashboard/sysadmin.py
+#, python-brace-format
+msgid "Email address must end in {domain}"
+msgstr "メールアドレスは {domain} で終わる必要があります"
+
+#: lms/djangoapps/dashboard/sysadmin.py
+#, python-brace-format
+msgid "Failed - email {email_addr} already exists as {external_id}"
+msgstr "失敗 - メール {email_addr} は {external_id} として既に存在します"
+
+#: lms/djangoapps/dashboard/sysadmin.py
+msgid "Password must be supplied if not using certificates"
+msgstr "パスワードは修了証の有無に関わらず必須です"
 
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "Password must be supplied"
@@ -6087,6 +6231,10 @@ msgid "Total number of users"
 msgstr "ユーザー総数"
 
 #: lms/djangoapps/dashboard/sysadmin.py
+msgid "Courses loaded in the modulestore"
+msgstr "モジュールストアで講座が読み込まれました"
+
+#: lms/djangoapps/dashboard/sysadmin.py
 #: lms/djangoapps/support/views/manage_user.py lms/templates/tracking_log.html
 msgid "username"
 msgstr "ユーザー名"
@@ -6094,6 +6242,10 @@ msgstr "ユーザー名"
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "email"
 msgstr "メール"
+
+#: lms/djangoapps/dashboard/sysadmin.py
+msgid "Repair Results"
+msgstr "結果を修正する"
 
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "Create User Results"
@@ -6138,6 +6290,11 @@ msgstr "最終の編集者"
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "Information about all courses"
 msgstr "全講座についての情報"
+
+#: lms/djangoapps/dashboard/sysadmin.py
+#, python-brace-format
+msgid "Error - cannot get course with ID {0}<br/><pre>{1}</pre>"
+msgstr "エラー - ID{0}の講座を取得できません<br/><pre>{1}</pre>"
 
 #: lms/djangoapps/dashboard/sysadmin.py
 msgid "Deleted"
@@ -6377,6 +6534,16 @@ msgid ""
 "A proctored exam attempt for {exam_name} in {course_name} by username: {student_username} was reviewed as {review_status} by the proctored exam review provider.\n"
 "Review link: {review_url}"
 msgstr ""
+
+#: lms/djangoapps/instructor/services.py
+#, python-brace-format
+msgid ""
+"A proctored exam attempt for {exam_name} in {course_name} by username: "
+"{student_username} was reviewed as {review_status} by the proctored exam "
+"review provider."
+msgstr ""
+"ユーザー名ごとの {course_name}の{exam_name} 試験の監督付き試行: {student_username} "
+"は監督付き試験審査提供者により {review_status} として審査されました。"
 
 #: lms/djangoapps/instructor/settings/common.py
 msgid "Your Platform Insights"
@@ -6704,6 +6871,11 @@ msgstr "数値として解析することができませんでした"
 #: lms/djangoapps/instructor/views/api.py
 msgid "Unable to generate redeem codes because of course misconfiguration."
 msgstr "講座設定ミスのため取戻コードを生成できません。"
+
+#: lms/djangoapps/instructor/views/api.py
+#: lms/djangoapps/shoppingcart/models.py
+msgid "pdf download unavailable right now, please contact support."
+msgstr "PDFダウンロードは現在使えません。サポートにお問い合わせください。"
 
 #: lms/djangoapps/instructor/views/api.py
 #, python-brace-format
@@ -7058,6 +7230,10 @@ msgid "Analytics"
 msgstr "分析"
 
 #: lms/djangoapps/instructor/views/instructor_dashboard.py
+msgid "Metrics"
+msgstr "メトリック"
+
+#: lms/djangoapps/instructor/views/instructor_dashboard.py
 msgid "Open Responses"
 msgstr "自由記述"
 
@@ -7135,6 +7311,10 @@ msgstr "ユニット {0} には延長できる期日がありません。"
 #: lms/djangoapps/instructor/views/tools.py
 msgid "An extended due date must be later than the original due date."
 msgstr "延長する期日は、元の期日以降でなければいけません。"
+
+#: lms/djangoapps/instructor/views/tools.py
+msgid "No due date extension is set for that student and unit."
+msgstr "この受講者およびユニットに対して、期日延長は設定されていません。"
 
 #. #-#-#-#-#  django-partial.po (edx-platform)  #-#-#-#-#
 #. Translators: This label appears above a field on the registration form
@@ -7603,6 +7783,10 @@ msgstr ""
 msgid "One of user or external_user_key must not be null."
 msgstr ""
 
+#: lms/djangoapps/notes/views.py lms/templates/notes.html
+msgid "My Notes"
+msgstr "マイ・ノート"
+
 #: lms/djangoapps/shoppingcart/models.py
 msgid "Order Payment Confirmation"
 msgstr "注文支払確認"
@@ -7695,6 +7879,12 @@ msgid ""
 msgstr ""
 
 #: lms/djangoapps/shoppingcart/models.py
+msgid ""
+"You can unenroll in the course and receive a full refund for 14 days after "
+"the course start date. "
+msgstr "講座開始日から14日間は受講取消をして全額の払い戻しを受け取ることができます。"
+
+#: lms/djangoapps/shoppingcart/models.py
 #, python-brace-format
 msgid ""
 "If you haven't verified your identity yet, please start the verification "
@@ -7705,7 +7895,7 @@ msgstr "まだ本人認証をしていない場合は、本人認証の手続き
 msgid ""
 "You can unenroll in the course and receive a full refund for 2 days after "
 "the course start date.\n"
-msgstr ""
+msgstr "講座開始日から2日間は受講取消をして全額の払い戻しを受け取ることができます。\n"
 
 #: lms/djangoapps/shoppingcart/models.py
 #, python-brace-format
@@ -7713,6 +7903,16 @@ msgid ""
 "{refund_reminder_msg}For help unenrolling, Please see How do I unenroll from"
 " a course? ({how_to_unenroll_link}) in our edX HelpCenter."
 msgstr ""
+
+#: lms/djangoapps/shoppingcart/models.py
+#, python-brace-format
+msgid ""
+"{refund_reminder_msg}To receive your refund, contact {billing_email}. Please"
+" include your order number in your email. Please do NOT include your credit "
+"card information."
+msgstr ""
+"{refund_reminder_msg} 払い戻しを受け取るためには、{billing_email} "
+"に連絡してください。メールには注文番号を記載してください。決してクレジットカード情報は記載しないようにしてください。"
 
 #: lms/djangoapps/shoppingcart/models.py
 #, python-brace-format
@@ -7738,6 +7938,60 @@ msgstr "{course}への寄付"
 #, python-brace-format
 msgid "Donation for {platform_name}"
 msgstr "{platform_name}への寄付"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+#, python-brace-format
+msgid "Page {page_number} of {page_count}"
+msgstr "{page_count}ページ中{page_number}ページ目"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "Order"
+msgstr "注文"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+#, python-brace-format
+msgid "{id_label} # {item_id}"
+msgstr "{id_label} # {item_id}"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid ""
+"List Price\n"
+"per item"
+msgstr ""
+"定価\n"
+"（単価）"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid ""
+"Discount\n"
+"per item"
+msgstr ""
+"割引\n"
+"（単価）"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "Amount"
+msgstr "数量"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "Payment Received"
+msgstr "支払受領済"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "Balance"
+msgstr "残高"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "Billing Address"
+msgstr "請求先"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "Disclaimer"
+msgstr "免責事項"
+
+#: lms/djangoapps/shoppingcart/pdf.py
+msgid "TERMS AND CONDITIONS"
+msgstr "利用規約"
 
 #. Translators: this text appears when an unfamiliar error code occurs during
 #. payment,
@@ -8532,6 +8786,14 @@ msgid "username or (team_id or teamset_id) must be specified."
 msgstr ""
 
 #: lms/djangoapps/teams/views.py
+msgid "You are already in a team in this course."
+msgstr "あなたは既にこの講座のチームに参加しています。"
+
+#: lms/djangoapps/teams/views.py
+msgid "username or team_id must be specified."
+msgstr "ユーザー名またはチームIDの指定が必須です。"
+
+#: lms/djangoapps/teams/views.py
 msgid "Username is required."
 msgstr "ユーザー名が必須です。"
 
@@ -8639,6 +8901,11 @@ msgstr "ユーザーのプロフィールがありません"
 #, python-brace-format
 msgid "Name must be at least {min_length} character long."
 msgstr ""
+
+#: lms/djangoapps/verify_student/views.py
+#, python-brace-format
+msgid "Name must be at least {min_length} characters long."
+msgstr "名前は {min_length} 文字以上である必要があります。"
 
 #: lms/djangoapps/verify_student/views.py
 msgid "Image data is not valid."
@@ -9035,6 +9302,13 @@ msgid ""
 "to the home page{end_anchor}."
 msgstr ""
 
+#: lms/templates/logout.html
+#, python-format
+msgid ""
+"If you are not redirected within 5 seconds, <a href=\"%(target)s\">click "
+"here to go to the home page</a>."
+msgstr ""
+
 #: lms/templates/main_django.html cms/templates/base.html
 #: lms/templates/main.html
 msgid "Skip to main content"
@@ -9342,6 +9616,8 @@ msgid ""
 "several useful guides online. See any of the links below for in-depth "
 "details:"
 msgstr ""
+"このWikiでは{start_strong}Markdown{end_strong}を使用します。便利なオンラインガイドがあるので、詳細については以下のリンクをご覧ください:"
+" "
 
 #: lms/templates/wiki/includes/cheatsheet.html
 msgid "Markdown: Basics"
@@ -9566,7 +9842,7 @@ msgstr ""
 #: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
 #: cms/templates/widgets/header.html
 msgid "Sign In"
-msgstr ""
+msgstr "サインイン"
 
 #: openedx/core/djangoapps/ace_common/templates/ace_common/edx_ace/common/base_body.html
 #: themes/red-theme/lms/templates/ace_common/edx_ace/common/base_body.html
@@ -9696,6 +9972,15 @@ msgstr "このAPI ユーザーに関連するウェブサイトのURL"
 #: openedx/core/djangoapps/api_admin/models.py
 msgid "The reason this user wants to access the API."
 msgstr "このユーザーがAPI にアクセスしたい理由。"
+
+#: openedx/core/djangoapps/api_admin/models.py
+#, python-brace-format
+msgid "API access request from {company}"
+msgstr " {company} からのAPI アクセスリクエスト"
+
+#: openedx/core/djangoapps/api_admin/models.py
+msgid "API access request"
+msgstr "API アクセスリクエスト"
 
 #: openedx/core/djangoapps/api_admin/widgets.py
 #, python-brace-format
@@ -10141,6 +10426,27 @@ msgstr "{course} 講座のホワイトリスト {country} "
 #, python-brace-format
 msgid "Blacklist {country} for {course}"
 msgstr "{course} 講座のブラックリスト {country} "
+
+#: openedx/core/djangoapps/external_auth/views.py
+#, python-brace-format
+msgid ""
+"You have already created an account using an external login like WebAuth or "
+"Shibboleth. Please contact {tech_support_email} for support."
+msgstr ""
+"WebAuthやShibbolethのような外部ログインを使用して既にアカウントを作成しました。サポートが必要な場合は "
+"{tech_support_email} へお問い合わせください。"
+
+#: openedx/core/djangoapps/external_auth/views.py
+msgid ""
+"\n"
+"        Your university identity server did not return your ID information to us.\n"
+"        Please try logging in again.  (You may need to restart your browser.)\n"
+"        "
+msgstr ""
+"\n"
+"あなたの大学の認証サーバーからあなたのID情報が返ってきませんでした。\n"
+"再度ログインしてみてください。(ブラウザを再起動する必要があるかもしれません。)\n"
+"        "
 
 #: openedx/core/djangoapps/oauth_dispatch/models.py
 msgid ""
@@ -10676,6 +10982,11 @@ msgid ""
 "blank."
 msgstr ""
 
+#: openedx/core/djangoapps/user_api/accounts/utils.py
+msgid ""
+" Make sure that you are providing a valid username or a URL that contains \""
+msgstr "正しいユーザー名または \"を含むURLが入力されているか確認してください。"
+
 #: openedx/core/djangoapps/user_api/accounts/views.py
 #: openedx/core/djangoapps/user_authn/views/login.py
 msgid ""
@@ -10706,6 +11017,10 @@ msgstr "成功"
 #: lms/templates/instructor/instructor_dashboard_2/e-commerce.html
 msgid "Actions"
 msgstr "アクション"
+
+#: openedx/core/djangoapps/user_api/api.py lms/templates/login.html
+msgid "Remember me"
+msgstr "ログイン状態を保存"
 
 #: openedx/core/djangoapps/user_api/config/waffle.py
 msgid "System maintenance in progress. Please try again later."
@@ -10843,12 +11158,38 @@ msgstr "アカウント作成は許可されていません。"
 #: openedx/core/djangoapps/user_authn/views/login.py
 #, python-brace-format
 msgid ""
+"You've successfully logged into your {provider_name} account, but this "
+"account isn't linked with an {platform_name} account yet."
+msgstr ""
+"{provider_name}のアカウントへのログインは成功しましたが、このアカウントはまだ{platform_name}のアカウントに連動していません。"
+
+#: openedx/core/djangoapps/user_authn/views/login.py
+#, python-brace-format
+msgid ""
 "You've successfully signed in to your {provider_name} account, but this "
 "account isn't linked with your {platform_name} account yet. {blank_lines}Use"
 " your {platform_name} username and password to sign in to {platform_name} "
 "below, and then link your {platform_name} account with {provider_name} from "
 "your dashboard. {blank_lines}If you don't have an account on {platform_name}"
 " yet, click {register_label_strong} at the top of the page."
+msgstr ""
+
+
+#: openedx/core/djangoapps/user_authn/views/login.py
+#, python-brace-format
+msgid ""
+"Use your {platform_name} username and password to log into {platform_name} "
+"below, and then link your {platform_name} account with {provider_name} from "
+"your dashboard."
+msgstr ""
+"{platform_name}のユーザー名とパスワードを用いて、{platform_name}にログインしてください。そして、ダッシュボードからあなたの{platform_name}アカウントを{provider_name}"
+" に連動させてください。"
+
+#: openedx/core/djangoapps/user_authn/views/login.py
+#, python-brace-format
+msgid ""
+"If you don't have an {platform_name} account yet, click "
+"{register_label_strong} at the top of the page."
 msgstr ""
 
 #: lms/templates/header/navbar-not-authenticated.html
@@ -10863,6 +11204,14 @@ msgid "There was an error receiving your login information. Please email us."
 msgstr "ログイン情報の受信時にエラーが発生しました。管理者へメールをお送りください。"
 
 #: openedx/core/djangoapps/user_authn/views/login.py
+msgid ""
+"Your password has expired due to password policy on this account. You must "
+"reset your password before you can log in again. Please click the \"Forgot "
+"Password\" link on this page to reset your password before logging in again."
+msgstr ""
+"あなたのパスワードはアカウントのパスワードポリシーにより期限切れとなりました。再度ログインする前にパスワードを変更する必要があります。\"パスワードを忘れた方はこちら\"のリンクをクリックして、再度ログインする前にパスワードを変更してください。"
+
+#: openedx/core/djangoapps/user_authn/views/login.py
 #, python-brace-format
 msgid ""
 "In order to sign in, you need to activate your account.{blank_lines}We just "
@@ -10870,6 +11219,9 @@ msgid ""
 "check your spam folders or {link_start}contact {platform_name} "
 "Support{link_end}."
 msgstr ""
+"サインインするにはアカウントを有効化してください。{blank_lines} "
+"{email_strong}に有効化するリンクを送りました。メールが届かない場合は、迷惑メールフォルダを確認するか、"
+"{link_start}{platform_name}サポートへお問い合わせください{link_end}。"
 
 #: openedx/core/djangoapps/user_authn/views/login.py
 msgid "Too many failed login attempts. Try again later."
@@ -11290,6 +11642,28 @@ msgid ""
 "{course} will help you stay on track!"
 msgstr ""
 
+
+#: openedx/features/content_type_gating/admin.py
+#: openedx/features/course_duration_limits/admin.py
+msgid ""
+"These define the context to enable course duration limits on. If no values "
+"are set, then the configuration applies globally. If a single value is set, "
+"then the configuration applies to all courses within that context. At most "
+"one value can be set at a time.<br>If multiple contexts apply to a course "
+"(for example, if configuration is specified for the course specifically, and"
+" for the org that the course is in, then the more specific context overrides"
+" the more general context."
+msgstr ""
+
+#: openedx/features/content_type_gating/admin.py
+#: openedx/features/course_duration_limits/admin.py
+msgid ""
+"If any of these values is left empty or \"Unknown\", then their value at "
+"runtime will be retrieved from the next most specific context that applies. "
+"For example, if \"Enabled\" is left as \"Unknown\" in the course context, "
+"then that course will be Enabled only if the org that it is in is Enabled."
+msgstr ""
+
 #: openedx/features/content_type_gating/models.py
 #: openedx/features/course_duration_limits/models.py
 #: lms/templates/support/feature_based_enrollments.html
@@ -11325,6 +11699,10 @@ msgstr ""
 #: openedx/features/content_type_gating/partitions.py
 #: openedx/features/content_type_gating/templates/content_type_gating/access_denied_message.html
 msgid "Graded assessments are available to Verified Track learners."
+msgstr ""
+
+#: openedx/features/content_type_gating/partitions.py
+msgid "Feature-based Enrollments"
 msgstr ""
 
 #: openedx/features/content_type_gating/partitions.py
@@ -11520,6 +11898,14 @@ msgstr ""
 msgid "Continue"
 msgstr "続ける"
 
+#: openedx/features/learner_profile/views/learner_profile.py
+#, python-brace-format
+msgid ""
+"Welcome to the new learner profile page. Your full profile now displays more"
+" information to other learners. You can instead choose to display a limited "
+"profile. {learn_more_link_start}Learn more{learn_more_link_end}"
+msgstr ""
+
 #: themes/red-theme/lms/templates/schedules/edx_ace/recurringnudge_day3/email/body.txt
 #, python-format
 msgid ""
@@ -11599,7 +11985,7 @@ msgstr ""
 msgid ""
 "Non writable git url provided. Expecting something like: "
 "git@github.com:edx/edx4edx_lite.git"
-msgstr ""
+msgstr "書き込みの出来ないgit urlです。期待値の例: git@github.com:edx/edx4edx_lite.git"
 
 #: cms/djangoapps/contentstore/git_export_utils.py
 msgid ""
@@ -12310,11 +12696,6 @@ msgstr "講座番号"
 msgid "Course Outline"
 msgstr "講座アウトライン"
 
-#: cms/templates/course_outline.html
-#: lms/templates/dashboard/_dashboard_status_verification.html
-msgid "Warning"
-msgstr ""
-
 #: cms/templates/html_error.html lms/templates/module-error.html
 msgid "Error:"
 msgstr "エラー: "
@@ -12346,11 +12727,34 @@ msgstr ""
 msgid "Courses"
 msgstr "講座"
 
-#: cms/templates/manage_users.html cms/templates/manage_users_lib.html
+#: cms/templates/login.html themes/red-theme/cms/templates/login.html
+msgid "Sign In to {studio_name}"
+msgstr "{studio_name}にサインイン"
+
+#: cms/templates/login.html themes/red-theme/cms/templates/login.html
+msgid "Don't have a {studio_name} Account? Sign up!"
+msgstr "{studio_name}アカウントをお持ちでない？新規登録しよう！"
+
+#: cms/templates/login.html themes/red-theme/cms/templates/login.html
+msgid "Required Information to Sign In to {studio_name}"
+msgstr "{studio_name}へのサインインに必要な情報"
+
+#. Translators: This is the placeholder text for a field that requests an
+#. email
+#. address.
+#: cms/templates/login.html cms/templates/manage_users.html
+#: cms/templates/manage_users_lib.html cms/templates/register.html
+#: lms/templates/login.html lms/templates/register-form.html
+#: lms/templates/register-shib.html themes/red-theme/cms/templates/login.html
 #: themes/stanford-style/lms/templates/register-form.html
 #: themes/stanford-style/lms/templates/register-shib.html
 msgid "example: username@domain.com"
 msgstr "例: username@domain.com"
+
+#: cms/templates/login.html lms/templates/login.html
+#: themes/red-theme/cms/templates/login.html
+msgid "Forgot password?"
+msgstr "パスワードを忘れた方はこちら"
 
 #: cms/templates/settings.html
 #: lms/templates/instructor/instructor_dashboard_2/executive_summary.html
@@ -12845,6 +13249,141 @@ msgstr "パスワードを変更"
 msgid "Email is incorrect."
 msgstr "メールアドレスが間違っています。"
 
+#: lms/templates/help_modal.html
+msgid "Support"
+msgstr "サポート"
+
+#: lms/templates/help_modal.html
+msgid ""
+"For {strong_start}questions on course lectures, homework, tools, or "
+"materials for this course{strong_end}, post in the {link_start}course "
+"discussion forum{link_end}."
+msgstr ""
+" {strong_start}この講座の講義内容や宿題、ツール、教材への疑問{strong_end}は、 "
+"{link_start}ディスカッションフォーラム{link_end}に投稿しましょう。"
+
+#: lms/templates/help_modal.html
+msgid ""
+"Have {strong_start}general questions about {platform_name}{strong_end}? You "
+"can find lots of helpful information in the {platform_name} "
+"{link_start}FAQ{link_end}."
+msgstr ""
+"{strong_start}{platform_name} に関する質問{strong_end}がある方は、{platform_name}の "
+"{link_start}FAQ{link_end}で役立つ情報を多数ご覧いただけます。"
+
+#: lms/templates/help_modal.html
+msgid ""
+"Have a {strong_start}question about something specific{strong_end}? You can "
+"contact the {platform_name} general support team directly:"
+msgstr ""
+"{strong_start}特別な質問{strong_end}がある方は、{platform_name} "
+"の総合サポートチームに直接お問い合わせください: "
+
+#: lms/templates/help_modal.html
+msgid "Report a problem"
+msgstr "トラブルの報告"
+
+#: lms/templates/help_modal.html
+msgid "Make a suggestion"
+msgstr "改善要望"
+
+#: lms/templates/help_modal.html
+msgid "Ask a question"
+msgstr "問い合わせ"
+
+#: lms/templates/help_modal.html
+msgid ""
+"Please note: The {platform_name} support team is English speaking. While we "
+"will do our best to address your inquiry in any language, our responses will"
+" be in English."
+msgstr ""
+"注意: {platform_name}のサポートチームの言語は英語です。すべての言語のお問い合わせに極力対応しますが、返信は英語となります。"
+
+#: lms/templates/help_modal.html
+msgid "Briefly describe your issue"
+msgstr "問題を端的に記述してください"
+
+#: lms/templates/help_modal.html
+msgid "Tell us the details"
+msgstr "詳細を教えてください"
+
+#: lms/templates/help_modal.html
+msgid ""
+"Describe what you were doing when you encountered the issue. Include any "
+"details that will help us to troubleshoot, including error messages that you"
+" saw."
+msgstr "その問題に遭遇したときに何をしていたか記述してください。問題解決に役立ちそうな詳細や表示されたエラーメッセージも併せてご記入ください。"
+
+#: lms/templates/help_modal.html
+msgid "Thank You!"
+msgstr "ありがとうございます！"
+
+#: lms/templates/help_modal.html
+msgid ""
+"Thank you for your inquiry or feedback.  We typically respond to a request "
+"within one business day, Monday to Friday.  In the meantime, please review "
+"our {link_start}detailed FAQs{link_end} where most questions have already "
+"been answered."
+msgstr ""
+"お問い合わせやフィードバックをいただき、ありがとうございます。回答は月曜から金曜までの１営業日以内にさせていただいております。お待ちの間、いろいろな質問の回答が掲載されている{link_start}詳細FAQ"
+" {link_end}を参照してください。"
+
+#: lms/templates/help_modal.html
+msgid "- Select -"
+msgstr "- 選択 -"
+
+#: lms/templates/help_modal.html
+msgid "problem"
+msgstr "問題"
+
+#: lms/templates/help_modal.html
+msgid "Report a Problem"
+msgstr "トラブルの報告"
+
+#: lms/templates/help_modal.html
+msgid "Brief description of the problem"
+msgstr "トラブルの概要"
+
+#: lms/templates/help_modal.html
+msgid "Details of the problem you are encountering{asterisk}"
+msgstr "現在遭遇している問題の詳細{asterisk}"
+
+#: lms/templates/help_modal.html
+msgid "suggestion"
+msgstr "改善提案"
+
+#: lms/templates/help_modal.html
+msgid "Make a Suggestion"
+msgstr "改善提案する"
+
+#: lms/templates/help_modal.html
+msgid "Brief description of your suggestion"
+msgstr "改善提案の概要"
+
+#: lms/templates/help_modal.html
+msgid "question"
+msgstr "お問い合わせ"
+
+#: lms/templates/help_modal.html
+msgid "Ask a Question"
+msgstr "問い合わせる"
+
+#: lms/templates/help_modal.html
+msgid "Brief summary of your question"
+msgstr "お問い合わせの概要"
+
+#: lms/templates/help_modal.html
+msgid "An error has occurred."
+msgstr "エラーが発生しました。"
+
+#: lms/templates/help_modal.html
+msgid "Please {link_start}send us e-mail{link_end}."
+msgstr " {link_start}メールを送信{link_end}してください。"
+
+#: lms/templates/help_modal.html
+msgid "Please try again later."
+msgstr "後ほど再試行してください。"
+
 #: lms/templates/hidden_content.html
 msgid "The course has ended."
 msgstr "講座は終了しています。"
@@ -12918,6 +13457,87 @@ msgid_plural ""
 "list."
 msgstr[0] ""
 "{display_name}に追加される条件を満たすすべてのコンテンツを表示しています。各受講者にはリストからランダムに選ばれた{max_count}個のコンポーネントが割り当てられます。"
+
+#: lms/templates/login-sidebar.html
+msgid "Helpful Information"
+msgstr "お役立ち情報"
+
+#: lms/templates/login-sidebar.html
+msgid "Login via OpenID"
+msgstr "OpenIDでログイン"
+
+#: lms/templates/login-sidebar.html
+msgid ""
+"You can now start learning with {platform_name} by logging in with your <a "
+"rel=\"external\" href=\"http://openid.net/\">OpenID account</a>."
+msgstr ""
+"<a rel=\"external\" "
+"href=\"http://openid.net/\">OpenIDアカウント</a>でログインして、{platform_name}での学習を始めましょう。"
+
+#: lms/templates/login-sidebar.html
+msgid "Not Enrolled?"
+msgstr "まだ受講登録していない方へ"
+
+#: lms/templates/login-sidebar.html
+msgid "Sign up for {platform_name} today!"
+msgstr "今すぐ{platform_name}に受講登録しよう！"
+
+#: lms/templates/login-sidebar.html
+msgid "Looking for help signing in or with your {platform_name} account?"
+msgstr "サインインまたは{platform_name}アカウントについての説明をお探しですか？"
+
+#: lms/templates/login-sidebar.html
+msgid "View our help section for answers to commonly asked questions."
+msgstr "ヘルプセクションでよくある質問を確認してください。"
+
+#: lms/templates/login.html
+msgid "Log into your {platform_name} Account"
+msgstr "{platform_name}アカウントにログイン"
+
+#: lms/templates/login.html
+msgid "Log into My {platform_name} Account"
+msgstr "{platform_name}アカウントにログイン"
+
+#: lms/templates/login.html
+msgid "Access My Courses"
+msgstr "受講講座にアクセス"
+
+#: lms/templates/login.html
+msgid "to access your account and courses"
+msgstr "アカウントおよび講座にアクセスするために"
+
+#: lms/templates/login.html
+msgid "We're Sorry, {platform_name} accounts are unavailable currently"
+msgstr "申し訳ありません。{platform_name}アカウントは現在利用できません"
+
+#: lms/templates/login.html
+msgid "We couldn't log you in."
+msgstr "ログインに失敗しました。"
+
+#: lms/templates/login.html
+msgid "Your email or password is incorrect"
+msgstr "メールもしくはパスワードが間違っています"
+
+#: lms/templates/login.html
+msgid "An error occurred when signing you in to {platform_name}."
+msgstr " {platform_name} へのサインイン時にエラーが発生しました。"
+
+#: lms/templates/login.html
+msgid ""
+"Please provide the following information to log into your {platform_name} "
+"account. Required fields are noted by <strong class=\"indicator\">bold text "
+"and an asterisk (*)</strong>."
+msgstr ""
+"{platform_name}アカウントへログインするには以下の項目を入力してください。<strong "
+"class=\"indicator\">(*)付きの太字の項目</strong>は必須です。"
+
+#: lms/templates/login.html
+msgid "Account Preferences"
+msgstr "アカウント設定"
+
+#: lms/templates/login.html
+msgid "Sign in with {provider_name}"
+msgstr "{provider_name}でサインインする"
 
 #. Translators:  "External resource" means that this learning module is hosted
 #. on a platform external to the edX LMS
@@ -13024,6 +13644,10 @@ msgstr ""
 msgid "Raw data:"
 msgstr "生データ: "
 
+#: lms/templates/notes.html
+msgid "You do not have any notes."
+msgstr "ノートがありません。"
+
 #: lms/templates/preview_menu.html
 msgid "Course View"
 msgstr "講座ビュー"
@@ -13120,6 +13744,54 @@ msgstr "メール"
 msgid "Return To %s"
 msgstr "%s に戻る"
 
+#: lms/templates/register-sidebar.html
+msgid ""
+"Registering with {platform_name} gives you access to all of our current and "
+"future free courses. Not ready to take a course just yet? Registering puts "
+"you on our mailing list - we will update you as courses are added."
+msgstr ""
+"{platform_name}に登録すると、いつでもすべての講座にアクセスできます。受講したい講座がまだ見つかっていないという方も、ぜひご登録ください。登録いただいた方には、新しい講座のお知らせをメールにてご連絡します。"
+
+#: lms/templates/register-sidebar.html
+msgid ""
+"As part of joining {platform_name}, you will receive an email message with "
+"instructions for activating your account. Don't see the email? Check your "
+"spam folder and mark {platform_name} emails as 'not spam'. At "
+"{platform_name}, we communicate mostly through email."
+msgstr ""
+" {platform_name}に登録すると、アカウントの有効化に関するメールが送られます。メールが届いていない場合は、迷惑メールフォルダを確認して "
+"{platform_name} からのメールを「迷惑メールではない」と設定してください。 {platform_name} "
+"では、ほとんどのやりとりをメールで行います。"
+
+#: lms/templates/register-sidebar.html
+msgid "Need help registering with {platform_name}?"
+msgstr " {platform_name}に登録する際のヘルプが必要ですか？"
+
+#: lms/templates/register-sidebar.html
+msgid ""
+"You can find the answers to most of your questions in our list of FAQs. "
+"After you enroll in a course, you can also find answers in the course "
+"discussions."
+msgstr ""
+"ほとんどの疑問への回答は FAQ "
+"（よくある質問）一覧から見つけ出せるでしょう。講座に受講登録をすれば、講座ディスカッション内でも答えが見つかるでしょう。"
+
+#: lms/templates/register.html
+msgid "Register for {platform_name}"
+msgstr "{platform_name}へ登録"
+
+#: lms/templates/register.html
+msgid "Create My {platform_name} Account"
+msgstr "{platform_name}アカウントを作成する"
+
+#: lms/templates/register.html
+msgid "Welcome!"
+msgstr "ようこそ！"
+
+#: lms/templates/register.html
+msgid "Register below to create your {platform_name} account"
+msgstr "{platform_name}アカウント作成にあたり、以下の登録をお願いします"
+
 #: lms/templates/reset_deadlines_banner.html
 msgid "It looks like you've missed some important deadlines. Visit "
 msgstr ""
@@ -13215,7 +13887,7 @@ msgstr "例. 氏名 (修了証に記載)"
 
 #: lms/templates/signup_modal.html
 msgid "{start_li}Welcome{end_li} {name}"
-msgstr ""
+msgstr "{start_li}ようこそ{end_li}、{name}さん"
 
 #: lms/templates/signup_modal.html
 #: themes/stanford-style/lms/templates/register-shib.html
@@ -13471,6 +14143,11 @@ msgstr "講座IDもしくはディレクトリ"
 #: lms/templates/sysadmin_dashboard.html
 msgid "Delete course from site"
 msgstr "サイトから講座を削除する"
+
+#. Translators: A version number appears after this string
+#: lms/templates/sysadmin_dashboard.html
+msgid "Platform Version"
+msgstr "プラットフォームバージョン"
 
 #: lms/templates/sysadmin_dashboard_gitlogs.html
 msgid "Page {current_page} of {total_pages}"
@@ -14767,6 +15444,8 @@ msgid ""
 "charged.{b_end} Please try to submit your payment again. If this problem "
 "persists, contact {email}."
 msgstr ""
+"支払時にエラーが発生しました。{b_start}課金請求はされません。{b_end}もう一度支払手続きをしてください。問題が解決しない場合は、{email} "
+"にお問い合わせください。"
 
 #: lms/templates/commerce/checkout_receipt.html
 msgid "Loading Order Data..."
@@ -14985,6 +15664,16 @@ msgid "An error has occurred. Please ensure that you are logged in to enroll."
 msgstr ""
 
 #: lms/templates/courseware/course_about.html
+msgid ""
+"The currently logged-in user account does not have permission to enroll in "
+"this course. You may need to {start_logout_tag}log out{end_tag} then try the"
+" enroll button again. Please visit the {start_help_tag}help page{end_tag} "
+"for a possible solution."
+msgstr ""
+"現在ログイン中のユーザーアカウントはこの講座を受講する権限を有しておりません。 {start_logout_tag}ログアウト{end_tag} "
+"し、改めて受講登録ボタンからお試しください。{start_help_tag}ヘルプページ{end_tag}に役に立つ情報があるかもしれませんのでご確認ください。"
+
+#: lms/templates/courseware/course_about.html
 msgid "You are enrolled in this course"
 msgstr "この講座に登録されています"
 
@@ -14997,7 +15686,7 @@ msgstr "講座画面へ"
 
 #: lms/templates/courseware/course_about.html
 msgid "This course is in your {start_cart_link}cart{end_cart_link}."
-msgstr ""
+msgstr "この講座は{start_cart_link}カート{end_cart_link}に入っています。"
 
 #: lms/templates/courseware/course_about.html
 msgid "Course is full"
@@ -15013,11 +15702,15 @@ msgstr "受講登録は終了しました"
 
 #: lms/templates/courseware/course_about.html
 msgid "Add {course_name} to Cart {start_span}({price} USD){end_span}"
-msgstr ""
+msgstr "{course_name}をカートに追加{start_span}({price} 米ドル){end_span}"
 
 #: lms/templates/courseware/course_about.html
 msgid "Enroll Now"
 msgstr ""
+
+#: lms/templates/courseware/course_about.html
+msgid "Enroll in {course_name}"
+msgstr "{course_name}に受講登録"
 
 #: lms/templates/courseware/course_about.html
 msgid "View About Page in studio"
@@ -15898,6 +16591,8 @@ msgid ""
 "credit at the {link_to_provider_site} website. Select {start_bold}Request "
 "Credit{end_bold} to get started."
 msgstr ""
+"お支払いいただき、ありがとうございます。単位を獲得するには、{link_to_provider_site} "
+"で単位のリクエストをしなければいけません。{start_bold}単位をリクエストする{end_bold}を選択して、始めよう。"
 
 #: lms/templates/dashboard/_dashboard_credit_info.html
 msgid "Request Credit"
@@ -15923,6 +16618,7 @@ msgid ""
 "request for course credit. To see your course credit, visit the "
 "{link_to_provider_site} website."
 msgstr ""
+"{start_bold}おめでとうございます！{end_bold}{provider_name}はあなたの講座単位リクエストを承認しました。確認するには、{link_to_provider_site}サイトをご覧ください。"
 
 #: lms/templates/dashboard/_dashboard_credit_info.html
 msgid "View Credit"
@@ -16286,6 +16982,35 @@ msgstr "ノートを非表示"
 msgid "Show notes"
 msgstr "ノートを表示"
 
+#: lms/templates/emails/activation_email.txt
+msgid ""
+"You're almost there! Use the link to activate your account to access "
+"engaging, high-quality {platform_name} courses. Note that you will not be "
+"able to log back into your account until you have activated it."
+msgstr ""
+"もう少しです！アカウントを有効化するリンクへアクセスし、{platform_name}の質の高い講座に参加しましょう。アカウントを有効化しないとログインできませんので、ご注意ください。"
+
+#: lms/templates/emails/activation_email.txt
+msgid "Enjoy learning with {platform_name}."
+msgstr "{platform_name}で楽しく学びましょう。"
+
+#: lms/templates/emails/activation_email.txt
+msgid ""
+"If you need help, please use our web form at {support_url} or email "
+"{support_email}."
+msgstr "ヘルプが必要でしたら、{support_url}のフォームをご使用いただくか、{support_email}までメールでご連絡ください。"
+
+#: lms/templates/emails/activation_email.txt
+msgid ""
+"This email message was automatically sent by {lms_url} because someone "
+"attempted to create an account on {platform_name} using this email address."
+msgstr ""
+"どなたかが{platform_name}アカウントを作成するためにこのメールアドレスを入力したため、{lms_url}より自動的にこのメッセージが送信されました。"
+
+#: lms/templates/emails/activation_email_subject.txt
+msgid "Action Required: Activate your {platform_name} account"
+msgstr "必要な操作: {platform_name}アカウントを有効化する"
+
 #: lms/templates/emails/business_order_confirmation_email.txt
 msgid "Thank you for your purchase of "
 msgstr "ありがとうございます。ご購入いただいたのは"
@@ -16438,6 +17163,10 @@ msgstr "(5) 教材は受講開始日まで利用できません。"
 #: lms/templates/emails/business_order_confirmation_email.txt
 msgid "<p>Sincerely,</p><p>[[Your Signature]]</p>"
 msgstr "<p>敬意を込めて、</p><p>[[ご署名]]</p>"
+
+#: lms/templates/emails/email_change_subject.txt
+msgid "Request to change {platform_name} account e-mail"
+msgstr "{platform_name}アカウントのメールの変更をリクエストする"
 
 #: lms/templates/emails/failed_verification_email.txt
 msgid ""
@@ -16840,7 +17569,13 @@ msgstr ""
 "{chrome_link}または{ff_link}をお使いいただくことを強くお勧めします。"
 
 #: lms/templates/header/navbar-authenticated.html
+#: lms/templates/navigation/navbar-authenticated.html
+#: lms/templates/navigation/bootstrap/navbar-authenticated.html
 #: themes/edx.org/lms/templates/header/navbar-authenticated.html
+msgid "Journals"
+msgstr ""
+
+#: lms/templates/header/navbar-authenticated.html
 msgid "Discover New"
 msgstr ""
 
@@ -18126,6 +18861,78 @@ msgstr "CCXコーチは、自分自身の学生のための個別指導をする
 msgid "Add CCX Coach"
 msgstr "CCXコーチを追加"
 
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "There is no data available to display at this time."
+msgstr "現在表示可能なデータはありません。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Use Reload Graphs to refresh the graphs."
+msgstr "'グラフの再読込'を使ってグラフを更新します。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Reload Graphs"
+msgstr "グラフの再読込"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Subsection Data"
+msgstr "サブセクションデータ"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Each bar shows the number of students that opened the subsection."
+msgstr "それぞれの棒グラフはセクションを開いた受講者数を表します。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid ""
+"You can click on any of the bars to list the students that opened the "
+"subsection."
+msgstr "セクションを開いた受講者の一覧を表示するには、棒グラフのいずれかをクリックしてください。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "You can also download this data as a CSV file."
+msgstr "このデータはCSVファイルとしてダウンロードすることができます。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Download Subsection Data for all Subsections as a CSV"
+msgstr "すべてのサブセクションのデータをCSVでダウンロード"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Grade Distribution Data"
+msgstr "成績分布データ"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Each bar shows the grade distribution for that problem."
+msgstr "それぞれの棒グラフはその問題の成績分布を表します。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid ""
+"You can click on any of the bars to list the students that attempted the "
+"problem, along with the grades they received."
+msgstr "棒グラフのいずれかをクリックすると、問題を解答した受講者の一覧が成績とともに表示されます。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Download Problem Data for all Problems as a CSV"
+msgstr "すべての問題データをCSVでダウンロード"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Grade Distribution per Problem"
+msgstr "問題ごとの成績分布"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Download Student Opened as a CSV"
+msgstr "開いた受講者をCSVでダウンロード"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Download Student Grades as a CSV"
+msgstr "受講者成績をCSVでダウンロード"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "This is a partial list, to view all students download as a csv."
+msgstr "これはリストの一部です。すべての受講者を見るにはCSVでダウンロードしてください。"
+
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "There are no problems in this section."
+msgstr "このセクションには問題がありません。"
+
 #: lms/templates/instructor/instructor_dashboard_2/send_email.html
 msgid "Send to:"
 msgstr "宛先: "
@@ -18457,6 +19264,10 @@ msgstr "この問題に関して提出したタスクのステータスを表示
 msgid "My Courses"
 msgstr "受講登録した講座"
 
+#: lms/templates/learner_dashboard/_dashboard_navigation_journals.html
+msgid "My Journals"
+msgstr ""
+
 #: lms/templates/learner_dashboard/text-me-fragment.html
 msgid "Get the {platform_name} Mobile App!"
 msgstr ""
@@ -18658,6 +19469,41 @@ msgstr "フラグを保持する"
 #: lms/templates/peer_grading/peer_grading_problem.html
 msgid "Go Back"
 msgstr "戻る"
+
+#: lms/templates/provider/authorize.html
+msgid ""
+"{start_strong}{application_name}{end_strong} would like to access your data "
+"with the following permissions:"
+msgstr ""
+"{start_strong}{application_name}{end_strong} は以下の許可によりあなたのデータへのアクセスを希望します: "
+
+#: lms/templates/provider/authorize.html
+msgid "Read your user ID"
+msgstr "ユーザーIDを読む"
+
+#: lms/templates/provider/authorize.html
+msgid "Read your user profile"
+msgstr "ユーザープロフィールを読む"
+
+#: lms/templates/provider/authorize.html
+msgid "Read your email address"
+msgstr "メールアドレスを読む"
+
+#: lms/templates/provider/authorize.html
+msgid "Read the list of courses in which you are a staff member."
+msgstr "あなたがスタッフメンバーになっている講座リストを読んでください。"
+
+#: lms/templates/provider/authorize.html
+msgid "Read the list of courses in which you are an instructor."
+msgstr "あなたが講師になっている講座リストを読んでください。"
+
+#: lms/templates/provider/authorize.html
+msgid "To see if you are a global staff user"
+msgstr "あなたがグローバルスタッフユーザーであるかどうかを見るには"
+
+#: lms/templates/provider/authorize.html
+msgid "Manage your data: {permission}"
+msgstr "データを管理する：{permission}"
 
 #: lms/templates/registration/account_activation_sidebar_notice.html
 msgid "Account Activation Info"
@@ -19155,6 +20001,13 @@ msgid ""
 "Our staff is currently working to get the site back up as soon as possible. "
 msgstr ""
 
+#: lms/templates/static_templates/server-down.html
+#: lms/templates/static_templates/server-overloaded.html
+msgid ""
+"Our staff is currently working to get the site back up as soon as possible. "
+"Please email us at {tech_support_email} to report any problems or downtime."
+msgstr "できるだけ早く復旧するよう作業中です。問題やダウンタイムに関する報告は{tech_support_email}へメールでお送りください。"
+
 #: lms/templates/static_templates/server-error.html
 msgid "There has been a 500 error on the {platform_name} servers"
 msgstr "{platform_name}のサーバーに500エラーが発生しました"
@@ -19503,6 +20356,10 @@ msgstr "部分的に著作権あり"
 msgid "Upcoming Dates"
 msgstr ""
 
+#: openedx/features/course_experience/templates/course_experience/course-dates-fragment.html
+msgid "Important Course Dates"
+msgstr "講座の重要な予定"
+
 #: openedx/features/course_experience/templates/course_experience/course-home-fragment.html
 msgid "Goal: "
 msgstr ""
@@ -19616,6 +20473,10 @@ msgstr ""
 msgid "This course does not have any updates."
 msgstr "本講座は更新情報がありません。"
 
+#: openedx/features/course_experience/templates/course_experience/dates-summary.html
+msgid "Today is {date}"
+msgstr "本日は {date} です"
+
 #: openedx/features/course_experience/templates/course_experience/latest-update-fragment.html
 msgid "Latest Update"
 msgstr "最新更新"
@@ -19631,6 +20492,80 @@ msgstr ""
 #: openedx/features/course_search/templates/course_search/course-search-fragment.html
 msgid "Search Results"
 msgstr "検索結果"
+
+#: openedx/features/journals/templates/journals/bundle_about.html
+msgid "Purchase the Bundle ("
+msgstr ""
+
+#: openedx/features/journals/templates/journals/bundle_about.html
+msgid "Courses included"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/bundle_about.html
+msgid "Journals included"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/bundle_about.html
+msgid "{access_length} Day Access"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/bundle_about.html
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "View Journal"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/bundle_card.html
+msgid "Bundle"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/journal_card.html
+msgid "Journal"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/journal_card.html
+msgid "{num_months} month"
+msgid_plural "{num_months} months"
+msgstr[0] ""
+
+#: openedx/features/journals/templates/journals/journal_card.html
+msgid "unlimited"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/journal_card.html
+msgid "Access Length"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "Journal Dashboard"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "{journal_title} Cover Image"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "Access Expired: {date}"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "Access Expires: {date}"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "Renew Access"
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "You have not purchased access to any journals yet."
+msgstr ""
+
+#: openedx/features/journals/templates/journals/learner_dashboard/journal_dashboard.html
+msgid "Explore journals and courses"
+msgstr ""
+
+#: openedx/features/learner_analytics/templates/learner_analytics/dashboard.html
+msgid "My Stats (Beta)"
+msgstr ""
 
 #. Translators: this section lists all the third-party authentication
 #. providers
@@ -19823,6 +20758,15 @@ msgstr "講座を探す"
 #: themes/edx.org/lms/templates/header/navbar-authenticated.html
 msgid "Schools & Partners"
 msgstr "学校およびパートナー"
+
+#. Translators: 'EdX', 'edX', and 'Open edX' are trademarks of 'edX Inc.'.
+#. Please do not translate any of these trademarks and company names.
+#: themes/red-theme/lms/templates/footer.html
+msgid ""
+"EdX, Open edX, and the edX and Open edX logos are registered trademarks or "
+"trademarks of {link_start}edX Inc.{link_end}"
+msgstr ""
+"EdX、Open edXおよびedX、Open edXロゴは {link_start}edX Inc.{link_end} の商標または登録商標です。"
 
 #: themes/red-theme/lms/templates/footer.html
 msgid ""
@@ -20112,6 +21056,55 @@ msgstr "もし不具合が解消されない場合は、{email_link}へメール
 msgid "Studio Accessibility Policy"
 msgstr ""
 
+#: cms/templates/activation_active.html cms/templates/activation_complete.html
+#: cms/templates/activation_invalid.html
+msgid "{studio_name} Account Activation"
+msgstr "{studio_name}のアカウント有効化"
+
+#: cms/templates/activation_active.html
+msgid "Your account is already active"
+msgstr "アカウントは既に有効になっています"
+
+#: cms/templates/activation_active.html
+msgid ""
+"This account, set up using {email}, has already been activated. Please sign "
+"in to start working within {studio_name}."
+msgstr "{email}を使用して設定したアカウントは既に有効化されています。{studio_name}で作業を開始するにはサインインしてください。"
+
+#: cms/templates/activation_active.html cms/templates/activation_complete.html
+msgid "Sign into {studio_name}"
+msgstr "{studio_name}にサインイン"
+
+#: cms/templates/activation_complete.html
+msgid "Your account activation is complete!"
+msgstr "アカウントが有効になりました！"
+
+#: cms/templates/activation_complete.html
+msgid ""
+"Thank you for activating your account. You may now sign in and start using "
+"{studio_name} to author courses."
+msgstr "アカウント登録ありがとうございます。さっそくサインインして、{studio_name}で講座を作成しましょう。"
+
+#: cms/templates/activation_invalid.html
+msgid "Your account activation is invalid"
+msgstr "アカウント登録が無効です"
+
+#: cms/templates/activation_invalid.html
+msgid ""
+"We're sorry. Something went wrong with your activation. Check to make sure "
+"the URL you went to was correct, as e-mail programs will sometimes split it "
+"into two lines."
+msgstr ""
+"申し訳ありませんが、有効化できませんでした。メールプログラムがURLを２行に分割してしまうことがありますので、今一度URL が正しいかご確認ください。"
+
+#: cms/templates/activation_invalid.html
+msgid ""
+"If you still have issues, contact {platform_name} Support. In the meantime, "
+"you can also return to {link_start}the {studio_name} homepage.{link_end}"
+msgstr ""
+"不具合が解消しない場合は "
+"{platform_name}サポートにお問い合わせください。その間、{link_start}{studio_name}ホームページ{link_end}に戻ることもできます。"
+
 #: cms/templates/asset_index.html cms/templates/widgets/header.html
 msgid "Files & Uploads"
 msgstr "ファイル＆アップロード"
@@ -20330,6 +21323,10 @@ msgstr ""
 " HTMLコンポーネントからこのユニットへのリンクを作成するには、URL値として \"/jump_to_id/<location "
 "ID>\"を入力してください。"
 
+#: cms/templates/container.html
+msgid "Location in Course Outline"
+msgstr "講座アウトライン内のロケーション"
+
 #: cms/templates/course-create-rerun.html
 msgid "Create a Course Rerun of:"
 msgstr "次のCourse Rerunを作成: "
@@ -20491,6 +21488,10 @@ msgid ""
 msgstr ""
 "現在講座コンテンツは公開されておらず、誰も受講登録していません。講座開始日などすべての日付を確認してリセット、講座チームを設定、講座の新着情報およびその他の期日設定がある資料を確認、ディスカッションと"
 " Wiki の準備をしてください。"
+
+#: cms/templates/course_outline.html
+msgid "Warning"
+msgstr "警告"
 
 #: cms/templates/course_outline.html
 msgid "This course uses features that are no longer supported."
@@ -22137,6 +23138,92 @@ msgid ""
 msgstr ""
 "ライブラリ管理者は全ての編集権限を持っており、他のチームメンバーを追加したり削除することができます。ライブラリには管理者権限を持つユーザーが少なくとも１名必要です。"
 
+#: cms/templates/register.html
+msgid "Sign Up for {studio_name}"
+msgstr "{studio_name}に登録"
+
+#: cms/templates/register.html
+msgid "Already have a {studio_name} Account? Sign in"
+msgstr "既に{studio_name}のアカウントをお持ちの方はサインインをしてください"
+
+#: cms/templates/register.html
+msgid ""
+"Ready to start creating online courses? Sign up below and start creating "
+"your first {platform_name} course today."
+msgstr "オンライン講座作成を始める準備はできましたか？いますぐ登録をして、最初の{platform_name}講座を作成しましょう！"
+
+#: cms/templates/register.html
+msgid "Required Information to Sign Up for {studio_name}"
+msgstr "{studio_name}への登録に必要な情報"
+
+#: cms/templates/register.html
+msgid ""
+"This will be used in public discussions with your courses and in our edX101 "
+"support forums"
+msgstr "これはあなたの講座とedX101のサポートフォーラムの公開ディスカッションで使用されます"
+
+#: cms/templates/register.html
+msgid "Your Location"
+msgstr "現在地"
+
+#: cms/templates/register.html
+msgid "Preferred Language"
+msgstr "希望言語"
+
+#: cms/templates/register.html
+msgid "I agree to the {a_start} Terms of Service {a_end}"
+msgstr " {a_start}利用規約{a_end}に同意します"
+
+#: cms/templates/register.html
+msgid "Create My Account &amp; Start Authoring Courses"
+msgstr "アカウントを作成する&amp; 講座制作を開始する"
+
+#: cms/templates/register.html
+msgid "Common {studio_name} Questions"
+msgstr "{studio_name}でのよくある質問"
+
+#: cms/templates/register.html
+msgid "Who is {studio_name} for?"
+msgstr "{studio_name}はどんな人向け？"
+
+#: cms/templates/register.html
+msgid ""
+"{studio_name} is for anyone that wants to create online courses that "
+"leverage the global {platform_name} platform. Our users are often faculty "
+"members, teaching assistants and course staff, and members of instructional "
+"technology groups."
+msgstr ""
+"{studio_name}は{platform_name}プラットフォームでオンライン講座を作成したい方のためにあります。教員、ティーチングアシスタント、講座スタッフ、教育技術グループのメンバーなどがユーザーです。"
+
+#: cms/templates/register.html
+msgid ""
+"How technically savvy do I need to be to create courses in {studio_name}?"
+msgstr "{studio_name}で講座を作成するためには、どのような技術的知識が必要ですか？"
+
+#: cms/templates/register.html
+msgid ""
+"{studio_name} is designed to be easy to use by almost anyone familiar with "
+"common web-based authoring environments (Wordpress, Moodle, etc.). No "
+"programming knowledge is required, but for some of the more advanced "
+"features, a technical background would be helpful. As always, we are here to"
+" help, so don't hesitate to dive right in."
+msgstr ""
+"{studio_name}は、一般的なWeb制作環境 (WordpressやMoodleなど) "
+"をご存知の方なら誰でも使えるようにデザインされています。プログラミング知識は必要としませんが、高度な機能の中には技術的知識が助けになるものもあります。しかし、もちろん我々がお手伝いしますので、まずは始めてみましょう。"
+
+#: cms/templates/register.html
+msgid "I've never authored a course online before. Is there help?"
+msgstr "オンライン講座制作は初めてなのですが、ヘルプは用意されていますか？"
+
+#: cms/templates/register.html
+msgid ""
+"Absolutely. We have created an online course, edX101, that describes some "
+"best practices: from filming video, creating exercises, to the basics of "
+"running an online course. Additionally, we're always here to help, just drop"
+" us a note."
+msgstr ""
+"もちろんです。オンライン講座のお手本としてedX101を作成しました。映像撮影、問題の作成からオンライン講座を運営するにあたっての基本事項がわかります。また、スタッフもいますので、お気軽にお問合せください。"
+
 #: cms/templates/settings.html
 msgid "Schedule & Details Settings"
 msgstr "スケジュール＆詳細設定"
@@ -22926,6 +24013,25 @@ msgid ""
 "restriction."
 msgstr "このグループは存在していません。別のグループを選ぶか、アクセスを制限しないでください。"
 
+#: cms/templates/emails/activation_email.txt
+msgid ""
+"Thank you for signing up for {studio_name}! To activate your account, please"
+" copy and paste this address into your web browser's address bar:"
+msgstr ""
+"{studio_name}にご登録いただき、ありがとうございます！アカウントを有効化するには、このアドレスをウェブブラウザのアドレスバーにコピー＆ペーストしてください。"
+
+#: cms/templates/emails/activation_email.txt
+msgid ""
+"If you didn't request this, you don't need to do anything; you won't receive"
+" any more email from us. Please do not reply to this e-mail; if you require "
+"assistance, check the help section of the {studio_name} web site."
+msgstr ""
+"もしこれをリクエストした覚えがないのであれば、何もする必要はありません。これ以上私共からのメールが届くことはありません。このメールには返信しないでください。ご不明な点がありましたら、{studio_name}のウェブサイトのヘルプをご覧ください。"
+
+#: cms/templates/emails/activation_email_subject.txt
+msgid "Your account for {studio_name}"
+msgstr "{studio_name}のアカウント"
+
 #: cms/templates/emails/course_creator_admin_subject.txt
 msgid "{email} has requested {studio_name} course creator privileges on edge"
 msgstr "{email}は{studio_name}の講座制作者の権限をedgeでリクエストしました"
@@ -23066,6 +24172,16 @@ msgstr ""
 msgid "LMS"
 msgstr ""
 
+#. Translators: 'EdX', 'edX', 'Studio', and 'Open edX' are trademarks of 'edX
+#. Inc.'. Please do not translate any of these trademarks and company names.
+#: cms/templates/widgets/footer.html
+msgid ""
+"EdX, Open edX, Studio, and the edX and Open edX logos are registered "
+"trademarks or trademarks of {link_start}edX Inc.{link_end}"
+msgstr ""
+"EdX、Open edX、StudioおよびedX、Open edXロゴは {link_start}edX Inc.{link_end} "
+"の商標または登録商標です。"
+
 #: cms/templates/widgets/header.html
 msgid "Current Course:"
 msgstr "受講中の講座: "
@@ -23157,6 +24273,10 @@ msgstr "詳細エディタ"
 #: cms/templates/widgets/problem-edit.html
 msgid "Markdown Help"
 msgstr ""
+
+#: cms/templates/widgets/problem-edit.html
+msgid "Toggle Cheatsheet"
+msgstr "虎の巻を切り替える"
 
 #: cms/templates/widgets/problem-edit.html
 msgid "Label"
