@@ -427,6 +427,10 @@ msgstr ""
 "gesetzt haben."
 
 #: common/djangoapps/course_modes/models.py
+msgid "Verified modes cannot be free."
+msgstr "Verifizierte Teilnahmearten können nicht frei sein."
+
+#: common/djangoapps/course_modes/models.py
 #, python-brace-format
 msgid ""
 "The {course_mode} course mode has a minimum price of {min_price}. You must "
@@ -917,6 +921,14 @@ msgstr "Der Kurs, den Sie suchen, startet nicht bevor {date}."
 #, python-brace-format
 msgid "The course you are looking for is closed for enrollment as of {date}."
 msgstr "Der Kurs, den Sie suchen, ist bereits seit {date} geschlossen."
+
+#: common/djangoapps/student/views/management.py
+msgid "No inactive user with this e-mail exists"
+msgstr "Es existiert kein inaktiver Benutzer mit dieser E-Mail-Adresse"
+
+#: common/djangoapps/student/views/management.py
+msgid "Unable to send reactivation email"
+msgstr "Senden der Reaktivierungsnachricht nicht möglich"
 
 #: common/djangoapps/student/views/management.py
 msgid "Course id not specified"
@@ -3571,6 +3583,10 @@ msgstr ""
 " eine Info-Seite nicht erlauben)."
 
 #: common/lib/xmodule/xmodule/course_module.py
+msgid "Both"
+msgstr "Beide"
+
+#: common/lib/xmodule/xmodule/course_module.py
 msgid "Entrance Exam Enabled"
 msgstr "Eingangsprüfung aktiviert"
 
@@ -4995,6 +5011,14 @@ msgid "Video Stop Time"
 msgstr "Stoppzeitpunkt des Videos"
 
 #: common/lib/xmodule/xmodule/video_module/video_xfields.py
+msgid "The external URL to download the video."
+msgstr "Die externe URL um das Video herunterzuladen."
+
+#: common/lib/xmodule/xmodule/video_module/video_xfields.py
+msgid "Download Video"
+msgstr "Video herunterladen"
+
+#: common/lib/xmodule/xmodule/video_module/video_xfields.py
 msgid ""
 "Allow students to download versions of this video in different formats if "
 "they cannot use the edX video player or do not have access to YouTube. You "
@@ -6238,8 +6262,34 @@ msgstr ""
 #. certificate that a student has been awarded
 #: lms/djangoapps/certificates/views/webview.py
 #, python-brace-format
+
 msgid "More about {fullname}'s accomplishment"
 msgstr "Mehr über die Zertifikate von {fullname}"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+#: lms/templates/instructor/instructor_dashboard_2/metrics.html
+msgid "Percent"
+msgstr "Prozent"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "Opened by this number of students"
+msgstr "Geöffnet von dieser Anzahl von Teilnehmern"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "subsections"
+msgstr "Unterabschnitte"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "Count of Students"
+msgstr "Anzahl der Teilnehmer"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "Percent of Students"
+msgstr "Prozentanteil der Teilnehmer"
+
+#: lms/djangoapps/class_dashboard/dashboard_data.py
+msgid "problems"
+msgstr "Fragestellungen"
 
 #: lms/djangoapps/commerce/api/v1/serializers.py
 #, python-brace-format
@@ -14778,6 +14828,10 @@ msgstr ""
 msgid "Raw data:"
 msgstr "Rohdaten:"
 
+#: lms/templates/notes.html
+msgid "You do not have any notes."
+msgstr "Sie haben keine Notizen."
+
 #: lms/templates/preview_menu.html
 msgid "Course View"
 msgstr "Kursansicht"
@@ -21826,6 +21880,8 @@ msgid ""
 "The page that you were looking for was not found. Go back to the "
 "{link_start}homepage{link_end} ."
 msgstr ""
+"Die Seite nach der Sie suchen wurde nicht gefunden. Gehen  Sie zurück zur "
+"{link_start}Startseite{link_end}"
 
 #: lms/templates/static_templates/about.html
 #: lms/templates/static_templates/blog.html
@@ -22377,6 +22433,10 @@ msgstr "Upgrade ({course_price})"
 #: openedx/features/course_experience/templates/course_experience/course-updates-fragment.html
 msgid "This course does not have any updates."
 msgstr "Dieser Kurs hat keine Updates."
+
+#: openedx/features/course_experience/templates/course_experience/dates-summary.html
+msgid "Today is {date}"
+msgstr "Heute ist der {date}"
 
 #: openedx/features/course_experience/templates/course_experience/latest-update-fragment.html
 msgid "Latest Update"

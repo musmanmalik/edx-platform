@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-
+  
   django.pluralidx = function(n) {
     var v=(n != 1);
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-
+  
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-
+  
   var newcatalog = {
     "\n\nThis email is to let you know that the status of your proctoring session review for %(exam_name)s in\n<a href=\"%(course_url)s\">%(course_name)s </a> is %(status)s. If you have any questions about proctoring,\ncontact %(platform)s support at %(contact_email)s.\n\n": "\n\nIn dieser E-Mail erfahren Sie den Stand Ihrer Aufsichtssitzung der Reviews f\u00fcr %(exam_name)s in\n<a href=\"%(course_url)s\">%(course_name)s </a> is %(status)s. Falls Sie weitere Fragen zur Aufsicht haben,\nkontaktieren Sie den %(platform)s Support unter %(contact_email)s.\n\n",
     "\n                    Make sure you are on a computer with a webcam, and that you have valid photo identification\n                    such as a driver's license or passport, before you continue.\n                ": "\nStellen Sie sicher, dass Sie sich auf einem Computer mit einer Webcam befinden und dass Sie sich mit einem g\u00fcltigen Lichtbildausweis ausweisen k\u00f6nnen.\n beispielsweise ein F\u00fchrerschein oder ein Personalausweis.",
@@ -770,6 +770,7 @@
     "Grace period must be specified in HH:MM format.": "Abgabefrist muss im HH:MM Format festgelegt werden.",
     "Grade": "Note",
     "Grade as:": "Benote als:",
+    "Grade(s) are": "Noten sind",
     "Graded as:": "Benotet als:",
     "Grading": "Bewertung",
     "Group %s": "Gruppe %s",
@@ -1847,9 +1848,11 @@
     "Your message must have a subject.": "Deine Nachricht muss einen Betreff haben.",
     "Your message must have at least one target.": "Ihre Nachricht muss mindestens eine Vorgabe enthalten.",
     "Your policy changes have been saved.": "Die ver\u00e4nderten Rechte wurden gespeichert",
+    "Your post": "Ihr Post",
     "Your post will be discarded.": "Ihr Beitrag wird entfernt.",
     "Your question or idea (required)": "Ihre Frage oder Idee (*)",
     "Your request could not be processed. Refresh the page and try again.": "Ihre Anfrage konnte nicht bearbeitet werden. Laden Sie die Seite neu.",
+    "Your response to": "Ihre Antwort ist an",
     "Your team could not be created.": "Dein Team konnte nicht erstellt werden.",
     "Your team could not be updated.": "Dein Team konnte nicht aktualisiert werden.",
     "Your unenrollment request could not be processed. Please try again later.": "Ihre Ausschreibung konnte nicht verarbeitet werden. Bitte versuchen Sie es sp\u00e4ter noch einmal.",
@@ -1875,6 +1878,7 @@
     "anonymous": "Anonym",
     "answer": "beantworten",
     "answered question": "beantwortete Frage",
+    "are": "sind",
     "asset_path is required": "asset_path ist erforderlich",
     "by": "durch",
     "bytes": "bytes",
@@ -1896,6 +1900,7 @@
     "dragging out of slider": "Ziehen au\u00dferhalb des Schiebereglers",
     "dropped in slider": "In den Schieberegler fallengelassen",
     "dropped on target": "Auf das Ziel fallengelassen",
+    "due": "f\u00e4llig",
     "e.g. johndoe@example.com, JaneDoe, joeydoe@example.com": "z.B. johndoe@example.com, JaneDoe, joeydoe@example.com",
     "emphasized text": "hervorgehobener Text",
     "endorsed %(time_ago)s": "bef\u00fcrwortet %(time_ago)s",
@@ -1906,6 +1911,7 @@
     "follow this post": "Beitrag folgen",
     "for": "f\u00fcr",
     "group configuration": "Gruppenkonfiguration",
+    "has flagged a post entitled": "hat einen Post mit folgendem Titel gemeldet:",
     "image omitted": "Bild weggelassen",
     "in the cohort!": "in der Gruppe",
     "incorrect": "falsch",
@@ -1925,6 +1931,7 @@
     "one letter Thursday\u0004T": "Do",
     "one letter Tuesday\u0004T": "Di",
     "one letter Wednesday\u0004W": "Mi",
+    "open": "offen",
     "open slots": "Freie Pl\u00e4tze",
     "or": "oder",
     "or create a new one here": "oder erstelle ein neues hier.",
@@ -1932,7 +1939,9 @@
     "pending": "ausstehend",
     "post anonymously": "Eintrag anonym erstellen",
     "post anonymously to classmates": "Anonym an Klassenkameraden posten",
+    "posted": "gepostet",
     "posted %(time_ago)s by %(author)s": "geschickt, %(time_ago)s von %(author)s",
+    "posted:": "gepostet:",
     "practice": "\u00dcbung",
     "price": "Preis",
     "proctored": "beaufsichtigt",
@@ -1942,6 +1951,8 @@
     "question posted %(time_ago)s by %(author)s": "Frage wurde vor %(time_ago)s gestellt von %(author)s",
     "remove": "entfernen",
     "remove all": "Alle entfernen",
+    "responded to your post in": "hat auf Ihren Post geantwortet in",
+    "responded:": "beantwortet:",
     "satisfactory": "ausreichend",
     "section": "Abschnitt",
     "send an email message to {email}": "E-Mail senden an {email}",
@@ -1954,13 +1965,17 @@
       "aktuell gibt es {numVotes} Stimmen"
     ],
     "timed": "Terminiert",
+    "times": "Mal",
     "title_word_{uniqueId}": "title_word_{uniqueId}",
     "unanswered question": "unbeantwortete Frage",
     "unit": "Lerneinheit",
     "unsatisfactory": "ungen\u00fcgend",
     "unsubmitted": "nicht eingereicht",
     "upload a PDF file or provide the path to a Studio asset file": "Laden Sie eine PDF Datei hoch oder geben Sie einen Pfad zu einer Studio Objekt Datei an",
+    "uploaded a file": "Eine Datei hochladen",
     "username or email": "Nutzername od. E-Mail",
+    "was followed": "wurde gefolgt",
+    "was upvoted": "wurde positiv bewertet",
     "with %(release_date_from)s": "mit %(release_date_from)s",
     "with %(section_or_subsection)s": "mit %(section_or_subsection)s",
     "you have less than a minute remaining": "Sie haben weniger als eine Minute \u00fcbrig",
@@ -2002,7 +2017,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-
+  
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {
