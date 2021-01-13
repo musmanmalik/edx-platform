@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-
+  
   django.pluralidx = function(n) {
     var v=0;
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-
+  
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-
+  
   var newcatalog = {
     "%(comments_count)s %(span_sr_open)scomments %(span_close)s": "%(comments_count)s\uac1c %(span_sr_open)s\ub313\uae00 %(span_close)s",
     "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s unread comments)%(span_close)s": "%(comments_count)s\uac1c %(span_sr_open)s\ub313\uae00(%(unread_comments_count)s\uac1c \uc77d\uc9c0 \uc54a\uc740 \ub313\uae00)%(span_close)s",
@@ -207,6 +207,7 @@
     "Following": "\ud314\ub85c\uc789",
     "Full Name": "\uc2e4\uba85",
     "Gender": "\uc131 ",
+    "Grade(s) are": "\ub4f1\uae09:",
     "Group Work": "\uadf8\ub8f9 \uacfc\uc81c",
     "Heading": "\uc81c\ubaa9",
     "Heading (Ctrl+H)": "\uc81c\ubaa9 (Ctrl+H)",
@@ -504,9 +505,11 @@
     "Your file '{file}' has been uploaded. Allow a few minutes for processing.": "'{file}' \ud30c\uc77c\uc774 \uc5c5\ub85c\ub4dc \ub418\uc5c8\uc2b5\ub2c8\ub2e4. \ucc98\ub9ac\ud558\ub294\ub370 \uc7a0\uc2dc \uc2dc\uac04\uc774 \ud544\uc694\ud569\ub2c8\ub2e4. ",
     "Your message cannot be blank.": "\ub0b4\uc6a9\uc744 \uc785\ub825\ud574\uc57c \ud569\ub2c8\ub2e4.",
     "Your message must have a subject.": "\uc81c\ubaa9\uc744 \uc785\ub825\ud574\uc57c \ud569\ub2c8\ub2e4.",
+    "Your post": "\ub0b4 \uac8c\uc2dc\uae00",
     "Your post will be discarded.": "\uac8c\uc2dc\uae00\uc774 \ud3d0\uae30\ub429\ub2c8\ub2e4.",
     "Your question or idea (required)": "\ub0b4 \uc9c8\ubb38 \ub610\ub294 \uc758\uacac(\ud544\uc218)",
     "Your request could not be processed. Refresh the page and try again.": "\uc694\uccad\uc744 \ucc98\ub9ac\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ud398\uc774\uc9c0\ub97c \uc0c8\ub85c\uace0\uce68\ud55c \ub2e4\uc74c \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \ubcf4\uc2ed\uc2dc\uc624.",
+    "Your response to": "\ub2e4\uc74c\uc5d0 \ub300\ud55c \uc751\ub2f5:",
     "Your upload of '{file}' failed.": "'{file}'\ud30c\uc77c \uc5c5\ub85c\ub4dc\ub97c \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.",
     "Your upload of '{file}' succeeded.": "'{file}'\ud30c\uc77c \uc5c5\ub85c\ub4dc\ub97c \uc131\uacf5\ud588\uc2b5\ub2c8\ub2e4.",
     "[no tags]": "[no tags]",
@@ -520,6 +523,7 @@
     "about an hour": "\uc57d \ud55c \uc2dc\uac04 \uc815\ub3c4",
     "anonymous": "\uc775\uba85",
     "answered question": "\ub2f5\ubcc0\uc774 \uc788\ub294 \uc9c8\ubb38",
+    "are": ":",
     "by": "\uc791\uc131\uc790",
     "bytes": "bytes",
     "discussion": "\ud1a0\ub860",
@@ -529,6 +533,7 @@
     "dragging out of slider": "\uc2ac\ub77c\uc774\ub354 \ub2f9\uae30\uae30",
     "dropped in slider": "\uc2ac\ub77c\uc774\ub354\uc5d0 \ub5a8\uc5b4\ud2b8\ub838\uc2b5\ub2c8\ub2e4.",
     "dropped on target": "\ubaa9\ud45c\uc810\uc5d0 \ub5a8\uc5b4\ud2b8\ub838\uc2b5\ub2c8\ub2e4.",
+    "due": "\ub9cc\ub8cc\ub428",
     "emphasized text": "\uac15\uc870\ub41c \ubb38\uc7a5",
     "endorsed %(time_ago)s": "%(time_ago)s\uc5d0 \uc778\uc99d\ub428",
     "endorsed %(time_ago)s by %(user)s": "%(time_ago)s\uc5d0 %(user)s\uc774(\uac00) \uc778\uc99d\ud568",
@@ -538,6 +543,7 @@
     "find discussions": "\ud1a0\ub860 \ucc3e\uae30",
     "follow this post": "\uc774 \uac8c\uc2dc\uae00 \ud314\ub85c\uc6b0",
     "for": "\ub300\uc0c1:",
+    "has flagged a post entitled": "\uc774(\uac00) \ub2e4\uc74c \uc81c\ubaa9\uc758 \uac8c\uc2dc\uae00\uc744 \uc2e0\uace0\ud568:",
     "image omitted": "\uc774\ubbf8\uc9c0 \uc0dd\ub7b5\ub428",
     "in the cohort!": "(\uc9d1\ub2e8 \ub0b4)",
     "less than a minute": "\uc77c\ubd84 \uc774\ub0b4",
@@ -552,17 +558,26 @@
     "one letter Thursday\u0004T": "\ubaa9",
     "one letter Tuesday\u0004T": "\ud654",
     "one letter Wednesday\u0004W": "\uc218",
+    "open": "\uc5f4\ub9bc",
     "post anonymously": "\uc775\uba85\uc73c\ub85c \uac8c\uc2dc",
     "post anonymously to classmates": "\uac19\uc740 \uc218\uac15\uc790\uc5d0\uac8c \uc775\uba85\uc73c\ub85c \uac8c\uc2dc",
+    "posted": "\uac8c\uc2dc\ub428",
     "posted %(time_ago)s by %(author)s": "%(time_ago)s\uc5d0 %(author)s\uc774(\uac00) \uac8c\uc2dc\ud568",
+    "posted:": "\uac8c\uc2dc:",
     "question posted": "\uc774(\uac00) \uac8c\uc2dc\ud55c \uc9c8\ubb38",
     "question posted %(time_ago)s by %(author)s": "%(time_ago)s\uc5d0 %(author)s\uc774(\uac00) \uac8c\uc2dc\ud55c \uc9c8\ubb38",
+    "responded to your post in": "\uc774(\uac00) \ub2e4\uc74c\uc5d0\uc11c \ub0b4 \uac8c\uc2dc\uae00\uc5d0 \uc751\ub2f5\ud568:",
+    "responded:": "\uc751\ub2f5:",
     "strong text": "\uac15\ud558\uac8c",
     "team count": "\ud300 \uc778\uc6d0 \uc218",
     "there is currently {numVotes} vote": [
       "\ud604\uc7ac {numVotes}\ud45c\ub97c \ubc1b\uc74c"
     ],
+    "times": "\ubc88",
     "unanswered question": "\ub2f5\ubcc0\uc774 \uc5c6\ub294 \uc9c8\ubb38",
+    "uploaded a file": "\ud30c\uc77c\uc744 \uc5c5\ub85c\ub4dc\ud568",
+    "was followed": "\uc774(\uac00) \ud314\ub85c\uc6b0\ub428",
+    "was upvoted": "\uc774(\uac00) \ucd94\ucc9c\ub428",
     "{numResponses} other response": [
       "\uae30\ud0c0 \uc751\ub2f5 {numResponses}\uac1c"
     ],
@@ -578,7 +593,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-
+  
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {
