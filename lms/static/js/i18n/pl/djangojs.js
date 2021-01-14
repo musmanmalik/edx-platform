@@ -5,7 +5,14 @@
   var django = globals.django || (globals.django = {});
 
   
-  django.pluralidx = function(count) { return (count == 1) ? 0 : 1; };
+  django.pluralidx = function(n) {
+    var v=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);
+    if (typeof(v) == 'boolean') {
+      return v ? 1 : 0;
+    } else {
+      return v;
+    }
+  };
   
 
   /* gettext library */
@@ -33,7 +40,9 @@
     "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s unread comments)%(span_close)s": "%(comments_count)s %(span_sr_open)skomentarze (%(unread_comments_count)s nieprzeczytane komentarze)%(span_close)s",
     "%(errorCount)s error found in form.": [
       "Znaleziono %(errorCount)s b\u0142\u0105d w formularzu.",
-      "Znaleziono %(errorCount)s b\u0142\u0119dy w formularzu."
+      "Znaleziono %(errorCount)s b\u0142\u0119dy w formularzu.",
+      "Znaleziono %(errorCount)s b\u0142\u0119d\u00f3w w formularzu.",
+      "Znaleziono %(errorCount)s b\u0142\u0119d\u00f3w w formularzu."
     ],
     "%(field)s can only contain up to %(count)d characters.": "%(field)s mo\u017ce sk\u0142ada\u0107 si\u0119 z maksymalnie %(count)d znak\u00f3w.",
     "%(field)s must have at least %(count)d characters.": "%(field)s musi sk\u0142ada\u0107 si\u0119 z co najmniej %(count)d znak\u00f3w.",
@@ -42,15 +51,21 @@
     "%(programName)s Home Page.": "Strona g\u0142\u00f3wna programu %(programName)s.",
     "%(sel)s of %(cnt)s selected": [
       "Wybrano %(sel)s z %(cnt)s",
+      "Wybrano %(sel)s z %(cnt)s",
+      "Wybrano %(sel)s z %(cnt)s",
       "Wybrano %(sel)s z %(cnt)s"
     ],
     "%(type)s Component Template Menu": "%(type)s menu szablon\u00f3w elementu",
     "%d day": [
       "%d dzie\u0144",
-      "%d dni"
+      "%d dni",
+      "",
+      ""
     ],
     "%d minute": [
       "%d minute",
+      "",
+      "",
       ""
     ],
     "%s ago": "%s temu",
@@ -64,6 +79,8 @@
     "(Staff)": "(Pracownicy)",
     "(contains %(student_count)s student)": [
       "(obejmuje %(student_count)s studenta)",
+      "(obejmuje %(student_count)s student\u00f3w)",
+      "(obejmuje %(student_count)s student\u00f3w)",
       "(obejmuje %(student_count)s student\u00f3w)"
     ],
     "(optional)": "(opcjonalny)",
@@ -337,7 +354,9 @@
     "Contains staff only content": "Zawiera tre\u015b\u0107 wy\u0142\u0105cznie dla kadry",
     "Contains {count} group": [
       "Zawiera {count} grup\u0119",
-      "Zawiera {count} grupy"
+      "Zawiera {count} grupy",
+      "Zawiera {count} grup",
+      "Zawiera {count} grup"
     ],
     "Content Group ID": "Identyfikator grupy tre\u015bci",
     "Content Group Name": "Nazwa grupy tre\u015bci",
@@ -362,7 +381,9 @@
     "Country or Region of Residence": "Kraj lub region",
     "Course": [
       "Kurs",
-      "Kursy"
+      "Kursy",
+      "Kurs\u00f3w",
+      "Kurs\u00f3w"
     ],
     "Course Credit Requirements": "Wymagania do punkt\u00f3w edukacyjnych",
     "Course End": "Zako\u0144czenie kursu",
@@ -758,7 +779,9 @@
     "Load next {numResponses} responses": "Wczytaj nast\u0119pnych {numResponses} odpowiedzi",
     "Load next {num_items} result": [
       "Za\u0142aduj kolejny {num_items} wynik",
-      "Za\u0142aduj kolejne {num_items} wyniki"
+      "Za\u0142aduj kolejne {num_items} wyniki",
+      "Za\u0142aduj kolejnych {num_items} wynik\u00f3w",
+      "Za\u0142aduj kolejnych {num_items} wynik\u00f3w"
     ],
     "Loading": "\u0141adowanie",
     "Loading content": "Wczytywanie zawarto\u015bci",
@@ -845,11 +868,15 @@
     "Note: Learners can be in only one cohort. Adding learners to this group overrides any previous group assignment.": "Uwaga: Studenci mog\u0105 nale\u017ce\u0107 wy\u0142\u0105cznie do jednej kohorty. Dodanie student\u00f3w do tej kohorty spowoduje zast\u0105pienie dotychczasowych przydzia\u0142\u00f3w do kohort.",
     "Note: You are %s hour ahead of server time.": [
       "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godzin\u0119 do przodu w stosunku do czasu serwera.",
-      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godziny do przodu w stosunku do czasu serwera."
+      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godziny do przodu w stosunku do czasu serwera.",
+      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godzin do przodu w stosunku do czasu serwera.",
+      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godzin do przodu w stosunku do czasu serwera."
     ],
     "Note: You are %s hour behind server time.": [
       "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godzin\u0119 do ty\u0142u w stosunku do czasu serwera.",
-      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godziny do ty\u0142u w stosunku do czasu serwera."
+      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godziny do ty\u0142u w stosunku do czasu serwera.",
+      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godzin do ty\u0142u w stosunku do czasu serwera.",
+      "Uwaga: Czas lokalny jest przesuni\u0119ty o %s godzin do ty\u0142u w stosunku do czasu serwera."
     ],
     "Noted in:": "Zanotowane w:",
     "Notes": "Notatki",
@@ -1099,7 +1126,9 @@
     "Show All": "Poka\u017c wszystkie",
     "Show Comment (%(num_comments)s)": [
       "Poka\u017c komentarz (%(num_comments)s)",
-      "Poka\u017c komentarze (%(num_comments)s)"
+      "Poka\u017c komentarze (%(num_comments)s)",
+      "",
+      ""
     ],
     "Show Deprecated Settings": "Poka\u017c przestarza\u0142e ustawienia",
     "Show assessment results when subsection is past due": "Pokazuj wyniki zadania gdy lekcja znajduje si\u0119 po terminie ko\u0144cowym",
@@ -1112,7 +1141,9 @@
     "Showing all responses": "Pokazuje wszystkie odpowiedzi",
     "Showing first response": [
       "Pokazuje pierwsz\u0105 odpowied\u017a",
-      "Pokazuje pierwszych {numResponses} odpowiedzi"
+      "Pokazuje pierwszych {numResponses} odpowiedzi",
+      "",
+      ""
     ],
     "Showing results for \"{searchString}\"": "Wy\u015bwietlanie wynik\u00f3w dla zapytania \"{searchString}\"",
     "Showing {firstIndex} out of {numItems} total": "Wy\u015bwietlanie {firstIndex} spo\u015br\u00f3d wszystkich {numItems}",
@@ -1298,6 +1329,8 @@
     "There was an error updating your goal.": "Wyst\u0105pi\u0142 b\u0142\u0105d w trakcie aktualizowania celu nauki.",
     "There was an error when trying to add learners:": [
       "Wyst\u0105pi\u0142 b\u0142\u0105d w trakcie dodawania student\u00f3w:",
+      "Nie uda\u0142o si\u0119 doda\u0107 {numErrors} student\u00f3w do kohorty:",
+      "Nie uda\u0142o si\u0119 doda\u0107 {numErrors} student\u00f3w do kohorty:",
       "Nie uda\u0142o si\u0119 doda\u0107 {numErrors} student\u00f3w do kohorty:"
     ],
     "There was an error, try searching again.": "Wyst\u0105pi\u0142 b\u0142\u0105d, spr\u00f3buj wyszuka\u0107 ponownie.",
@@ -1500,6 +1533,8 @@
     "Used": "Wykorzystany",
     "Used in {count} location": [
       "W u\u017cyciu w {count} lokalizacji",
+      "W u\u017cyciu w {count} lokalizacjach",
+      "W u\u017cyciu w {count} lokalizacjach",
       "W u\u017cyciu w {count} lokalizacjach"
     ],
     "User Email": "Adres e-mail studenta",
@@ -1534,6 +1569,8 @@
     "View discussion": "Zobacz dyskusj\u0119",
     "Viewing %s course": [
       "Wy\u015bwietlanie %s kursu",
+      "Wy\u015bwietlanie %s kurs\u00f3w",
+      "Wy\u015bwietlanie %s kurs\u00f3w",
       "Wy\u015bwietlanie %s kurs\u00f3w"
     ],
     "Visibility": "Widoczno\u015b\u0107",
@@ -1689,6 +1726,8 @@
     "[no tags]": "[brak tag\u00f3w]",
     "about %d hour": [
       "oko\u0142o %d godzin(-y)",
+      "",
+      "",
       ""
     ],
     "about a minute": "oko\u0142o minuty",
@@ -1773,7 +1812,9 @@
     "team count": "wielko\u015b\u0107 zespo\u0142u",
     "there is currently {numVotes} vote": [
       "aktualna liczba punkt\u00f3w to: {numVotes}",
-      "aktualna liczba punkt\u00f3w to: {numVotes}"
+      "aktualna liczba punkt\u00f3w to: {numVotes}",
+      "",
+      ""
     ],
     "times": "u\u017cytkownik\u00f3w",
     "toggle chapter %(displayName)s": "prze\u0142\u0105cz na rozdzia\u0142 %(displayName)s",
@@ -1802,31 +1843,45 @@
     "{minutes} {unit}": "{minutes} {unit}",
     "{numMoved} learner was moved from {prevCohort}": [
       "{numMoved} student zosta\u0142 przeniesiony z kohorty {prevCohort}",
+      "{numMoved} student\u00f3w zosta\u0142o przeniesionych z kohorty {prevCohort}",
+      "{numMoved} student\u00f3w zosta\u0142o przeniesionych z kohorty {prevCohort}",
       "{numMoved} student\u00f3w zosta\u0142o przeniesionych z kohorty {prevCohort}"
     ],
     "{numPreassigned} learner was pre-assigned for this cohort. This learner will automatically be added to the cohort when they enroll in the course.": [
       "{numPreassigned} student zosta\u0142 wst\u0119pnie zapisany do tej kohorty. Po zapisaniu si\u0119 na kurs, student zostanie automatycznie przydzielony do tej kohorty.",
+      "{numPreassigned} student\u00f3w zosta\u0142o wst\u0119pnie zapisanych do tej kohorty. Po zapisaniu si\u0119 na kurs, studenci zostan\u0105 automatycznie przydzieleni do tej kohorty.",
+      "{numPreassigned} student\u00f3w zosta\u0142o wst\u0119pnie zapisanych do tej kohorty. Po zapisaniu si\u0119 na kurs, studenci zostan\u0105 automatycznie przydzieleni do tej kohorty.",
       "{numPreassigned} student\u00f3w zosta\u0142o wst\u0119pnie zapisanych do tej kohorty. Po zapisaniu si\u0119 na kurs, studenci zostan\u0105 automatycznie przydzieleni do tej kohorty."
     ],
     "{numPresent} learner was already in the cohort": [
       "{numPresent} student znajdowa\u0142 si\u0119 ju\u017c w tej kohorcie.",
+      "{numPresent} student\u00f3w znajdowa\u0142o si\u0119 ju\u017c w tej kohorcie.",
+      "{numPresent} student\u00f3w znajdowa\u0142o si\u0119 ju\u017c w tej kohorcie.",
       "{numPresent} student\u00f3w znajdowa\u0142o si\u0119 ju\u017c w tej kohorcie."
     ],
     "{numResponses} other response": [
       "{numResponses} inna odpowied\u017a",
-      "{numResponses} innych odpowiedzi"
+      "{numResponses} innych odpowiedzi",
+      "",
+      ""
     ],
     "{numResponses} response": [
       "{numResponses} odpowied\u017a",
-      "{numResponses} odpowiedzi"
+      "{numResponses} odpowiedzi",
+      "",
+      ""
     ],
     "{numUsersAdded} learner has been added to this cohort. ": [
       "{numUsersAdded} student zosta\u0142 dodany do tej kohorty.",
-      "{numUsersAdded} studenci zostali dodani do tej kohorty."
+      "{numUsersAdded} studenci zostali dodani do tej kohorty.",
+      "{numUsersAdded} student\u00f3w zosta\u0142o dodanych do tej kohorty.",
+      "{numUsersAdded} student\u00f3w zosta\u0142o dodanych do tej kohorty."
     ],
     "{numVotes} Vote": [
       "{numVotes} Punkt",
-      "{numVotes} Punkty"
+      "{numVotes} Punkty",
+      "",
+      ""
     ],
     "{organization}\\'s logo": "Logo \"{organization}\"",
     "{screen_reader_start}Warning:{screen_reader_end} No content groups exist.": "{screen_reader_start}Uwaga:{screen_reader_end} Nie istniej\u0105 \u017cadne grupy tre\u015bci.",
@@ -1837,7 +1892,9 @@
     "{sessionDates} - Currently Selected": "{sessionDates} - obecnie wybrana",
     "{total_results} result": [
       "{total_results} wynik",
-      "{total_results} wyniki"
+      "{total_results} wyniki",
+      "{total_results} wynik\u00f3w",
+      "{total_results} wynik\u00f3w"
     ],
     "{transcriptClientTitle}_{transcriptLanguageCode}.{fileExtension}": "{transcriptClientTitle}_{transcriptLanguageCode}.{fileExtension}",
     "{type} Progress": "{type} - post\u0119p",
