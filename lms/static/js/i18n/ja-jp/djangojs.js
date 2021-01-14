@@ -4,7 +4,7 @@
 
   var django = globals.django || (globals.django = {});
 
-
+  
   django.pluralidx = function(n) {
     var v=0;
     if (typeof(v) == 'boolean') {
@@ -13,12 +13,12 @@
       return v;
     }
   };
-
+  
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-
+  
   var newcatalog = {
     "\n      Because the due date has passed, you are no longer able to take this exam.\n    ": "\n\u7de0\u5207\u65e5\u304c\u904e\u304e\u305f\u305f\u3081\u3001\u672c\u8a66\u9a13\u3092\u53d7\u3051\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u305b\u3093\u3002",
     "\n      The due date for this exam has passed\n    ": "\n\u3053\u306e\u8a66\u9a13\u306e\u7de0\u5207\u306f\u65e2\u306b\u904e\u304e\u3066\u3044\u307e\u3059\u3002",
@@ -39,7 +39,6 @@
     "%(cohort_name)s (%(user_count)s)": "%(cohort_name)s (%(user_count)s\u540d)",
     "%(comments_count)s %(span_sr_open)scomments %(span_close)s": "\u30b3\u30e1\u30f3\u30c8%(comments_count)s %(span_sr_open)s\u4ef6 %(span_close)s",
     "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s unread comments)%(span_close)s": "\u30b3\u30e1\u30f3\u30c8 %(comments_count)s %(span_sr_open)s\u4ef6 (\u3046\u3061%(unread_comments_count)s\u4ef6\u304c\u672a\u8aad)%(span_close)s",
-    "%(download_link_start)sDownload this image (right-click or option-click, save as)%(link_end)s and then %(upload_link_start)supload%(link_end)s it to your backpack.</li>": "%(download_link_start)s\u3053\u306e\u753b\u50cf\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9(\u53f3\u30af\u30ea\u30c3\u30af\u307e\u305f\u306f\u30aa\u30d7\u30b7\u30e7\u30f3\u30af\u30ea\u30c3\u30af\u3057\u3066\u3001\u540d\u524d\u3092\u4ed8\u3051\u3066\u4fdd\u5b58)%(link_end)s\u3057\u3066\u3001\u3042\u306a\u305f\u306ebackpack\u306b%(upload_link_start)s\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9%(link_end)s\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>",
     "%(errorCount)s error found in form.": [
       "\u30d5\u30a9\u30fc\u30e0\u306b %(errorCount)s \u500b\u30a8\u30e9\u30fc\u304c\u3042\u308a\u307e\u3057\u305f\u3002"
     ],
@@ -49,21 +48,9 @@
       "\u30e1\u30f3\u30d0\u30fc %(memberCount)s / %(maxMemberCount)s \u4eba"
     ],
     "%(new_item_message)s": "%(new_item_message)s",
-    "%(num_questions)s question": [
-      "%(num_questions)s\u4ef6\u306e\u8cea\u554f"
-    ],
-    "%(num_students)s student": [
-      "%(num_students)s\u540d\u306e\u53d7\u8b1b\u8005"
-    ],
-    "%(num_students)s student opened Subsection": [
-      "%(num_students)s\u540d\u306e\u53d7\u8b1b\u8005\u304c\u30b5\u30d6\u30bb\u30af\u30b7\u30e7\u30f3\u3092\u958b\u304d\u307e\u3057\u305f"
-    ],
     "%(programName)s Home Page.": "%(programName)s\u30db\u30fc\u30e0\u30da\u30fc\u30b8\u3002",
     "%(sel)s of %(cnt)s selected": [
       "%(cnt)s\u500b\u4e2d%(sel)s\u500b\u9078\u629e"
-    ],
-    "%(team_count)s Team": [
-      "%(team_count)s \u30c1\u30fc\u30e0"
     ],
     "%(type)s Component Template Menu": "%(type)s \u30b3\u30f3\u30dd\u30fc\u30cd\u30f3\u30c8\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8\u30e1\u30cb\u30e5\u30fc",
     "%d day": [
@@ -197,7 +184,7 @@
     "An error occurred. Please try again.": "\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f\u3002\u518d\u8a66\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "An error occurred. Try again.": "\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f\u3002\u518d\u8a66\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "An unexpected error occurred.  Please try again.": "\u4e88\u671f\u305b\u306c\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f\u3002\u3084\u308a\u76f4\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
-    "Announcements": "\u304a\u77e5\u3089\u305b",
+    "Announcements": "\u544a\u77e5",
     "Any divided discussion topics are divided based on cohort.": "\u5206\u5272\u3055\u308c\u3066\u3044\u308b\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u30fb\u30c8\u30d4\u30c3\u30af\u306f\u3001\u30b3\u30db\u30fc\u30c8\u3092\u57fa\u306b\u5206\u5272\u3055\u308c\u3066\u3044\u307e\u3059\u3002",
     "Any divided discussion topics are divided based on enrollment track.": "\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u30fb\u30c8\u30d4\u30c3\u30af\u306f\u3001\u53d7\u8b1b\u767b\u9332\u30c8\u30e9\u30c3\u30af\u3092\u57fa\u306b\u5206\u5272\u3055\u308c\u3066\u3044\u307e\u3059\u3002",
     "April": "4\u6708",
@@ -210,10 +197,10 @@
     "Are you sure you want to delete {email} from the library \u201c{container}\u201d?": "{email}\u3092\u201c{container}\u201d\u30e9\u30a4\u30d6\u30e9\u30ea\u304b\u3089\u524a\u9664\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
     "Are you sure you want to remove this video from the list?": "\u3053\u306e\u52d5\u753b\u3092\u30ea\u30b9\u30c8\u304b\u3089\u524a\u9664\u3057\u3066\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
     "Are you sure you want to restrict {email} access to \u201c{container}\u201d?": "{email}\u306e\u201c{container}\u201d\u3078\u306e\u30a2\u30af\u30bb\u30b9\u3092\u5236\u9650\u3057\u3066\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
-    "Are you sure you want to unenroll from %(courseName)s (%(courseNumber)s)?": "%(courseName)s (%(courseNumber)s) \u3092\u53d7\u8b1b\u53d6\u6d88\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
-    "Are you sure you want to unenroll from the purchased course %(courseName)s (%(courseNumber)s)?": "\u652f\u6255\u6e08\u306e\u8b1b\u5ea7 %(courseName)s(%(courseNumber)s) \u3092\u53d7\u8b1b\u53d6\u6d88\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
-    "Are you sure you want to unenroll from the verified %(certNameLong)s  track of %(courseName)s  (%(courseNumber)s)?": "%(courseName)s(%(courseNumber)s)\u306e\u8a8d\u8a3c\u4ed8\u304d %(certNameLong)s\u30b3\u30fc\u30b9\u306e\u53d7\u8b1b\u53d6\u6d88\u3092\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
-    "Are you sure you want to unenroll from the verified %(certNameLong)s track of %(courseName)s (%(courseNumber)s)?": "%(courseName)s(%(courseNumber)s)\u306e\u8a8d\u8a3c\u4ed8\u304d %(certNameLong)s\u30b3\u30fc\u30b9\u306e\u53d7\u8b1b\u53d6\u6d88\u3092\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
+    "Are you sure you want to unenroll from the purchased course {courseName} ({courseNumber})?": "\u652f\u6255\u6e08\u306e\u8b1b\u5ea7 {courseName}({courseNumber}) \u3092\u53d7\u8b1b\u53d6\u6d88\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
+    "Are you sure you want to unenroll from the verified {certNameLong}  track of {courseName}  ({courseNumber})?": "%{courseName}({courseNumber})\u306e\u8a8d\u8a3c\u4ed8\u304d {certNameLong}\u30b3\u30fc\u30b9\u306e\u53d7\u8b1b\u53d6\u6d88\u3092\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
+    "Are you sure you want to unenroll from the verified {certNameLong} track of {courseName} ({courseNumber})?": "{courseName}({courseNumber})\u306e\u8a8d\u8a3c\u4ed8\u304d {certNameLong}\u30b3\u30fc\u30b9\u306e\u53d7\u8b1b\u53d6\u6d88\u3092\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
+    "Are you sure you want to unenroll from {courseName} ({courseNumber})?": "{courseName} ({courseNumber}) \u3092\u53d7\u8b1b\u53d6\u6d88\u3057\u3088\u3046\u3068\u3057\u3066\u3044\u307e\u3059\u304c\u3001\u3088\u308d\u3057\u3044\u3067\u3059\u304b\uff1f",
     "Are you sure you wish to delete this item. It cannot be reversed!\n\nAlso any content that links/refers to this item will no longer work (e.g. broken images and/or links)": "\u3053\u306e\u30a2\u30a4\u30c6\u30e0\u3092\u672c\u5f53\u306b\u524a\u9664\u3057\u3066\u3088\u3044\u3067\u3059\u304b\uff1f\u5143\u306b\u306f\u623b\u305b\u307e\u305b\u3093\uff01\n\n\u307e\u305f\u3001\u3053\u306e\u30a2\u30a4\u30c6\u30e0\u306b\u30ea\u30f3\u30af\u307e\u305f\u306f\u53c2\u7167\u3057\u3066\u3044\u308b\u30b3\u30f3\u30c6\u30f3\u30c4\u306f\u3059\u3079\u3066\u6a5f\u80fd\u3057\u306a\u304f\u306a\u308a\u307e\u3059 (\u4f8b: \u753b\u50cf\u3084\u30ea\u30f3\u30af\u7834\u640d)",
     "As part of the verification process, you take a photo of both your face and a government-issued photo ID. Our authorization service confirms your identity by comparing the photo you take with the photo on your ID.": "\u8a8d\u8a3c\u624b\u7d9a\u306e1\u3064\u3068\u3057\u3066\u3001\u9854\u5199\u771f\u3068\u653f\u5e9c\u767a\u884c\u306e\u5199\u771f\u4ed8\u304d\u8eab\u5206\u8a3c\u660e\u66f8\u3092\u64ae\u5f71\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u6211\u3005\u306e\u8a8d\u8a3c\u30b5\u30fc\u30d3\u30b9\u304c\u305d\u308c\u3089\u3092\u6bd4\u8f03\u3057\u3066\u3001\u3042\u306a\u305f\u306e\u672c\u4eba\u78ba\u8a8d\u3092\u3057\u307e\u3059\u3002",
     "As you complete courses, you will see them listed here.": "\u8b1b\u5ea7\u3092\u4fee\u4e86\u3059\u308b\u3068\u3001\u3053\u3053\u306b\u30ea\u30b9\u30c8\u30a2\u30c3\u30d7\u3055\u308c\u307e\u3059\u3002",
@@ -383,10 +370,10 @@
     "Create": "\u4f5c\u6210",
     "Create Account": "\u30a2\u30ab\u30a6\u30f3\u30c8\u4f5c\u6210",
     "Create Re-run": "Re-run\u3092\u4f5c\u6210",
-    "Create a %(link_start)sMozilla Backpack%(link_end)s account, or log in to your existing account": "%(link_start)sMozilla Backpack%(link_end)s\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u4f5c\u6210\u3059\u308b\u304b\u3001\u65e2\u306b\u304a\u6301\u3061\u306e\u30a2\u30ab\u30a6\u30f3\u30c8\u306b\u30ed\u30b0\u30a4\u30f3\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Create a New Team": "\u65b0\u898f\u30c1\u30fc\u30e0\u3092\u4f5c\u6210",
     "Create a content group": "\u30b3\u30f3\u30c6\u30f3\u30c4\u30b0\u30eb\u30fc\u30d7\u3092\u4f5c\u6210",
     "Create a new team if you can't find an existing team to join, or if you would like to learn with friends you know.": "\u53c2\u52a0\u3057\u305f\u3044\u30c1\u30fc\u30e0\u304c\u898b\u3064\u304b\u3089\u306a\u3044\u5834\u5408\u3084\u53cb\u9054\u3068\u4e00\u7dd2\u306b\u53d7\u8b1b\u3092\u3057\u305f\u3044\u5834\u5408\u306f\u3001\u65b0\u898f\u30c1\u30fc\u30e0\u3092\u4f5c\u6210\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+    "Create a {link_start}Mozilla Backpack{link_end} account, or log in to your existing account": "{link_start}Mozilla Backpack{link_end}\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u4f5c\u6210\u3059\u308b\u304b\u3001\u65e2\u306b\u304a\u6301\u3061\u306e\u30a2\u30ab\u30a6\u30f3\u30c8\u306b\u30ed\u30b0\u30a4\u30f3\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Create account using %(providerName)s.": "%(providerName)s\u3092\u4f7f\u3063\u3066\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u4f5c\u6210\u3002",
     "Create an Account.": "\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u4f5c\u6210\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Create an account using": "\u6b21\u3092\u4f7f\u7528\u3057\u3066\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u4f5c\u6210",
@@ -420,7 +407,7 @@
     "Delete this team?": "\u3053\u306e\u30c1\u30fc\u30e0\u3092\u524a\u9664\u3057\u307e\u3059\u304b\uff1f",
     "Deleted Content Group": "\u524a\u9664\u3055\u308c\u305f\u30b3\u30f3\u30c6\u30f3\u30c4\u30b0\u30eb\u30fc\u30d7",
     "Deleted Group": "\u524a\u9664\u6e08\u30b0\u30eb\u30fc\u30d7",
-    "Deleting a team is permanent and cannot be undone. All members are removed from the team, and team discussions can no longer be accessed.": "\u30c1\u30fc\u30e0\u306e\u524a\u9664\u306f\u6052\u4e45\u7684\u306a\u3082\u306e\u3067\u53d6\u308a\u6d88\u3057\u3067\u304d\u307e\u305b\u3093\u3002\u30c1\u30fc\u30e0\u304b\u3089\u3059\u3079\u3066\u306e\u30e1\u30f3\u30d0\u30fc\u304c\u524a\u9664\u3055\u308c\u3001\u30c1\u30fc\u30e0\u306e\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u3078\u306e\u30a2\u30af\u30bb\u30b9\u3082\u3067\u304d\u306a\u304f\u306a\u308a\u307e\u3059\u3002",
+    "Deleting a team is permanent and cannot be undone.All members are removed from the team, and team discussions can no longer be accessed.": "\u30c1\u30fc\u30e0\u306e\u524a\u9664\u306f\u6052\u4e45\u7684\u306a\u3082\u306e\u3067\u53d6\u308a\u6d88\u3057\u3067\u304d\u307e\u305b\u3093\u3002\u30c1\u30fc\u30e0\u304b\u3089\u3059\u3079\u3066\u306e\u30e1\u30f3\u30d0\u30fc\u304c\u524a\u9664\u3055\u308c\u3001\u30c1\u30fc\u30e0\u306e\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u3078\u306e\u30a2\u30af\u30bb\u30b9\u3082\u3067\u304d\u306a\u304f\u306a\u308a\u307e\u3059\u3002",
     "Deleting this %(item_display_name)s is permanent and cannot be undone.": "\u3053\u306e%(item_display_name)s\u306e\u524a\u9664\u306f\u6052\u4e45\u7684\u3067\u3001\u5143\u306b\u623b\u305b\u307e\u305b\u3093\u3002",
     "Deprecated": "\u975e\u63a8\u5968",
     "Describe ": "\u8a18\u8ff0\u3059\u308b",
@@ -606,6 +593,7 @@
     "Grace period must be specified in HH:MM format.": "\u7336\u4e88\u671f\u9593\u306fHH:MM\u306e\u5f62\u5f0f\u3067\u8a18\u5165\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Grade": "\u6210\u7e3e",
     "Grade as:": "\u63a1\u70b9\uff1a",
+    "Grade(s) are": "\u6210\u7e3e\uff1a",
     "Graded as:": "\u63a1\u70b9\u6e08: ",
     "Grading": "\u63a1\u70b9",
     "Group": "\u30b0\u30eb\u30fc\u30d7",
@@ -650,7 +638,7 @@
     "If you leave this page without submitting your peer assessment, you will lose any work you have done.": "\u30d4\u30a2\u30fb\u30a2\u30bb\u30b9\u30e1\u30f3\u30c8\u3092\u63d0\u51fa\u305b\u305a\u306b\u5225\u306e\u30da\u30fc\u30b8\u3078\u79fb\u52d5\u3059\u308b\u5834\u5408\u3001\u8a18\u8ff0\u3057\u305f\u5185\u5bb9\u304c\u5931\u308f\u308c\u307e\u3059\u3002",
     "If you leave this page without submitting your self assessment, you will lose any work you have done.": "\u30bb\u30eb\u30d5\u30fb\u30a2\u30bb\u30b9\u30e1\u30f3\u30c8\u3092\u63d0\u51fa\u305b\u305a\u306b\u5225\u306e\u30da\u30fc\u30b8\u3078\u79fb\u52d5\u3059\u308b\u3068\u3001\u8a18\u8ff0\u3057\u305f\u5185\u5bb9\u304c\u5931\u308f\u308c\u307e\u3059\u3002",
     "If you leave this page without submitting your staff assessment, you will lose any work you have done.": "\u30b9\u30bf\u30c3\u30d5\u30fb\u30a2\u30bb\u30b9\u30e1\u30f3\u30c8\u3092\u63d0\u51fa\u305b\u305a\u306b\u5225\u306e\u30da\u30fc\u30b8\u3078\u79fb\u52d5\u3059\u308b\u3068\u3001\u8a18\u8ff0\u3057\u305f\u5185\u5bb9\u304c\u5931\u308f\u308c\u307e\u3059\u3002",
-    "If you leave, you can no longer post in this team's discussions. Your place will be available to another learner.": "\u3082\u3057\u8f9e\u3081\u308b\u3068\u3001\u3053\u306e\u30c1\u30fc\u30e0\u306e\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u306b\u6295\u7a3f\u3059\u308b\u3053\u3068\u304c\u3067\u304d\u306a\u304f\u306a\u308a\u307e\u3059\u3002\u4f7f\u7528\u3057\u3066\u3044\u305f\u74b0\u5883\u306f\u4ed6\u306e\u53d7\u8b1b\u8005\u304c\u5229\u7528\u3067\u304d\u308b\u3088\u3046\u306b\u306a\u308a\u307e\u3059\u3002",
+    "If you leave, you can no longer post in this team's discussions.Your place will be available to another learner.": "\u3082\u3057\u8f9e\u3081\u308b\u3068\u3001\u3053\u306e\u30c1\u30fc\u30e0\u306e\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u306b\u6295\u7a3f\u3059\u308b\u3053\u3068\u304c\u3067\u304d\u306a\u304f\u306a\u308a\u307e\u3059\u3002\u4f7f\u7528\u3057\u3066\u3044\u305f\u74b0\u5883\u306f\u4ed6\u306e\u53d7\u8b1b\u8005\u304c\u5229\u7528\u3067\u304d\u308b\u3088\u3046\u306b\u306a\u308a\u307e\u3059\u3002",
     "If you make significant changes, make sure you notify members of the team before making these changes.": "\u5927\u5e45\u306a\u5909\u66f4\u3092\u884c\u3046\u5834\u5408\u306f\u3001\u5909\u66f4\u3092\u884c\u3046\u524d\u306b\u30c1\u30fc\u30e0\u30e1\u30f3\u30d0\u30fc\u306b\u5fc5\u305a\u77e5\u3089\u305b\u3066\u304f\u3060\u3055\u3044\u3002",
     "If you make this %(xblockType)s visible to learners, learners will be able to see its content after the release date has passed and you have published the unit. Only units that are explicitly hidden from learners will remain hidden after you clear this option for the %(xblockType)s.": " %(xblockType)s \u3092\u53d7\u8b1b\u8005\u306b\u516c\u958b\u3059\u308b\u5834\u5408\u3001\u516c\u958b\u65e5\u4ee5\u964d\u30e6\u30cb\u30c3\u30c8\u3092\u516c\u958b\u3057\u305f\u6642\u70b9\u3067\u30b3\u30f3\u30c6\u30f3\u30c4\u3092\u898b\u308b\u3053\u3068\u304c\u3067\u304d\u308b\u3088\u3046\u306b\u306a\u308a\u307e\u3059\u3002%(xblockType)s\u306e\u30aa\u30d7\u30b7\u30e7\u30f3\u3092\u53d6\u6d88\u306b\u3059\u308b\u3068\u3001\u660e\u793a\u7684\u306b\u975e\u8868\u793a\u306b\u3057\u3066\u3044\u308b\u30e6\u30cb\u30c3\u30c8\u306e\u307f\u975e\u8868\u793a\u306b\u306a\u308a\u307e\u3059\u3002",
     "If you select an option other than \"%(hide_label)s\", published units in this subsection become available to learners unless they are explicitly hidden.": "\"%(hide_label)s\"\u4ee5\u5916\u306e\u30aa\u30d7\u30b7\u30e7\u30f3\u3092\u9078\u629e\u3059\u308b\u3068\u3001\u660e\u793a\u7684\u306b\u975e\u8868\u793a\u306b\u3055\u308c\u3066\u3044\u306a\u3044\u9650\u308a\u3001\u3053\u306e\u30b5\u30d6\u30bb\u30af\u30b7\u30e7\u30f3\u3067\u516c\u958b\u3055\u308c\u3066\u3044\u308b\u30e6\u30cb\u30c3\u30c8\u3092\u898b\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u3059\u3002",
@@ -700,11 +688,11 @@
     "Last Activity %(date)s": "\u6700\u8fd1\u306e\u30a2\u30af\u30c6\u30a3\u30d3\u30c6\u30a3 %(date)s ",
     "Last Edited:": "\u6700\u7d42\u7de8\u96c6\uff1a",
     "Last Updated": "\u6700\u65b0\u66f4\u65b0",
-    "Last activity %(date)s": "\u6700\u8fd1\u306e\u30a2\u30af\u30c6\u30a3\u30d3\u30c6\u30a3 %(date)s ",
+    "Last activity {date}": "\u6700\u8fd1\u306e\u30a2\u30af\u30c6\u30a3\u30d3\u30c6\u30a3 {date} ",
     "Last modified by": "\u6700\u7d42\u5909\u66f4\u8005",
     "Last published %(last_published_date)s by %(publish_username)s": "%(publish_username)s \u306b\u3088\u308a%(last_published_date)s\u306b\u6700\u65b0\u516c\u958b",
     "Last published {lastPublishedStart}{publishedOn}{lastPublishedEnd} by {publishedByStart}{publishedBy}{publishedByEnd}": "\u00a0{publishedByStart}{publishedBy}{publishedByEnd}\u306b\u3088\u308a{lastPublishedStart}{publishedOn}{lastPublishedEnd}\u306b\u6700\u65b0\u516c\u958b",
-    "Leaderboards": "\u30b9\u30b3\u30a2\u30dc\u30fc\u30c9",
+    "Leaderboards": "\u30ea\u30fc\u30c0\u30fc\u30dc\u30fc\u30c9",
     "Learn more about {license_name}": "{license_name}\u306b\u3064\u3044\u3066\u3082\u3063\u3068\u5b66\u3076",
     "Learners are added to this cohort automatically.": "\u53d7\u8b1b\u8005\u306f\u81ea\u52d5\u7684\u306b\u3053\u306e\u30b3\u30db\u30fc\u30c8\u306b\u8ffd\u52a0\u3055\u308c\u307e\u3059\u3002",
     "Learners are added to this cohort only when you provide their email addresses or usernames on this page.": "\u3053\u306e\u30da\u30fc\u30b8\u3067\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u307e\u305f\u306f\u30e6\u30fc\u30b6\u30fc\u540d\u3092\u5165\u529b\u3057\u305f\u5834\u5408\u306e\u307f\u3001\u3053\u306e\u30b3\u30db\u30fc\u30c8\u306b\u53d7\u8b1b\u8005\u304c\u8ffd\u52a0\u3055\u308c\u307e\u3059\u3002",
@@ -843,8 +831,6 @@
     "ORDER NUMBER": "\u6ce8\u6587\u756a\u53f7",
     "ORDER PLACED": "\u6ce8\u6587\u5730",
     "October": "10\u6708",
-    "Once in position, use the camera button {icon} to capture your ID": "\u6e96\u5099\u304c\u3067\u304d\u307e\u3057\u305f\u3089\u3001\u30ab\u30e1\u30e9\u30dc\u30bf\u30f3{icon}\u3092\u62bc\u3057\u3066ID\u3092\u64ae\u5f71\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
-    "Once in position, use the camera button {icon} to capture your photo": "\u6e96\u5099\u304c\u3067\u304d\u307e\u3057\u305f\u3089\u3001\u30ab\u30e1\u30e9\u30dc\u30bf\u30f3{icon}\u3092\u62bc\u3057\u3066\u5199\u771f\u3092\u64ae\u5f71\u3057\u3066\u304f\u3060\u3055\u3044",
     "One or more rescheduling tasks failed.": "\u30b9\u30b1\u30b8\u30e5\u30fc\u30eb\u5909\u66f4\u30bf\u30b9\u30af\u5931\u6557\u3002",
     "Only properly formatted .csv files will be accepted.": "\u9069\u5207\u306a\u30d5\u30a9\u30fc\u30de\u30c3\u30c8\u306e.csv\u30d5\u30a1\u30a4\u30eb\u306e\u307f\u8a31\u53ef\u3055\u308c\u307e\u3059\u3002",
     "Only the parent course staff of a CCX can create content groups.": "CCX\u306e\u89aa\u8b1b\u5ea7\u306e\u30b9\u30bf\u30c3\u30d5\u306e\u307f\u30b3\u30f3\u30c6\u30f3\u30c4\u30b0\u30eb\u30fc\u30d7\u3092\u4f5c\u6210\u3067\u304d\u307e\u3059\u3002",
@@ -1127,7 +1113,7 @@
     "Studio:": "Studio: ",
     "Subject": "\u4ef6\u540d",
     "Subject:": "\u4ef6\u540d: ",
-    "Submit": "\u9001\u4fe1",
+    "Submit": "\u63d0\u51fa",
     "Submit Application": "\u7533\u8fbc\u66f8\u63d0\u51fa",
     "Submit enrollment change": "\u53d7\u8b1b\u767b\u9332\u5909\u66f4\u3092\u63d0\u51fa",
     "Submitted": "\u63d0\u51fa\u6e08",
@@ -1206,7 +1192,7 @@
     "The following email addresses and/or usernames are invalid:": "\u6b21\u306e\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u307e\u305f\u306f\u30e6\u30fc\u30b6\u30fc\u540d\u304c\u7121\u52b9\u3067\u3059: ",
     "The following errors were generated:": "\u4ee5\u4e0b\u306e\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f: ",
     "The following file types are not allowed: ": "\u6b21\u306b\u793a\u3059\u30d5\u30a1\u30a4\u30eb\u30bf\u30a4\u30d7\u306f\u4e0d\u6b63\u3067\u3059\uff1a",
-    "The following information is already a part of your {platform} profile. We\\'ve included it here for your application.": "\u4ee5\u4e0b\u306e\u60c5\u5831\u306f\u3059\u3067\u306b\u3042\u306a\u305f\u306e{platform}\u306e\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u306b\u5165\u3063\u3066\u3044\u307e\u3059\u3002\u7533\u8fbc\u66f8\u306b\u4ee5\u4e0b\u306e\u60c5\u5831\u3092\u5165\u308c\u307e\u3057\u305f\u3002",
+    "The following information is already a part of your {platform} profile. We've included it here for your application.": "\u4ee5\u4e0b\u306e\u60c5\u5831\u306f\u3059\u3067\u306b\u3042\u306a\u305f\u306e{platform}\u306e\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u306b\u5165\u3063\u3066\u3044\u307e\u3059\u3002\u7533\u8fbc\u66f8\u306b\u4ee5\u4e0b\u306e\u60c5\u5831\u3092\u5165\u308c\u307e\u3057\u305f\u3002",
     "The following message will be displayed at the bottom of the courseware pages within your course:": "\u6b21\u306e\u30e1\u30c3\u30bb\u30fc\u30b8\u306f\u30b3\u30fc\u30b9\u30a6\u30a7\u30a2\u753b\u9762\u306e\u4e0b\u90e8\u306b\u8868\u793a\u3055\u308c\u307e\u3059: ",
     "The following options are available for the {license_name} license.": " {license_name}\u30e9\u30a4\u30bb\u30f3\u30b9\u3067\u306f\u3001\u4ee5\u4e0b\u306e\u30aa\u30d7\u30b7\u30e7\u30f3\u304c\u5229\u7528\u3067\u304d\u307e\u3059\u3002",
     "The following users are no longer enrolled in the course:": "\u6b21\u306e\u30e6\u30fc\u30b6\u30fc\u306f\u8b1b\u5ea7\u306b\u53d7\u8b1b\u767b\u9332\u3055\u308c\u3066\u3044\u307e\u305b\u3093: ",
@@ -1290,7 +1276,7 @@
     "This is the list of chosen %s. You may remove some by selecting them in the box below and then clicking the \"Remove\" arrow between the two boxes.": "\u3053\u308c\u304c\u9078\u629e\u3055\u308c\u305f %s \u306e\u30ea\u30b9\u30c8\u3067\u3059\u3002\u4e0b\u306e\u30dc\u30c3\u30af\u30b9\u3067\u9078\u629e\u3057\u30012\u3064\u306e\u30dc\u30c3\u30af\u30b9\u9593\u306e \"\u524a\u9664\"\u77e2\u5370\u3092\u30af\u30ea\u30c3\u30af\u3057\u3066\u4e00\u90e8\u3092\u524a\u9664\u3059\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u3059\u3002",
     "This is the name of the group": "\u3053\u308c\u306f\u30b0\u30eb\u30fc\u30d7\u306e\u540d\u524d\u3067\u3059",
     "This learner is currently sharing a limited profile.": "\u3053\u306e\u53d7\u8b1b\u8005\u306f\u73fe\u5728\u9650\u5b9a\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u3092\u516c\u958b\u3057\u3066\u3044\u307e\u3059\u3002",
-    "This learner will be removed from the team, allowing another learner to take the available spot.": "\u3053\u306e\u53d7\u8b1b\u8005\u304c\u30c1\u30fc\u30e0\u304b\u3089\u524a\u9664\u3055\u308c\u308b\u3053\u3068\u306b\u3088\u308a\u3001\u5225\u306e\u53d7\u8b1b\u8005\u304c\u53c2\u52a0\u53ef\u80fd\u306b\u306a\u308a\u307e\u3059\u3002",
+    "This learner will be removed from the team,allowing another learner to take the available spot.": "\u3053\u306e\u53d7\u8b1b\u8005\u304c\u30c1\u30fc\u30e0\u304b\u3089\u524a\u9664\u3055\u308c\u308b\u3053\u3068\u306b\u3088\u308a\u3001\u5225\u306e\u53d7\u8b1b\u8005\u304c\u53c2\u52a0\u53ef\u80fd\u306b\u306a\u308a\u307e\u3059\u3002",
     "This page contains information about orders that you have placed with {platform_name}.": "\u3053\u306e\u753b\u9762\u306b\u306f{platform_name}\u5185\u3067\u306e\u6ce8\u6587\u306b\u95a2\u3059\u308b\u60c5\u5831\u304c\u542b\u307e\u308c\u3066\u3044\u307e\u3059\u3002",
     "This post could not be closed. Refresh the page and try again.": "\u3053\u306e\u6295\u7a3f\u3092\u7d42\u4e86\u3059\u308b\u3053\u3068\u304c\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u753b\u9762\u3092\u518d\u8aad\u8fbc\u3057\u3066\u518d\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "This post could not be flagged for abuse. Refresh the page and try again.": "\u3053\u306e\u6295\u7a3f\u306f\u4e0d\u6b63\u6295\u7a3f\u3068\u3057\u3066\u30d5\u30e9\u30b0\u304c\u3064\u3051\u3089\u308c\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u753b\u9762\u3092\u518d\u8aad\u8fbc\u3057\u3066\u518d\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
@@ -1346,10 +1332,9 @@
     "To review learner cohort assignments or see the results of uploading a CSV file, download course profile information or cohort results on the {link_start}Data Download{link_end} page.": "\u53d7\u8b1b\u8005\u306e\u30b3\u30db\u30fc\u30c8\u632f\u308a\u5206\u3051\u3084CSV\u30d5\u30a1\u30a4\u30eb\u306e\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u7d50\u679c\u3092\u78ba\u8a8d\u3059\u308b\u306b\u306f\u3001{link_start}\u30c7\u30fc\u30bf\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9{link_end} \u30da\u30fc\u30b8\u3067\u8b1b\u5ea7\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u60c5\u5831\u307e\u305f\u306f\u30b3\u30db\u30fc\u30c8\u7d50\u679c\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u00a0",
     "To share your certificate on Mozilla Backpack, you must first have a Backpack account. Complete the following steps to add your certificate to Backpack.": "\u4fee\u4e86\u8a3c\u3092Mozilla Backpack\u3067\u30b7\u30a7\u30a2\u3059\u308b\u306b\u306f\u3001\u307e\u305aBackpack\u306e\u30a2\u30ab\u30a6\u30f3\u30c8\u304c\u5fc5\u8981\u3067\u3059\u3002\u6b21\u306e\u30b9\u30c6\u30c3\u30d7\u3092\u5b8c\u4e86\u3057\u3066\u3001Backpack\u306b\u4fee\u4e86\u8a3c\u3092\u8ffd\u52a0\u3057\u307e\u3057\u3087\u3046\u3002",
     "To take a successful photo, make sure that:": "\u4e0a\u624b\u304f\u5199\u771f\u304c\u64ae\u308c\u305f\u3089\u3001\u4ee5\u4e0b\u3092\u78ba\u8a8d: ",
-    "To use the current photo, select the camera button {icon}. To take another photo, select the retake button {icon}.": "\u3053\u306e\u5199\u771f\u3092\u4f7f\u3046\u306e\u3067\u3042\u308c\u3070\u3001\u30ab\u30e1\u30e9\u30dc\u30bf\u30f3{icon}\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u5225\u306e\u5199\u771f\u3092\u64ae\u308b\u5834\u5408\u306f\u3001\u518d\u64ae\u5f71\u30dc\u30bf\u30f3{icon}\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "To verify your identity, you need a webcam and a government-issued photo ID.": "\u672c\u4eba\u8a8d\u8a3c\u3092\u3059\u308b\u305f\u3081\u306b\u3001web\u30ab\u30e1\u30e9\u304a\u3088\u3073\u653f\u5e9c\u767a\u884c\u306e\u5199\u771f\u4ed8\u304dID\u304c\u5fc5\u8981\u3067\u3059\u3002",
     "Today": "\u4eca\u65e5",
-    "Today at ": "\u4eca\u65e5",
+    "Today at ": "\u4eca\u65e5 ",
     "Toggle Notifications Setting": "\u901a\u77e5\u8a2d\u5b9a\u3092\u8868\u793a",
     "Tomorrow": "\u660e\u65e5",
     "Topic": "\u30c8\u30d4\u30c3\u30af",
@@ -1440,8 +1425,6 @@
     "Use my institution/campus credentials": "\u6a5f\u95a2/\u5b66\u6821\u306e\u8a3c\u660e\u66f8\u3092\u4f7f\u3046",
     "Use the": "\u7279\u5b9a\u306e\u30c8\u30d4\u30c3\u30af\u307e\u305f\u306f\u6295\u7a3f\u3092",
     "Use the All Topics menu to find specific topics.": "\u7279\u5b9a\u306e\u30c8\u30d4\u30c3\u30af\u3092\u898b\u3064\u3051\u308b\u306b\u306f'\u5168\u30c8\u30d4\u30c3\u30af'\u30e1\u30cb\u30e5\u30fc\u3092\u4f7f\u7528\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
-    "Use the retake photo button if you are not pleased with your photo": "\u5199\u771f\u3092\u64ae\u308a\u76f4\u3057\u305f\u3044\u5834\u5408\u306f\u3001\u518d\u64ae\u5f71\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u3066\u304f\u3060\u3055\u3044",
-    "Use your webcam to take a photo of your ID. We will match this photo with the photo of your face and the name on your account.": "\u30a6\u30a7\u30d6\u30ab\u30e1\u30e9\u3092\u4f7f\u3063\u3066\u3001\u3042\u306a\u305f\u306eID\u306e\u5199\u771f\u3092\u64ae\u5f71\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u305d\u306e\u5199\u771f\u3092\u3042\u306a\u305f\u306e\u9854\u5199\u771f\u304a\u3088\u3073\u30a2\u30ab\u30a6\u30f3\u30c8\u306b\u8a2d\u5b9a\u3055\u308c\u305f\u540d\u524d\u3068\u7167\u5408\u3057\u307e\u3059\u3002",
     "Use your webcam to take a photo of your face. We will match this photo with the photo on your ID.": "\u30a6\u30a7\u30d6\u30ab\u30e1\u30e9\u3092\u4f7f\u3063\u3066\u3001\u3042\u306a\u305f\u306e\u9854\u5199\u771f\u3092\u64ae\u5f71\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u3053\u306e\u5199\u771f\u3092\u3042\u306a\u305f\u306eID\u306e\u5199\u771f\u3068\u7167\u5408\u3057\u307e\u3059\u3002",
     "Used": "\u5229\u7528\u6e08",
     "Used in {count} location": [
@@ -1469,15 +1452,15 @@
     "Video image upload completed": "\u52d5\u753b\u753b\u50cf\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u5b8c\u4e86",
     "Video image upload started": "\u52d5\u753b\u753b\u50cf\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u958b\u59cb",
     "View": "\u898b\u308b",
-    "View %(span_start)s %(team_name)s %(span_end)s": "%(span_start)s %(team_name)s %(span_end)s \u3092\u898b\u308b",
     "View Archived Course": "\u30a2\u30fc\u30ab\u30a4\u30d6\u6e08\u8b1b\u5ea7\u3092\u898b\u308b",
     "View Cohort": "\u30b3\u30db\u30fc\u30c8\u3092\u898b\u308b",
     "View Course": "\u8b1b\u5ea7\u3092\u898b\u308b",
     "View Live": "\u30e9\u30a4\u30d6\u8868\u793a",
-    "View Teams in the %(topic_name)s Topic": "%(topic_name)s \u3068\u3044\u3046\u30c8\u30d4\u30c3\u30af\u306e\u30c1\u30fc\u30e0\u3092\u898b\u308b",
+    "View Teams in the {topic_name} Topic": "{topic_name} \u3068\u3044\u3046\u30c8\u30d4\u30c3\u30af\u306e\u30c1\u30fc\u30e0\u3092\u898b\u308b",
     "View all errors": "\u5168\u3066\u306e\u30a8\u30e9\u30fc\u3092\u898b\u308b",
     "View child items": "\u5b50\u30a2\u30a4\u30c6\u30e0\u3092\u898b\u308b",
     "View discussion": "\u30c7\u30a3\u30b9\u30ab\u30c3\u30b7\u30e7\u30f3\u3092\u898b\u308b",
+    "View {span_start} {team_name} {span_end}": "{span_start}s {team_name} {span_end} \u3092\u898b\u308b",
     "Viewing %s course": [
       "%s \u8b1b\u5ea7\u3092\u898b\u308b"
     ],
@@ -1509,7 +1492,6 @@
     "What does this mean?": "\u3053\u308c\u306f\u4f55\u3092\u610f\u5473\u3059\u308b\uff1f",
     "What's Your Next Accomplishment?": "\u3042\u306a\u305f\u306e\u6b21\u306e\u696d\u7e3e\u306f\u4f55\uff1f",
     "When learners submit an answer to an assessment, they immediately see whether the answer is correct or incorrect, and the score received.": "\u53d7\u8b1b\u8005\u306f\u3001\u89e3\u7b54\u3092\u63d0\u51fa\u3059\u308b\u3068\u3059\u3050\u306b\u6b63\u89e3\u304b\u4e0d\u6b63\u89e3\u304b\u304c\u5206\u304b\u308a\u3001\u63a1\u70b9\u7d50\u679c\u3092\u53d7\u3051\u53d6\u308a\u307e\u3059\u3002",
-    "When your face is in position, use the camera button {icon} below to take your photo.": "\u9854\u304c\u6b63\u3057\u3044\u4f4d\u7f6e\u306b\u53ce\u307e\u3063\u305f\u3089\u3001\u4e0b\u306e\u30ab\u30e1\u30e9\u30dc\u30bf\u30f3{icon}\u3092\u4f7f\u3063\u3066\u5199\u771f\u3092\u64ae\u3063\u3066\u304f\u3060\u3055\u3044\u3002",
     "Which timed transcript would you like to use?": "\u3069\u306e\u6642\u9593\u4ed8\u304d\u5b57\u5e55\u3092\u4f7f\u3044\u307e\u3059\u304b\uff1f",
     "Why activate?": "\u306a\u305c\u6709\u52b9\u5316\u3059\u308b\u306e\uff1f",
     "Why does %(platformName)s need my photo?": "%(platformName)s \u3067\u306a\u305c\u5199\u771f\u304c\u5fc5\u8981\u306a\u306e\u3067\u3057\u3087\u3046\u304b\uff1f",
@@ -1519,13 +1501,12 @@
     "Yes, allow edits to the active Certificate": "\u306f\u3044\u3001\u30a2\u30af\u30c6\u30a3\u30d6\u306a\u4fee\u4e86\u8a3c\u3092\u7de8\u96c6\u3057\u307e\u3059",
     "Yes, replace the edX transcript with the YouTube transcript": "\u306f\u3044\u3001edX\u5b57\u5e55\u3092YouTube\u5b57\u5e55\u3067\u7f6e\u304d\u63db\u3048\u3066\u304f\u3060\u3055\u3044",
     "Yesterday": "\u6628\u65e5",
-    "You already belong to another team.": "\u3059\u3067\u306b\u4ed6\u306e\u30c1\u30fc\u30e0\u306b\u53c2\u52a0\u3057\u3066\u3044\u307e\u3059\u3002",
     "You are a member of this team.": "\u3042\u306a\u305f\u306f\u3053\u306e\u30c1\u30fc\u30e0\u306e\u30e1\u30f3\u30d0\u30fc\u3067\u3059\u3002",
     "You are currently sharing a limited profile.": "\u73fe\u5728\u306f\u9650\u5b9a\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u3092\u516c\u958b\u3057\u3066\u3044\u307e\u3059\u3002",
     "You are enrolling in: {courseName}": "\u53d7\u8b1b\u767b\u9332\u4e2d: {courseName}",
     "You are not currently a member of any team.": "\u73fe\u5728\u3069\u306e\u30c1\u30fc\u30e0\u306b\u3082\u53c2\u52a0\u3057\u3066\u3044\u307e\u305b\u3093\u3002",
     "You are not enrolled in any programs yet.": "\u307e\u3060\u3069\u306e\u30d7\u30ed\u30b0\u30e9\u30e0\u306b\u3082\u53d7\u8b1b\u767b\u9332\u3057\u3066\u3044\u307e\u305b\u3093\u3002",
-    "You are now": "\u3042\u306a\u305f\u306f\u4eca",
+    "You are now": "\u3042\u306a\u305f\u306f\u4eca\u30b3\u30db\u30fc\u30c8\u3067",
     "You are now enrolled as a verified student for:": "\u3042\u306a\u305f\u306f\u8a8d\u8a3c\u4ed8\u304d\u53d7\u8b1b\u8005\u3068\u3057\u3066\u53d7\u8b1b\u767b\u9332\u3055\u308c\u3066\u3044\u307e\u3059: ",
     "You are sending an email message with the subject {subject} to the following recipients.": "\u4ee5\u4e0b\u306e\u5b9b\u5148\u306b\u4ef6\u540d {subject} \u306e\u30e1\u30fc\u30eb\u3092\u9001\u4fe1\u4e2d\u3067\u3059\u3002",
     "You are upgrading your enrollment for: {courseName}": "\u53d7\u8b1b\u767b\u9332\u306e\u30a2\u30c3\u30d7\u30b0\u30ec\u30fc\u30c9\u4e2d: {courseName}",
@@ -1572,7 +1553,6 @@
     "You must specify your birth year before you can share your full profile. To specify your birth year, go to the {account_settings_page_link}": "\u5168\u30d7\u30ed\u30d5\u30a3\u30fc\u30eb\u3092\u516c\u958b\u3059\u308b\u305f\u3081\u306b\u306f\u3001\u8a95\u751f\u5e74\u3092\u6307\u5b9a\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u8a95\u751f\u5e74\u3092\u5165\u529b\u3059\u308b\u306b\u306f {account_settings_page_link}\u3078\u79fb\u52d5\u3057\u307e\u3059\u3002",
     "You need a computer that has a webcam. When you receive a browser prompt, make sure that you allow access to the camera.": "\u30a6\u30a7\u30d6\u30ab\u30e1\u30e9\u4ed8\u304d\u306e\u30b3\u30f3\u30d4\u30e5\u30fc\u30bf\u304c\u5fc5\u8981\u3067\u3059\u3002\u30d6\u30e9\u30a6\u30b6\u304b\u3089\u306e\u6307\u793a\u3092\u53d7\u3051\u305f\u3089\u3001\u30ab\u30e1\u30e9\u3078\u306e\u30a2\u30af\u30bb\u30b9\u304c\u8a31\u53ef\u3055\u308c\u3066\u3044\u308b\u306e\u3092\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "You need a driver's license, passport, or other government-issued ID that has your name and photo.": "\u540d\u524d\u3068\u5199\u771f\u304c\u8a18\u8f09\u3055\u308c\u3066\u3044\u308b\u514d\u8a31\u8a3c\u3001\u30d1\u30b9\u30dd\u30fc\u30c8\u307e\u305f\u306f\u653f\u5e9c\u767a\u884c\u306e\u8eab\u5206\u8a3c\u660e\u66f8\u304c\u5fc5\u8981\u3067\u3059\u3002",
-    "You need an ID with your name and photo. A driver's license, passport, or other government-issued IDs are all acceptable.": "\u6c0f\u540d\u3068\u5199\u771f\u4ed8\u304d\u306eID\u304c\u5fc5\u8981\u3067\u3059\u3002\u904b\u8ee2\u514d\u8a31\u8a3c\u3001\u30d1\u30b9\u30dd\u30fc\u30c8\u307e\u305f\u306f\u653f\u5e9c\u767a\u884c\u306e\u8eab\u5206\u8a3c\u660e\u66f8\u304c\u6709\u52b9\u3067\u3059\u3002",
     "You need to activate your account before you can enroll in courses. Check your inbox for an activation email.": "\u8b1b\u5ea7\u306e\u53d7\u8b1b\u767b\u9332\u3092\u59cb\u3081\u308b\u524d\u306b\u3001\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u6709\u52b9\u5316\u3055\u305b\u308b\u5fc5\u8981\u304c\u3042\u308a\u307e\u3059\u3002\u6709\u52b9\u5316\u306b\u95a2\u3059\u308b\u30e1\u30fc\u30eb\u304c\u5c4a\u3044\u3066\u3044\u308b\u304b\u3054\u78ba\u8a8d\u304f\u3060\u3055\u3044\u3002",
     "You need to activate your account before you can enroll in courses. Check your inbox for an activation email. After you complete activation you can return and refresh this page.": "\u8b1b\u5ea7\u306e\u53d7\u8b1b\u767b\u9332\u3092\u59cb\u3081\u308b\u524d\u306b\u3001\u30a2\u30ab\u30a6\u30f3\u30c8\u3092\u6709\u52b9\u5316\u3055\u305b\u308b\u5fc5\u8981\u304c\u3042\u308a\u307e\u3059\u3002\u6709\u52b9\u5316\u306b\u95a2\u3059\u308b\u30e1\u30fc\u30eb\u304c\u5c4a\u3044\u3066\u3044\u308b\u304b\u3054\u78ba\u8a8d\u304f\u3060\u3055\u3044\u3002\u6709\u52b9\u5316\u304c\u5b8c\u4e86\u3057\u305f\u3089\u3001\u3053\u306e\u753b\u9762\u306b\u623b\u308a\u518d\u8aad\u8fbc\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "You still need to visit the %(display_name)s website to complete the credit process.": "\u5358\u4f4d\u8a8d\u5b9a\u51e6\u7406\u3092\u5b8c\u4e86\u3059\u308b\u306b\u306f\u5f15\u304d\u7d9a\u304d%(display_name)s\u3092\u898b\u3066\u304f\u3060\u3055\u3044\u3002",
@@ -1605,12 +1585,13 @@
     "Your message must have a subject.": "\u30e1\u30c3\u30bb\u30fc\u30b8\u306b\u306f\u4ef6\u540d\u304c\u5fc5\u8981\u3067\u3059\u3002",
     "Your message must have at least one target.": "\u30e1\u30c3\u30bb\u30fc\u30b8\u306b\u306f\u5c11\u306a\u304f\u3068\u3082\u3072\u3068\u3064\u5b9b\u5148\u304c\u5fc5\u8981\u3067\u3059\u3002",
     "Your policy changes have been saved.": "\u30dd\u30ea\u30b7\u30fc\u306e\u5909\u66f4\u304c\u4fdd\u5b58\u3055\u308c\u307e\u3057\u305f\u3002",
+    "Your post": "\u3042\u306a\u305f\u306e\u6295\u7a3f",
     "Your post will be discarded.": "\u3042\u306a\u305f\u306e\u6295\u7a3f\u306f\u7834\u68c4\u3055\u308c\u307e\u3059\u3002",
-    "Your question or idea (required)": "\u8cea\u554f\u3084\u30a2\u30a4\u30c7\u30a3\u30a2(\u5fc5\u9808)",
     "Your request could not be completed due to a server problem. Reload the page and try again. If the issue persists, click the Help tab to report the problem.": "\u30b5\u30fc\u30d0\u30fc\u306e\u554f\u984c\u306b\u3088\u308a\u30ea\u30af\u30a8\u30b9\u30c8\u306e\u5b9f\u884c\u3092\u5b8c\u4e86\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u753b\u9762\u3092\u518d\u8aad\u8fbc\u3057\u3066\u518d\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u3053\u306e\u554f\u984c\u304c\u89e3\u6c7a\u3057\u306a\u3044\u5834\u5408\u306f\u30d8\u30eb\u30d7\u30bf\u30d6\u3092\u30af\u30ea\u30c3\u30af\u3057\u3066\u554f\u984c\u3092\u5831\u544a\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Your request could not be completed. Reload the page and try again.": "\u30ea\u30af\u30a8\u30b9\u30c8\u306e\u5b9f\u884c\u3092\u5b8c\u4e86\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u753b\u9762\u3092\u518d\u8aad\u8fbc\u3057\u3066\u518d\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Your request could not be completed. Reload the page and try again. If the issue persists, click the Help tab to report the problem.": "\u30ea\u30af\u30a8\u30b9\u30c8\u306e\u5b9f\u884c\u306f\u5b8c\u4e86\u3057\u3066\u3044\u307e\u305b\u3093\u3002\u518d\u8aad\u8fbc\u3057\u3066\u518d\u8a66\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002\u554f\u984c\u304c\u89e3\u6c7a\u3057\u306a\u3044\u5834\u5408\u306f\u30d8\u30eb\u30d7\u30bf\u30d6\u3092\u30af\u30ea\u30c3\u30af\u3057\u3066\u554f\u984c\u3092\u5831\u544a\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "Your request could not be processed. Refresh the page and try again.": "\u30ea\u30af\u30a8\u30b9\u30c8\u306e\u5b9f\u884c\u3092\u5b8c\u4e86\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u3053\u306e\u753b\u9762\u3092\u518d\u8aad\u8fbc\u3057\u3066\u518d\u5ea6\u5b9f\u884c\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
+    "Your response to": "\u3042\u306a\u305f\u306e\u56de\u7b54",
     "Your team could not be created.": "\u30c1\u30fc\u30e0\u306f\u4f5c\u6210\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002",
     "Your team could not be updated.": "\u30c1\u30fc\u30e0\u306f\u66f4\u65b0\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002",
     "Your upload of '{file}' failed.": "'{file}' \u306e\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002",
@@ -1632,6 +1613,7 @@
     "and others": "\u3068\u305d\u306e\u4ed6",
     "anonymous": "\u533f\u540d",
     "answered question": "\u56de\u7b54\u6e08\u306e\u8cea\u554f",
+    "are": "\u306f",
     "by": "\u306b\u3088\u308a",
     "bytes": "\u30d0\u30a4\u30c8",
     "certificate": "\u4fee\u4e86\u8a3c",
@@ -1649,6 +1631,7 @@
     "dragging out of slider": "\u30b9\u30e9\u30a4\u30c0\u30fc\u306e\u5916\u306b\u30c9\u30e9\u30c3\u30b0",
     "dropped in slider": "\u30b9\u30e9\u30a4\u30c0\u30fc\u306e\u4e2d\u306b\u30c9\u30ed\u30c3\u30d7",
     "dropped on target": "\u30bf\u30fc\u30b2\u30c3\u30c8\u306b\u30c9\u30ed\u30c3\u30d7",
+    "due": "\u671f\u65e5\uff1a",
     "e.g. 'Sky with clouds'. The description is helpful for users who cannot see the image.": "\u4f8b. '\u96f2\u306e\u3042\u308b\u7a7a'\u3002\u753b\u50cf\u3092\u898b\u308b\u3053\u3068\u304c\u3067\u304d\u306a\u3044\u30e6\u30fc\u30b6\u30fc\u306b\u3068\u3063\u3066\u306f\u3001\u3053\u306e\u8aac\u660e\u304c\u52a9\u3051\u306b\u306a\u308a\u307e\u3059\u3002",
     "e.g. 'google'": "\u4f8b. 'google'",
     "e.g. 'http://google.com'": "\u4f8b. 'http://google.com'",
@@ -1662,8 +1645,9 @@
     "follow this post": "\u3053\u306e\u6295\u7a3f\u3092\u30d5\u30a9\u30ed\u30fc\u3059\u308b",
     "for": "\u7528",
     "group configuration": "\u30b0\u30eb\u30fc\u30d7\u8a2d\u5b9a",
+    "has flagged a post entitled": "\u304c\u6295\u7a3f\u306b\u8cc7\u683c\u3042\u308a\u306e\u30d5\u30e9\u30b0\u3092\u4ed8\u3051\u307e\u3057\u305f",
     "image omitted": "\u6620\u50cf\u7701\u7565",
-    "in the cohort!": "\u30b0\u30eb\u30fc\u30d7\u3067",
+    "in the cohort!": "\uff09\u3067\u3059\u3002",
     "last activity": "\u6700\u8fd1\u306e\u30a2\u30af\u30c6\u30a3\u30d3\u30c6\u30a3",
     "less than a minute": "1 \u5206\u672a\u6e80",
     "marked as answer %(time_ago)s": "%(time_ago)s\u524d\u306b\u6b63\u89e3\u3068\u30de\u30fc\u30af\u6e08",
@@ -1679,6 +1663,7 @@
     "one letter Thursday\u0004T": "\u6728",
     "one letter Tuesday\u0004T": "\u706b",
     "one letter Wednesday\u0004W": "\u6c34",
+    "open": "\u30aa\u30fc\u30d7\u30f3\u3067\u3059",
     "open slots": "\u516c\u958b\u30b9\u30ed\u30c3\u30c8",
     "or": "\u307e\u305f\u306f",
     "or create a new one here": "\u307e\u305f\u306f\u3053\u3053\u3067\u65b0\u3057\u304f\u4f5c\u6210\u3059\u308b",
@@ -1686,7 +1671,9 @@
     "path/to/introductionToCookieBaking-CH{order}.pdf": "path/to/introductionToCookieBaking-CH{order}.pdf",
     "post anonymously": "\u533f\u540d\u3067\u6295\u7a3f\u3059\u308b",
     "post anonymously to classmates": "\u533f\u540d\u3067\u30af\u30e9\u30b9\u30e1\u30fc\u30c8\u306b\u6295\u7a3f\u3059\u308b",
+    "posted": "\u6295\u7a3f\u6e08\u307f",
     "posted %(time_ago)s by %(author)s": "%(author)s\u304c%(time_ago)s\u524d\u306b\u6295\u7a3f",
+    "posted:": "\u6295\u7a3f\u6e08\u307f\uff1a",
     "price": "\u4fa1\u683c",
     "provide the title/name of the chapter that will be used in navigating": "\u8aac\u660e\u306b\u4f7f\u3046\u30c1\u30e3\u30d7\u30bf\u30fc\u306e\u30bf\u30a4\u30c8\u30eb/\u540d\u524d\u3092\u5165\u529b",
     "provide the title/name of the text book as you would like your students to see it": "\u53d7\u8b1b\u8005\u306b\u8868\u793a\u3055\u308c\u308b\u6559\u79d1\u66f8\u306e\u30bf\u30a4\u30c8\u30eb/\u540d\u524d\u3092\u5165\u529b",
@@ -1694,6 +1681,8 @@
     "question posted %(time_ago)s by %(author)s": "%(author)s\u304c%(time_ago)s\u524d\u306b\u6295\u7a3f\u3057\u305f\u8cea\u554f",
     "remove": "\u524a\u9664",
     "remove all": "\u5168\u524a\u9664",
+    "responded to your post in": "\u304c\u3042\u306a\u305f\u306e\u6b21\u306e\u6295\u7a3f\u306b\u56de\u7b54\u3057\u307e\u3057\u305f\u3002",
+    "responded:": "\u56de\u7b54\u6e08\u307f\uff1a",
     "second": "\u79d2",
     "seconds": "\u79d2",
     "send an email message to {email}": "{email} \u306b\u30e1\u30fc\u30eb\u3092\u9001\u308b",
@@ -1702,13 +1691,16 @@
     "there is currently {numVotes} vote": [
       "\u73fe\u5728 {numVotes} \u7968"
     ],
-    "timed": "\u6642\u9593\u5236\u9650\u4ed8\u304d",
+    "times": "\u306f",
     "toggle chapter %(displayName)s": "\u30c1\u30e3\u30d7\u30bf\u30fc%(displayName)s\u3092\u5207\u63db",
     "toggle subsection %(displayName)s": "\u30b5\u30d6\u30bb\u30af\u30b7\u30e7\u30f3%(displayName)s\u3092\u5207\u63db",
     "unanswered question": "\u672a\u56de\u7b54\u306e\u8cea\u554f",
     "unit": "\u30e6\u30cb\u30c3\u30c8",
     "upload a PDF file or provide the path to a Studio asset file": "Studio\u30a2\u30bb\u30c3\u30c8\u30d5\u30a1\u30a4\u30eb\u3078\u306e\u30d1\u30b9\u3092\u6307\u5b9a\u3059\u308b\u304b\u3001PDF\u3092\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u3057\u3066\u304f\u3060\u3055\u3044",
+    "uploaded a file": "\u304c\u30d5\u30a1\u30a4\u30eb\u3092\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u3057\u307e\u3057\u305f",
     "username or email": "\u30e6\u30fc\u30b6\u30fc\u540d\u307e\u305f\u306f\u30e1\u30fc\u30eb",
+    "was followed": "\u56de\u30d5\u30a9\u30ed\u30fc\u3055\u308c\u307e\u3057\u305f",
+    "was upvoted": "\u7968\u306e\u8cdb\u6210\u7968\u304c\u5165\u308a\u307e\u3057\u305f",
     "with %(release_date_from)s": "%(release_date_from)s \u306b",
     "with %(section_or_subsection)s": "%(section_or_subsection)s \u3068\u5171\u306b",
     "{InstructionsSpanStart}{videoImageResoultion}{lineBreak} {videoImageSupportedFileFormats}{spanEnd}": "{InstructionsSpanStart}{videoImageResoultion}{lineBreak} {videoImageSupportedFileFormats}{spanEnd}",
@@ -1717,6 +1709,7 @@
     "{categoryText} in {parentDisplayname}": "{parentDisplayname}\u5185\u306e{categoryText}",
     "{currentCountOpeningTag}{currentCharacterCount}{currentCountClosingTag} of {maxCharacters}": "{maxCharacters}\u6587\u5b57\u4e2d{currentCountOpeningTag}{currentCharacterCount}\u6587\u5b57{currentCountClosingTag}",
     "{display_name} Settings": "{display_name} \u8a2d\u5b9a",
+    "{download_link_start}Download this image (right-click or option-click, save as){link_end} and then {upload_link_start}upload{link_end} it to your backpack.": "{download_link_start}s\u3053\u306e\u753b\u50cf\u3092\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9(\u53f3\u30af\u30ea\u30c3\u30af\u307e\u305f\u306f\u30aa\u30d7\u30b7\u30e7\u30f3\u30af\u30ea\u30c3\u30af\u3057\u3066\u3001\u540d\u524d\u3092\u4ed8\u3051\u3066\u4fdd\u5b58)%(link_end)s\u3057\u3066\u3001\u3042\u306a\u305f\u306ebackpack\u306b{upload_link_start}\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9%(link_end)s\u3057\u3066\u304f\u3060\u3055\u3044\u3002</li>",
     "{email}": "{email}",
     "{email} is already on the {container} team. Recheck the email address if you want to add a new member.": "{email}\u306f\u3059\u3067\u306b{container}\u30c1\u30fc\u30e0\u306b\u767b\u9332\u3055\u308c\u3066\u3044\u307e\u3059\u3002\u65b0\u3057\u3044\u30e1\u30f3\u30d0\u30fc\u3092\u767b\u9332\u3059\u308b\u5834\u5408\u306f\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u3092\u518d\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "{filename} exceeds maximum size of {maxFileSizeInGB} GB.": "{filename}\u306f\u6700\u5927\u30b5\u30a4\u30ba {maxFileSizeInGB} GB\u3092\u8d85\u3048\u3066\u3044\u307e\u3059\u3002",
@@ -1745,11 +1738,22 @@
     "{numVotes} Vote": [
       "{numVotes} \u7968"
     ],
+    "{num_questions} question": [
+      "{num_questions}\u4ef6\u306e\u8cea\u554f"
+    ],
+    "{num_students} student": [
+      "{num_students}\u540d\u306e\u53d7\u8b1b\u8005"
+    ],
+    "{num_students} student opened Subsection": [
+      "{num_students}\u540d\u306e\u53d7\u8b1b\u8005\u304c\u30b5\u30d6\u30bb\u30af\u30b7\u30e7\u30f3\u3092\u958b\u304d\u307e\u3057\u305f"
+    ],
     "{organization}\\'s logo": "{organization}\u306e\u30ed\u30b4",
-    "{paragraphStart}You entered {boldStart}{email}{boldEnd}. If this email address is associated with your {platform_name} account, we will send a message with password reset instructions to this email address.{paragraphEnd}{paragraphStart}If you do not receive a password reset message, verify that you entered the correct email address, or check your spam folder.{paragraphEnd}{paragraphStart}If you need further assistance, {anchorStart}contact technical support{anchorEnd}.{paragraphEnd}": "{paragraphStart} \u3042\u306a\u305f\u306f {boldStart}{email}{boldEnd}\u3068\u5165\u529b\u3057\u307e\u3057\u305f\u3002\u3053\u306e\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u3092 {platform_name} \u30a2\u30ab\u30a6\u30f3\u30c8\u306b\u767b\u9332\u3057\u3066\u3044\u308c\u3070\u3001\u3053\u306e\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u306b\u30d1\u30b9\u30ef\u30fc\u30c9\u518d\u8a2d\u5b9a\u306b\u95a2\u3059\u308b\u30e1\u30c3\u30bb\u30fc\u30b8\u304c\u5c4a\u304d\u307e\u3059\u3002{paragraphEnd}{paragraphStart}\u30e1\u30fc\u30eb\u304c\u5c4a\u304b\u306a\u3044\u5834\u5408\u306f\u3001\u6b63\u3057\u3044\u30e1\u30fc\u30eb\u30a2\u30c9\u30ec\u30b9\u304c\u5165\u529b\u3067\u304d\u3066\u3044\u308b\u304b\u3001\u3042\u308b\u3044\u306f\u8ff7\u60d1\u30e1\u30fc\u30eb\u30d5\u30a9\u30eb\u30c0\u306b\u5165\u3063\u3066\u3044\u306a\u3044\u304b\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002{paragraphEnd}{paragraphStart}\u30d8\u30eb\u30d7\u304c\u5fc5\u8981\u306a\u5834\u5408\u306f\u3001{anchorStart}\u30c6\u30af\u30cb\u30ab\u30eb\u30b5\u30dd\u30fc\u30c8\u3078\u304a\u554f\u3044\u5408\u308f\u305b\u304f\u3060\u3055\u3044{anchorEnd}\u3002{paragraphEnd}",
     "{screen_reader_start}Warning:{screen_reader_end} No content groups exist.": "{screen_reader_start}\u8b66\u544a:{screen_reader_end} \u30b3\u30f3\u30c6\u30f3\u30c4\u30b0\u30eb\u30fc\u30d7\u304c\u5b58\u5728\u3057\u307e\u305b\u3093\u3002",
     "{screen_reader_start}Warning:{screen_reader_end} The previously selected content group was deleted. Select another content group.": "{screen_reader_start}\u8b66\u544a:{screen_reader_end} \u4ee5\u524d\u9078\u629e\u3057\u305f\u30b3\u30f3\u30c6\u30f3\u30c4\u30b0\u30eb\u30fc\u30d7\u306f\u524a\u9664\u3055\u308c\u307e\u3057\u305f\u3002\u5225\u306e\u30b3\u30f3\u30c6\u30f3\u30c4\u30b0\u30eb\u30fc\u30d7\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
     "{seconds} {unit}": "{seconds} {unit}",
+    "{team_count} Team": [
+      "{team_count}s \u30c1\u30fc\u30e0"
+    ],
     "{total_results} result": [
       "\u7d50\u679c {total_results}\u4ef6"
     ],
@@ -1760,7 +1764,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-
+  
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

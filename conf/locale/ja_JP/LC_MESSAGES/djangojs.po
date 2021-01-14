@@ -788,7 +788,7 @@ msgstr ""
 #: cms/templates/js/xblock-string-field-editor.underscore
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Edit"
-msgstr ""
+msgstr "編集"
 
 #. Translators: this is a message from the raw HTML editor displayed in the
 #. browser when a user needs to edit HTML
@@ -1517,7 +1517,7 @@ msgstr ""
 #: cms/templates/js/signatory-details.underscore
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Title"
-msgstr ""
+msgstr "タイトル"
 
 #. Translators: this is a message from the raw HTML editor displayed in the
 #. browser when a user needs to edit HTML
@@ -2409,6 +2409,10 @@ msgid ""
 "If you are unable to access your account contact us via email using {email}."
 msgstr ""
 
+#: lms/djangoapps/support/static/support/jsx/logged_out_user.jsx
+msgid "Create an {platform} account"
+msgstr ""
+
 #: lms/djangoapps/support/static/support/jsx/single_support_form.jsx
 msgid ""
 "Select a course or select \"Not specific to a course\" for your support "
@@ -2581,7 +2585,7 @@ msgstr "このメンバーをチームから削除しますか？"
 msgid ""
 "This learner will be removed from the team,allowing another learner to take "
 "the available spot."
-msgstr ""
+msgstr "この受講者がチームから削除されることにより、別の受講者が参加可能になります。"
 
 #: lms/djangoapps/teams/static/teams/js/views/instructor_tools.js
 msgid "Delete this team?"
@@ -2592,6 +2596,7 @@ msgid ""
 "Deleting a team is permanent and cannot be undone.All members are removed "
 "from the team, and team discussions can no longer be accessed."
 msgstr ""
+"チームの削除は恒久的なもので取り消しできません。チームからすべてのメンバーが削除され、チームのディスカッションへのアクセスもできなくなります。"
 
 #: lms/djangoapps/teams/static/teams/js/views/instructor_tools.js
 msgid "Team \"{team}\" successfully deleted."
@@ -2616,11 +2621,11 @@ msgstr "とその他"
 #. * relative timestamp (see: http://momentjs.com/)
 #: lms/djangoapps/teams/static/teams/js/views/team_card.js
 msgid "Last activity {date}"
-msgstr ""
+msgstr "最近のアクティビティ {date} "
 
 #: lms/djangoapps/teams/static/teams/js/views/team_card.js
 msgid "View {span_start} {team_name} {span_end}"
-msgstr ""
+msgstr "{span_start}s {team_name} {span_end} を見る"
 
 #: lms/djangoapps/teams/static/teams/js/views/team_profile.js
 #: lms/djangoapps/teams/static/teams/js/views/team_profile_header_actions.js
@@ -2635,7 +2640,7 @@ msgstr "このチームを辞めますか？"
 msgid ""
 "If you leave, you can no longer post in this team's discussions.Your place "
 "will be available to another learner."
-msgstr ""
+msgstr "もし辞めると、このチームのディスカッションに投稿することができなくなります。使用していた環境は他の受講者が利用できるようになります。"
 
 #: lms/djangoapps/teams/static/teams/js/views/team_profile.js
 #: lms/static/js/verify_student/views/reverify_view.js
@@ -2660,6 +2665,11 @@ msgid " Member"
 msgid_plural " Members"
 msgstr[0] ""
 
+#: lms/djangoapps/teams/static/teams/js/views/team_utils.js
+msgid "%(memberCount)s / %(maxMemberCount)s Member"
+msgid_plural "%(memberCount)s / %(maxMemberCount)s Members"
+msgstr[0] "メンバー %(memberCount)s / %(maxMemberCount)s 人"
+
 #: lms/djangoapps/teams/static/teams/js/views/teams.js
 msgid "All teams"
 msgstr "全てのチーム"
@@ -2673,8 +2683,14 @@ msgid "Topics"
 msgstr "トピックス"
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
-msgid "My Teams"
-msgstr ""
+msgid ""
+"See all teams in your course, organized by topic. Join a team to collaborate"
+" with other learners who are interested in the same topic as you are."
+msgstr "講座の全チームをトピック別に整理して表示します。同じトピックに興味を持っている他の受講者と協同学習するために、チームに参加しましょう。"
+
+#: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
+msgid "My Team"
+msgstr "参加しているチーム"
 
 #: lms/djangoapps/teams/static/teams/js/views/teams_tab.js
 #: lms/templates/instructor/instructor_dashboard_2/certificate-bulk-white-list.underscore
@@ -2773,11 +2789,12 @@ msgstr "\"{team}\" というチームが見つかりませんでした。"
 #: lms/djangoapps/teams/static/teams/js/views/topic_card.js
 msgid "{team_count} Team"
 msgid_plural "{team_count} Teams"
-msgstr[0] ""
+msgstr[0] "{team_count}s チーム"
 
 #: lms/djangoapps/teams/static/teams/js/views/topic_card.js
 msgid "View Teams in the {topic_name} Topic"
-msgstr ""
+msgstr "{topic_name} というトピックのチームを見る"
+
 
 #: lms/djangoapps/teams/static/teams/js/views/topic_teams.js
 msgid ""
@@ -3153,23 +3170,27 @@ msgstr "お支払いいただいた金額は返金されません。"
 msgid ""
 "Are you sure you want to unenroll from the purchased course {courseName} "
 "({courseNumber})?"
-msgstr ""
+msgstr "支払済の講座 {courseName}({courseNumber}) を受講取消しようとしていますが、よろしいですか？"
 
 #: lms/static/js/dashboard/legacy.js
 msgid "Are you sure you want to unenroll from {courseName} ({courseNumber})?"
-msgstr ""
+msgstr "{courseName} ({courseNumber}) を受講取消しようとしていますが、よろしいですか？"
 
 #: lms/static/js/dashboard/legacy.js
 msgid ""
 "Are you sure you want to unenroll from the verified {certNameLong}  track of"
 " {courseName}  ({courseNumber})?"
 msgstr ""
+"%{courseName}({courseNumber})の認証付き "
+"{certNameLong}コースの受講取消をしようとしていますが、よろしいですか？"
 
 #: lms/static/js/dashboard/legacy.js
 msgid ""
 "Are you sure you want to unenroll from the verified {certNameLong} track of "
 "{courseName} ({courseNumber})?"
 msgstr ""
+"{courseName}({courseNumber})の認証付き "
+"{certNameLong}コースの受講取消をしようとしていますが、よろしいですか？"
 
 #: lms/static/js/dashboard/legacy.js
 msgid ""
@@ -4326,10 +4347,6 @@ msgid "Passwords do not match."
 msgstr ""
 
 #: lms/static/js/student_account/components/PasswordResetConfirmation.jsx
-msgid "Reset My Password"
-msgstr ""
-
-#: lms/static/js/student_account/components/PasswordResetConfirmation.jsx
 #: lms/static/js/student_account/views/account_settings_factory.js
 msgid "Reset Your Password"
 msgstr "パスワードを再設定"
@@ -4571,6 +4588,10 @@ msgstr ""
 
 #: lms/static/js/student_account/views/account_settings_factory.js
 msgid "Recovery Email Address"
+msgstr ""
+
+#: lms/static/js/student_account/views/account_settings_factory.js
+msgid "Secondary Email Address"
 msgstr ""
 
 #: lms/static/js/student_account/views/account_settings_factory.js
@@ -4993,6 +5014,25 @@ msgid ""
 "release date."
 msgstr "開講日までは受講者またはβテスターとして講座を見ることはできません。"
 
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "{num_students} student opened Subsection"
+msgid_plural "{num_students} students opened Subsection"
+msgstr[0] "{num_students}名の受講者がサブセクションを開きました"
+
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "{num_students} student"
+msgid_plural "{num_students} students"
+msgstr[0] "{num_students}名の受講者"
+
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "{num_questions} question"
+msgid_plural "{num_questions} questions"
+msgstr[0] "{num_questions}件の質問"
+
+#: lms/templates/class_dashboard/d3_stacked_bar_graph.js
+msgid "Number of Students"
+msgstr "受講者数"
+
 #: lms/templates/courseware/progress_graph.js
 msgid "Overall Score"
 msgstr "総得点"
@@ -5143,6 +5183,10 @@ msgstr ""
 #: cms/static/js/base.js
 msgid "This link will open in a modal window"
 msgstr ""
+
+#: cms/static/js/certificates/collections/certificates.js
+msgid "Could not parse certificate JSON. %(message)s"
+msgstr "修了証 JSON を解析できませんでした。%(message)s "
 
 #: cms/static/js/certificates/models/certificate.js
 msgid "Certificate name is required."
@@ -6620,138 +6664,170 @@ msgstr "検索クリア"
 msgid "Search"
 msgstr "検索"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Add a Response"
-msgstr ""
+#: common/static/common/templates/discussion/forum-action-answer.underscore
+msgid "Mark as Answer"
+msgstr "正解とマーク"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "This thread is closed."
-msgstr ""
+#: common/static/common/templates/discussion/forum-action-answer.underscore
+msgid "Unmark as Answer"
+msgstr "正解マークを外す"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Add a response:"
-msgstr ""
+#: common/static/common/templates/discussion/forum-action-close.underscore
+msgid "Open"
+msgstr "開く"
 
-#: common/static/common/templates/discussion/templates.underscore
-#: lms/templates/verify_student/incourse_reverify.underscore
-msgid "Submit"
-msgstr "提出"
+#: common/static/common/templates/discussion/forum-action-endorse.underscore
+msgid "Endorse"
+msgstr "いいね！"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-endorse.underscore
+msgid "Unendorse"
+msgstr "いいね！取消"
+
+#: common/static/common/templates/discussion/forum-action-follow.underscore
+msgid "Follow"
+msgstr "フォロー"
+
+#: common/static/common/templates/discussion/forum-action-follow.underscore
+msgid "Unfollow"
+msgstr "フォロー解除"
+
+#: common/static/common/templates/discussion/forum-action-pin.underscore
+msgid "Pin"
+msgstr "ピン"
+
+#: common/static/common/templates/discussion/forum-action-pin.underscore
+msgid "Unpin"
+msgstr "ピン解除"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Report abuse"
+msgstr "問題を報告"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Report"
+msgstr "報告"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Unreport"
+msgstr "報告取消"
+
+#: common/static/common/templates/discussion/forum-action-vote.underscore
+msgid "Vote for this post,"
+msgstr "この投稿に投票する。"
+
+#: common/static/common/templates/discussion/nav-load-more-link.underscore
+msgid "Load more"
+msgstr "さらに読み込む"
+
+#: common/static/common/templates/discussion/new-post-alert.underscore
+msgid "Error posting your message."
+msgstr "メッセージの投稿エラー。"
+
+#: common/static/common/templates/discussion/new-post-visibility.underscore
 #, python-format
-msgid "discussion posted %(time_ago)s by %(author)s"
+msgid "This post will be visible only to %(group_name)s."
 msgstr ""
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "question posted %(time_ago)s by %(author)s"
-msgstr ""
+#: common/static/common/templates/discussion/new-post-visibility.underscore
+msgid "This post will be visible to everyone."
+msgstr "この投稿は全員に表示されます。"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Pinned"
-msgstr "ピン留め"
+#: common/static/common/templates/discussion/new-post.underscore
+msgid "Add a Post"
+msgstr "投稿を追加"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Reported"
-msgstr ""
+#: common/static/common/templates/discussion/new-post.underscore
+msgid "Visible to"
+msgstr "次の人に表示"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Closed"
-msgstr ""
+#: common/static/common/templates/discussion/new-post.underscore
+msgid ""
+"Discussion admins, moderators, and TAs can make their posts visible to all "
+"students or specify a single group."
+msgstr "ディスカッション管理者、モデレーター、TAは全受講者あるいは特定のグループのみに投稿を表示可能にできます。"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "Related to: %(courseware_title_linked)s"
-msgstr ""
+#: common/static/common/templates/discussion/new-post.underscore
+msgid "All Groups"
+msgstr "全グループ"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "This post is visible only to %(group_name)s."
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "This post is visible to everyone."
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Editing post"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/new-post.underscore
+#: common/static/common/templates/discussion/thread-edit.underscore
 msgid ""
 "Add a clear and descriptive title to encourage participation. (Required)"
-msgstr ""
+msgstr "受講を促すような、分かりやすく内容を表すタイトルを入力してください。(必須)"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Edit your post below."
-msgstr ""
+#: common/static/common/templates/discussion/new-post.underscore
+msgid "follow this post"
+msgstr "この投稿をフォローする"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Update post"
-msgstr ""
+#: common/static/common/templates/discussion/new-post.underscore
+msgid "post anonymously"
+msgstr "匿名で投稿する"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "Show Comment (%(num_comments)s)"
-msgid_plural "Show Comments (%(num_comments)s)"
-msgstr[0] ""
+#: common/static/common/templates/discussion/new-post.underscore
+msgid "post anonymously to classmates"
+msgstr "匿名でクラスメートに投稿する"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Add a comment"
-msgstr ""
+#: common/static/common/templates/discussion/post-user-display.underscore
+msgid "(Community TA)"
+msgstr "(コミュニティTA)"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "marked as answer %(time_ago)s by %(user)s"
-msgstr ""
+#: common/static/common/templates/discussion/post-user-display.underscore
+msgid "(Staff)"
+msgstr "(スタッフ)"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "marked as answer %(time_ago)s"
-msgstr ""
+#: common/static/common/templates/discussion/profile-thread.underscore
+#: common/static/common/templates/discussion/thread.underscore
+msgid "This thread is closed."
+msgstr "このスレッドは終了しました。"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "endorsed %(time_ago)s by %(user)s"
-msgstr ""
+#: common/static/common/templates/discussion/profile-thread.underscore
+msgid "View discussion"
+msgstr "ディスカッションを見る"
 
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "endorsed %(time_ago)s"
-msgstr ""
+#: common/static/common/templates/discussion/response-comment-edit.underscore
+msgid "Editing comment"
+msgstr "コメントを編集中"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Editing response"
-msgstr ""
+#: common/static/common/templates/discussion/response-comment-edit.underscore
+msgid "Update comment"
+msgstr "コメントを更新"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Update response"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/response-comment-show.underscore
 #, python-format
 msgid "posted %(time_ago)s by %(author)s"
-msgstr ""
+msgstr "%(author)sが%(time_ago)s前に投稿"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Editing comment"
-msgstr ""
+#: common/static/common/templates/discussion/response-comment-show.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
+#: common/static/common/templates/discussion/thread-show.underscore
+msgid "Reported"
+msgstr "報告済"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Update comment"
-msgstr ""
+#: common/static/common/templates/discussion/thread-edit.underscore
+msgid "Editing post"
+msgstr "投稿を編集中"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-edit.underscore
+msgid "Edit your post below."
+msgstr "以下の投稿を編集してください。"
+
+#: common/static/common/templates/discussion/thread-edit.underscore
+msgid "Update post"
+msgstr "投稿を更新する"
+
+#: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "discussion"
-msgstr ""
+msgstr "ディスカッション"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "answered question"
-msgstr ""
+msgstr "回答済の質問"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "unanswered question"
-msgstr ""
+msgstr "未回答の質問"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "discussion posted"
@@ -6762,88 +6838,140 @@ msgid "question posted"
 msgstr "前に投稿した質問"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
-#: common/static/common/templates/discussion/templates.underscore
 msgid "Following"
-msgstr ""
+msgstr "フォロー中"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "Community TA"
-msgstr ""
+msgstr "コミュニティTA"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "{unread_comments_count} new"
-msgstr ""
+msgstr "新規未読コメント{unread_comments_count}件"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
 #, python-format
 msgid ""
 "%(comments_count)s %(span_sr_open)scomments (%(unread_comments_count)s "
 "unread comments)%(span_close)s"
 msgstr ""
+"コメント %(comments_count)s %(span_sr_open)s件 "
+"(うち%(unread_comments_count)s件が未読)%(span_close)s"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-list-item.underscore
 #, python-format
 msgid "%(comments_count)s %(span_sr_open)scomments %(span_close)s"
-msgstr ""
+msgstr "コメント%(comments_count)s %(span_sr_open)s件 %(span_close)s"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Add a Post"
-msgstr ""
+#: common/static/common/templates/discussion/thread-response-edit.underscore
+msgid "Editing response"
+msgstr "返信を編集中"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Visible to"
-msgstr ""
+#: common/static/common/templates/discussion/thread-response-edit.underscore
+msgid "Update response"
+msgstr "返信を更新"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid ""
-"Discussion admins, moderators, and TAs can make their posts visible to all "
-"students or specify a single group."
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "All Groups"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "follow this post"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "post anonymously"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "post anonymously to classmates"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Error posting your message."
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
 #, python-format
-msgid "This post will be visible only to %(group_name)s."
-msgstr ""
+msgid "marked as answer %(time_ago)s by %(user)s"
+msgstr "%(time_ago)s前に%(user)sによって正解とマーク済"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "This post will be visible to everyone."
-msgstr ""
+#: common/static/common/templates/discussion/thread-response-show.underscore
+#, python-format
+msgid "marked as answer %(time_ago)s"
+msgstr "%(time_ago)s前に正解とマーク済"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
+#, python-format
+msgid "endorsed %(time_ago)s by %(user)s"
+msgstr "%(user)sが%(time_ago)s前にいいね！しました"
+
+#: common/static/common/templates/discussion/thread-response-show.underscore
+#, python-format
+msgid "endorsed %(time_ago)s"
+msgstr "%(time_ago)s前にいいね！しました"
+
+#: common/static/common/templates/discussion/thread-response.underscore
+#, python-format
+msgid "Show Comment (%(num_comments)s)"
+msgid_plural "Show Comments (%(num_comments)s)"
+msgstr[0] "コメント表示 (%(num_comments)s)"
+
+#: common/static/common/templates/discussion/thread-response.underscore
+msgid "Add a comment"
+msgstr "コメントを入力"
+
+#: common/static/common/templates/discussion/thread-show.underscore
+#, python-format
+msgid "discussion posted %(time_ago)s by %(author)s"
+msgstr "%(author)sが%(time_ago)s前に投稿したディスカッション"
+
+#: common/static/common/templates/discussion/thread-show.underscore
+#, python-format
+msgid "question posted %(time_ago)s by %(author)s"
+msgstr "%(author)sが%(time_ago)s前に投稿した質問"
+
+#: common/static/common/templates/discussion/thread-show.underscore
+msgid "Closed"
+msgstr "終了"
+
+#: common/static/common/templates/discussion/thread-show.underscore
+#, python-format
+msgid "Related to: %(courseware_title_linked)s"
+msgstr "関連: %(courseware_title_linked)s"
+
+#: common/static/common/templates/discussion/thread-show.underscore
+#, python-format
+msgid "This post is visible only to %(group_name)s."
+msgstr "この投稿は%(group_name)sにのみ表示されます。"
+
+#: common/static/common/templates/discussion/thread-show.underscore
+msgid "This post is visible to everyone."
+msgstr "この投稿は全員に表示されます。"
+
+#: common/static/common/templates/discussion/thread-type.underscore
+msgid "Post type"
+msgstr "投稿タイプ"
+
+#: common/static/common/templates/discussion/thread-type.underscore
+msgid ""
+"Questions raise issues that need answers. Discussions share ideas and start "
+"conversations. (Required)"
+msgstr "'質問'は解答を必要とする議題に用います。'ディスカッション'は考えを共有したり、会話するためのものです。(必須)"
+
+#: common/static/common/templates/discussion/thread-type.underscore
+msgid "Question"
+msgstr "質問"
+
+#: common/static/common/templates/discussion/thread-type.underscore
+msgid "Discussion"
+msgstr "ディスカッション"
+
+#: common/static/common/templates/discussion/thread.underscore
+msgid "Add a Response"
+msgstr "返信を入力"
+
+#: common/static/common/templates/discussion/thread.underscore
+msgid "Add a response:"
+msgstr "返信を入力:"
+
+#: common/static/common/templates/discussion/topic.underscore
 msgid "Topic area"
-msgstr ""
+msgstr "カテゴリ"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/topic.underscore
 msgid "Add your post to a relevant topic to help others find it. (Required)"
-msgstr ""
+msgstr "他の受講者があなたの投稿を見つけやすくなるように、適切なトピックに投稿してください。(必須)"
+
 
 #: common/static/common/templates/discussion/templates.underscore
-msgid "(Community TA)"
-msgstr ""
+#: lms/templates/verify_student/incourse_reverify.underscore
+msgid "Submit"
+msgstr "提出"
 
 #: common/static/common/templates/discussion/templates.underscore
-msgid "(Staff)"
-msgstr ""
+msgid "Pinned"
+msgstr "ピン留め"
 
 #: common/static/common/templates/discussion/templates.underscore
 #: lms/djangoapps/discussion/static/discussion/templates/user-profile.underscore
@@ -6852,84 +6980,6 @@ msgstr "全ての投稿"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Return to all posts"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "View discussion"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Load more"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Post type"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid ""
-"Questions raise issues that need answers. Discussions share ideas and start "
-"conversations. (Required)"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Question"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Discussion"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Endorse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unendorse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Mark as Answer"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unmark as Answer"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Follow"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unfollow"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Vote for this post,"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Report abuse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Report"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unreport"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Pin"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unpin"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Open"
 msgstr ""
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
@@ -7539,7 +7589,7 @@ msgstr "あなたについて"
 msgid ""
 "The following information is already a part of your {platform} profile. "
 "We've included it here for your application."
-msgstr ""
+msgstr "以下の情報はすでにあなたの{platform}のプロフィールに入っています。申込書に以下の情報を入れました。"
 
 #: lms/templates/financial-assistance/financial_assessment_form.underscore
 msgid "Email address"
@@ -8137,6 +8187,10 @@ msgstr ""
 msgid "Sign in"
 msgstr "サインイン"
 
+#: lms/templates/student_account/form_field.underscore
+msgid "Forgot password?"
+msgstr "パスワードを忘れた方はこちら。"
+
 #: lms/templates/student_account/hinted_login.underscore
 #, python-format
 msgid "Would you like to sign in using your %(providerName)s credentials?"
@@ -8172,6 +8226,10 @@ msgstr "機関/学校の証明書で登録"
 #: lms/templates/student_account/register.underscore
 msgid "Create an Account"
 msgstr ""
+
+#: lms/templates/student_account/institution_register.underscore
+msgid "Register through edX"
+msgstr "edXを通して登録"
 
 #: lms/templates/student_account/login.underscore
 msgid "First time here?"
@@ -8252,8 +8310,18 @@ msgid ""
 msgstr ""
 
 #: lms/templates/student_account/password_reset.underscore
+msgid ""
+"Please enter your email address below and we will send you instructions for "
+"setting a new password."
+msgstr "以下にメールアドレスを入力すると、新しいパスワードの設定方法を記載したメールを送信します。"
+
+#: lms/templates/student_account/password_reset.underscore
 msgid "Recover my password"
 msgstr ""
+
+#: lms/templates/student_account/password_reset.underscore
+msgid "Reset my password"
+msgstr "パスワードを変更する"
 
 #: lms/templates/student_account/register.underscore
 msgid "Already have an {platformName} account?"
@@ -8328,6 +8396,12 @@ msgid "What You Need for Verification"
 msgstr "認証に必要なもの"
 
 #: lms/templates/verify_student/face_photo_step.underscore
+msgid ""
+"You need a computer that has a webcam. When you receive a browser prompt, "
+"make sure that you allow access to the camera."
+msgstr "ウェブカメラ付きのコンピュータが必要です。ブラウザからの指示を受けたら、カメラへのアクセスが許可されているのを確認してください。"
+
+#: lms/templates/verify_student/face_photo_step.underscore
 msgid "Device with Camera"
 msgstr ""
 
@@ -8344,6 +8418,12 @@ msgstr "写真による本人確認"
 #: lms/templates/verify_student/face_photo_step.underscore
 msgid "You need a valid ID that contains your full name and photo."
 msgstr ""
+
+#: lms/templates/verify_student/face_photo_step.underscore
+msgid ""
+"You need a driver's license, passport, or other government-issued ID that "
+"has your name and photo."
+msgstr "名前と写真が記載されている免許証、パスポートまたは政府発行の身分証明書が必要です。"
 
 #: lms/templates/verify_student/face_photo_step.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
@@ -8367,6 +8447,10 @@ msgstr "顔が十分に明るい。"
 #: lms/templates/verify_student/face_photo_step.underscore
 msgid "Your entire face fits inside the frame."
 msgstr "顔全体がフレームの中に納まっている。"
+
+#: lms/templates/verify_student/face_photo_step.underscore
+msgid "The photo of your face matches the photo on your ID."
+msgstr "顔写真とIDの写真が一致している。"
 
 #: lms/templates/verify_student/face_photo_step.underscore
 msgid ""
@@ -8803,6 +8887,10 @@ msgid "Does the photo of you show your whole face?"
 msgstr "写真にあなたの顔全体が写っていますか？"
 
 #: lms/templates/verify_student/review_photos_step.underscore
+msgid "Does the photo of you match your ID photo?"
+msgstr "身分証明書の写真とあなたの写真は一致しますか？"
+
+#: lms/templates/verify_student/review_photos_step.underscore
 msgid "Is your name on your ID readable?"
 msgstr "身分証明書の氏名は読めますか？"
 
@@ -8928,6 +9016,8 @@ msgid ""
 "Create a {link_start}Mozilla Backpack{link_end} account, or log in to your "
 "existing account"
 msgstr ""
+"{link_start}Mozilla "
+"Backpack{link_end}アカウントを作成するか、既にお持ちのアカウントにログインしてください。"
 
 #: openedx/features/learner_profile/static/learner_profile/templates/share_modal.underscore
 msgid ""
@@ -8935,6 +9025,7 @@ msgid ""
 "as){link_end} and then {upload_link_start}upload{link_end} it to your "
 "backpack."
 msgstr ""
+"{download_link_start}sこの画像をダウンロード(右クリックまたはオプションクリックして、名前を付けて保存)%(link_end)sして、あなたのbackpackに{upload_link_start}アップロード%(link_end)sしてください。</li>"
 
 #: cms/templates/js/access-editor.underscore
 msgid "Limit Access"
@@ -9619,6 +9710,14 @@ msgid ""
 msgstr "無効なコードがコンテンツに含まれています。有効なHTMLであることを確認してください。"
 
 #: cms/templates/js/course_info_update.underscore
+msgid "Send push notification to mobile apps"
+msgstr "モバイルアプリへプッシュ通知を送信"
+
+#: cms/templates/js/course_info_update.underscore
+msgid "Send notification to mobile apps"
+msgstr "モバイルアプリへ通知を送信"
+
+#: cms/templates/js/course_info_update.underscore
 msgid "Post"
 msgstr "投稿"
 
@@ -9857,6 +9956,10 @@ msgstr "クリア"
 #: cms/templates/js/metadata-string-entry.underscore
 msgid "Clear Value"
 msgstr "値をクリア"
+
+#: cms/templates/js/metadata-editor.underscore
+msgid "Component Location ID"
+msgstr "コンポーネントロケーションID"
 
 #: cms/templates/js/metadata-file-uploader-item.underscore
 #: cms/templates/js/video-transcripts.underscore
