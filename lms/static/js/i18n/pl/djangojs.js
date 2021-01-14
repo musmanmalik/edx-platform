@@ -1131,6 +1131,7 @@
       ""
     ],
     "Show Deprecated Settings": "Poka\u017c przestarza\u0142e ustawienia",
+    "Show Discussion": "Poka\u017c dyskusj\u0119",
     "Show assessment results when subsection is past due": "Pokazuj wyniki zadania gdy lekcja znajduje si\u0119 po terminie ko\u0144cowym",
     "Show entire subsection": "Poka\u017c ca\u0142\u0105 lekcj\u0119",
     "Show me other ways to sign in or register": "Poka\u017c mi inne sposoby na zalogowanie si\u0119 lub rejestracj\u0119",

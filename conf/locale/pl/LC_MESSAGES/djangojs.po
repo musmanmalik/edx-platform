@@ -2132,6 +2132,10 @@ msgstr "Ukryj dyskusję"
 msgid "This discussion could not be loaded. Refresh the page and try again."
 msgstr "Nie udało się wczytać dyskusji. Odśwież stronę i spróbuj ponownie."
 
+#: common/static/common/js/discussion/views/discussion_inline_view.js
+msgid "Show Discussion"
+msgstr "Pokaż dyskusję"
+
 #: common/static/common/js/discussion/views/discussion_thread_list_view.js
 msgid "There are no posts in this topic yet."
 msgstr "W tym temacie nie ma jeszcze żadnych wpisów."
