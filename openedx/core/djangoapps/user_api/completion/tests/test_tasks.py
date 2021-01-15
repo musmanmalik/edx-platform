@@ -35,6 +35,7 @@ from mock import call, patch
 import uuid
 
 
+@skip_unless_lms
 class ProgressMigrationTestCase(ModuleStoreTestCase):
     """
     Parent test case for progress migration tests.
@@ -47,7 +48,7 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
         )
         self.course_id = str(self.course.id)
 
-    def _create_user(self, username=None, enrolled=None):
+    def _create_user(self, username=None, enrolled=None, create_progress=False):
         """
         Shortcut to create users and enroll them in some course.
         """
@@ -60,6 +61,8 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
         )
         if enrolled:
             CourseEnrollment.enroll(user, self.course.id, mode='audit')
+            if create_progress:
+                self._create_user_progress(user)
         return user
 
     def _create_user_progress(self, user):
@@ -136,13 +139,12 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
 
     def test_target_already_enrolled(self):
         source = self._create_user(enrolled=self.course)
-        target = self._create_user(enrolled=self.course)
+        target = self._create_user(enrolled=self.course, create_progress=True)
         self.assertEqual(
             _migrate_progress(self.course_id, source.email, target.email),
             OUTCOME_TARGET_ALREADY_ENROLLED
         )
 
-    @skip_unless_lms
     def test_migrated(self):
         source = self._create_user(enrolled=self.course)
         target = self._create_user()
@@ -176,6 +178,7 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
                 OUTCOME_FAILED_MIGRATION
             )
 
+    @skip_unless_lms
     def test_migrate_progress(self):
         """
         Integration test, that checks that:
@@ -193,7 +196,13 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
             {
                 'course': self.course_id,
                 'source_email': self._create_user(enrolled=self.course).email,
-                'dest_email': self._create_user(enrolled=self.course).email,
+                'dest_email': self._create_user(enrolled=self.course, create_progress=False).email,
+                'outcome': OUTCOME_MIGRATED
+            },
+            {
+                'course': self.course_id,
+                'source_email': self._create_user(enrolled=self.course).email,
+                'dest_email': self._create_user(enrolled=self.course, create_progress=True).email,
                 'outcome': OUTCOME_TARGET_ALREADY_ENROLLED
             },
             {
