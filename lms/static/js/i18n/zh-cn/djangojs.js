@@ -4,14 +4,21 @@
 
   var django = globals.django || (globals.django = {});
 
-  
-  django.pluralidx = function(count) { return (count == 1) ? 0 : 1; };
-  
+
+  django.pluralidx = function(n) {
+    var v=0;
+    if (typeof(v) == 'boolean') {
+      return v ? 1 : 0;
+    } else {
+      return v;
+    }
+  };
+
 
   /* gettext library */
 
   django.catalog = django.catalog || {};
-  
+
   var newcatalog = {
     "\n\nThis email is to let you know that the status of your proctoring session review for %(exam_name)s in\n<a href=\"%(course_url)s\">%(course_name)s </a> is %(status)s. If you have any questions about proctoring,\ncontact %(platform)s support at %(contact_email)s.\n\n": "\n\n\u6b64\u5c01\u90ae\u4ef6\u63d0\u793a\u60a8\u5728\u76d1\u8003\u6a21\u5f0f\u4e0b\u6240\u8fdb\u884c\u7684\u8bfe\u7a0b<a href=\"%(course_url)s\">%(course_name)s</a>\u7684%(exam_name)s\u8003\u8bd5\u5ba1\u6838\u72b6\u6001\u4e3a%(status)s\u3002\u5982\u679c\u60a8\u5bf9\u76d1\u8003\u6a21\u5f0f\u6709\u4efb\u4f55\u7591\u95ee\uff0c\u8bf7\u8054\u7cfb%(platform)s\u652f\u6301\u56e2\u961f%(contact_email)s \u3002\n",
     "\n                    Make sure you are on a computer with a webcam, and that you have valid photo identification\n                    such as a driver's license or passport, before you continue.\n                ": "\n                    \u8bf7\u786e\u4fdd\u60a8\u7684\u7535\u8111\u5e26\u6709\u7f51\u7edc\u6444\u50cf\u5934\uff0c\u5e76\u6709\u6709\u6548\u7684\u5e26\u7167\u7247\u8eab\u4efd\u8bc1\u660e\uff0c\n                    \u4f8b\u5982\u9a7e\u9a76\u8bc1\u6216\u62a4\u7167\u3002\n                ",
@@ -234,8 +241,11 @@
     "Add a Chapter": "\u6dfb\u52a0\u4e00\u7ae0",
     "Add a New Cohort": "\u6dfb\u52a0\u65b0\u7fa4\u7ec4",
     "Add a Post": "\u6dfb\u52a0\u5e16\u5b50",
+    "Add a Response": "\u6dfb\u52a0\u56de\u590d",
     "Add a clear and descriptive title to encourage participation. (Required)": "\u6dfb\u52a0\u4e00\u4e2a\u6e05\u6670\u5e76\u4e14\u5177\u6709\u63cf\u8ff0\u6027\u7684\u6807\u9898\u6765\u9f13\u52b1\u53c2\u4e0e (\u5fc5\u586b\u9879)",
+    "Add a comment": "\u6dfb\u52a0\u8bc4\u8bba",
     "Add a learning outcome here": "\u5728\u8fd9\u91cc\u6dfb\u52a0\u5b66\u4e60\u6210\u679c",
+    "Add a response:": "\u6dfb\u52a0\u4e00\u6761\u56de\u590d\uff1a",
     "Add another group": "\u6dfb\u52a0\u53e6\u4e00\u4e2a\u7ec4",
     "Add language": "\u6dfb\u52a0\u8bed\u8a00",
     "Add learners to this cohort": "\u6dfb\u52a0\u5b66\u5458\u81f3\u6b64\u7fa4\u7ec4",
@@ -245,6 +255,7 @@
     "Add your first content group": "\u6dfb\u52a0\u9996\u4e2a\u5185\u5bb9\u7ec4",
     "Add your first group configuration": "\u6dfb\u52a0\u9996\u4e2a\u7ec4\u914d\u7f6e",
     "Add your first textbook": "\u6dfb\u52a0\u7b2c\u4e00\u672c\u8bfe\u672c",
+    "Add your post to a relevant topic to help others find it. (Required)": "\u628a\u60a8\u7684\u5e16\u5b50\u53d1\u5e03\u5230\u76f8\u5e94\u7684\u4e3b\u9898\u4ee5\u5e2e\u52a9\u522b\u4eba\u627e\u5230\u5b83 (\u5fc5\u586b\u9879)",
     "Add {role} Access": "\u6dfb\u52a0{role}\u8bbf\u95ee\u6743\u9650",
     "Adding": "\u6b63\u5728\u6dfb\u52a0",
     "Adding the selected course to your cart": "\u6b63\u5728\u5c06\u60a8\u6240\u9009\u7684\u8bfe\u7a0b\u6dfb\u52a0\u5230\u60a8\u7684\u8d2d\u7269\u8f66",
@@ -480,6 +491,7 @@
     "Click to edit": "\u70b9\u51fb\u4ee5\u7f16\u8f91",
     "Close": "\u5173\u95ed",
     "Close Calculator": "\u5173\u95ed\u8ba1\u7b97\u5668",
+    "Closed": "\u5df2\u5173\u95ed",
     "Code": "\u4ee3\u7801",
     "Code Sample (Ctrl+K)": "\u4ee3\u7801\u793a\u4f8b(Ctrl+K)",
     "Code block": "\u4ee3\u7801\u5757",
@@ -705,7 +717,9 @@
     "Edit your post below.": "\u7f16\u8f91\u5e16\u5b50",
     "Editable": "\u53ef\u7f16\u8f91",
     "Editing access for: {title}": "\u7f16\u8f91\u63a5\u5165\uff1a{title} ",
+    "Editing comment": "\u7f16\u8f91\u8bc4\u8bba",
     "Editing post": "\u7f16\u8f91\u8ba8\u8bba\u5e16",
+    "Editing response": "\u7f16\u8f91\u56de\u590d",
     "Editing: {title}": "\u6b63\u5728\u7f16\u8f91\uff1a{title}",
     "Editor": "\u7f16\u8f91\u5668",
     "Education Completed": "\u6559\u80b2\u7a0b\u5ea6",
@@ -723,6 +737,7 @@
     "Encoding": "\u7f16\u7801",
     "End My Exam": "\u7ed3\u675f\u6211\u7684\u8003\u8bd5",
     "End of transcript. Skip to the start.": "\u5b57\u5e55\u7ed3\u5c3e\u3002\u8df3\u8f6c\u81f3\u5f00\u59cb\u3002",
+    "Endorse": "\u652f\u6301",
     "Ends {end}": "\u7ed3\u675f{end}",
     "Engage with posts": "\u53c2\u4e0e\u8ba8\u8bba",
     "Enroll Now": "\u73b0\u5728\u9009\u8bfe",
@@ -777,6 +792,7 @@
     "Error getting the number of ungraded responses": "\u83b7\u53d6\u672a\u8bc4\u5206\u56de\u590d\u6570\u91cf\u51fa\u73b0\u9519\u8bef",
     "Error importing course": "\u5bfc\u5165\u8bfe\u7a0b\u65f6\u51fa\u9519",
     "Error listing task history for this student and problem.": "\u663e\u793a\u6b64\u5b66\u751f\u4e0e\u95ee\u9898\u7684\u4efb\u52a1\u5386\u53f2\u65f6\u53d1\u751f\u9519\u8bef\u3002",
+    "Error posting your message.": "\u53d1\u5e03\u6d88\u606f\u65f6\u53d1\u751f\u9519\u8bef\u3002",
     "Error removing user": "\u5220\u9664\u7528\u6237\u8fc7\u7a0b\u4e2d\u51fa\u73b0\u9519\u8bef",
     "Error resetting entrance exam attempts for student '{student_id}'. Make sure student identifier is correct.": "\u91cd\u7f6e\u5b66\u751f'{student_id}'\u7684\u5165\u5b66\u8003\u8bd5\u5c1d\u8bd5\u6b21\u6570\u65f6\u51fa\u9519\u4e86\uff0c\u8bf7\u786e\u8ba4\u5b66\u751f\u7f16\u53f7\u65e0\u8bef\u3002",
     "Error resetting problem attempts for problem '<%= problem_id %>' and student '<%- student_id %>'. Make sure that the problem and student identifiers are complete and correct.": "\u91cd\u7f6e\u9898\u76ee\u201c<%= problem_id %>\u201d\u548c\u5b66\u751f\u201c<%- student_id %>\u201d\u7684\u56de\u7b54\u5c1d\u8bd5\u6b21\u6570\u65f6\u53d1\u751f\u9519\u8bef\uff0c\u8bf7\u786e\u4fdd\u9898\u76eeID\u548c\u5b66\u751fID\u62fc\u5199\u6b63\u786e\u3002",
@@ -844,6 +860,7 @@
     "Find previous": "\u67e5\u627e\u4e0a\u4e00\u4e2a",
     "Finish": "\u5b8c\u6210",
     "First time here?": "\u521d\u6b21\u4f7f\u7528\uff1f",
+    "Follow": "\u5173\u6ce8",
     "Follow or unfollow posts": "\u5173\u6ce8\u6216\u53d6\u6d88\u5173\u6ce8\u53d1\u5e16",
     "Following": "\u5173\u6ce8",
     "Font Family": "\u5b57\u4f53",
@@ -1076,6 +1093,7 @@
     "Live view of webcam": "\u6444\u50cf\u5934\u7684\u5b9e\u65f6\u753b\u9762",
     "Load Another File": "\u52a0\u8f7d\u5176\u4ed6\u6587\u4ef6",
     "Load all responses": "\u8f7d\u5165\u6240\u6709\u7684\u56de\u590d",
+    "Load more": "\u8f7d\u5165\u66f4\u591a",
     "Load next {numResponses} responses": "\u52a0\u8f7d\u63a5\u4e0b\u6765\u7684{numResponses}\u4e2a\u56de\u590d",
     "Load next {num_items} result": [
       "\u7ee7\u7eed\u52a0\u8f7d {num_items}\u4e2a\u7ed3\u679c",
@@ -1107,6 +1125,7 @@
     "Manage Learners": "\u7ba1\u7406\u5b66\u5458",
     "Manual": "\u624b\u52a8",
     "Mark Exam As Completed": "\u6807\u8bb0\u8003\u8bd5\u5b8c\u6210",
+    "Mark as Answer": "\u6807\u8bb0\u4f5c\u4e3a\u7b54\u6848",
     "Mark enrollment code as unused": "\u6807\u8bb0\u9009\u8bfe\u7801\u4e3a\u5c1a\u672a\u4f7f\u7528\u7684",
     "Markdown Editing Help": "Markdown\u7f16\u8f91\u5e2e\u52a9",
     "Match case": "\u5339\u914d\u5927\u5c0f\u5199",
@@ -1212,6 +1231,7 @@
     "Only <%= fileTypes %> files can be uploaded. Please select a file ending in <%= fileExtensions %> to upload.": "\u53ea\u6709 <%= fileTypes %> \u683c\u5f0f\u7684\u6587\u4ef6\u53ef\u4ee5\u4e0a\u4f20\u3002\u8bf7\u9009\u62e9\u6269\u5c55\u540d\u4e3a <%= fileExtensions %> \u7684\u6587\u4ef6\u4e0a\u4f20\u3002",
     "Only properly formatted .csv files will be accepted.": "\u53ea\u6709\u6807\u51c6\u7684CSV\u683c\u5f0f\u6587\u4ef6\u4f1a\u88ab\u63a5\u53d7\u3002",
     "Only the parent course staff of a CCX can create content groups.": "\u53ea\u6709CCX\u8bfe\u7a0b\u7684\u4e3b\u6559\u5458\u624d\u53ef\u521b\u5efa\u5185\u5bb9\u7ec4\u3002",
+    "Open": "\u6253\u5f00",
     "Open Calculator": "\u5f00\u542f\u8ba1\u7b97\u5668",
     "Open language menu": "\u6253\u5f00\u8bed\u8a00\u529f\u80fd\u83dc\u5355",
     "Open the certificate you earned for the %(title)s program.": "\u6253\u5f00\u60a8\u5df2\u83b7\u5f97\u7684%(title)s\u8bfe\u7a0b\u8bc1\u4e66\u3002",
@@ -1262,6 +1282,7 @@
     "Photo of %(fullName)s's ID": "%(fullName)s\u7684\u8eab\u4efd\u8bc1\u4ef6\u7167\u7247",
     "Photo requirements:": "\u7167\u7247\u8981\u6c42\uff1a",
     "Photos don't meet the requirements?": "\u7167\u7247\u4e0d\u7b26\u5408\u8981\u6c42\uff1f",
+    "Pin": "\u5904\u7406",
     "Pinned": "\u5df2\u56fa\u5b9a",
     "Placeholder": "\u5360\u4f4d\u7b26",
     "Play": "\u64ad\u653e",
@@ -1390,6 +1411,7 @@
     "Regenerate the user's certificate": "\u91cd\u65b0\u751f\u6210\u7528\u6237\u8bc1\u4e66",
     "Register with Institution/Campus Credentials": "\u4f7f\u7528\u673a\u6784/\u6821\u56ed\u5e10\u53f7\u6ce8\u518c",
     "Rejected": "\u62d2\u7edd",
+    "Related to: %(courseware_title_linked)s": "\u4e0e%(courseware_title_linked)s\u76f8\u5173",
     "Release Date and Time": "\u516c\u5f00\u65e5\u671f\u53ca\u65f6\u95f4",
     "Release Date:": "\u516c\u5f00\u65e5\u671f\uff1a",
     "Release Status:": "\u516c\u5f00\u72b6\u6001\uff1a",
@@ -1417,7 +1439,10 @@
     "Replace all": "\u5168\u90e8\u66ff\u6362",
     "Replace with": "\u66ff\u6362\u4e3a",
     "Reply to Annotation": "\u56de\u590d\u6279\u6ce8",
+    "Report": "\u62a5\u544a",
+    "Report abuse": "\u62a5\u544a\u8fb1\u9a82",
     "Report abuse, topics, and responses": "\u4e3e\u62a5\u6ee5\u7528\u3001\u8bdd\u9898\u548c\u56de\u590d",
+    "Reported": "\u5df2\u62a5\u544a",
     "Requester": "\u8bf7\u6c42\u8005",
     "Required": "\u5fc5\u586b",
     "Required field.": "\u5fc5\u586b\u5b57\u6bb5\u3002",
@@ -1520,6 +1545,10 @@
     "Short explanation": "\u7b80\u8981\u8bf4\u660e",
     "Show All": "\u5168\u90e8\u663e\u793a",
     "Show Annotations": "\u663e\u793a\u6279\u6ce8",
+    "Show Comment (%(num_comments)s)": [
+      "\u663e\u793a\u8bc4\u8bba (%(num_comments)s)",
+      ""
+    ],
     "Show Deprecated Settings": "\u663e\u793a\u5df2\u8fc7\u65f6\u7684\u8bbe\u7f6e",
     "Show Discussion": "\u663e\u793a\u8ba8\u8bba",
     "Show Less": "\u67e5\u770b\u6536\u8d77",
@@ -1833,6 +1862,10 @@
     "This post could not be reopened. Refresh the page and try again.": "\u65e0\u6cd5\u91cd\u5f00\u6b64\u5e16\u5b50\uff0c\u8bf7\u5237\u65b0\u9875\u9762\u5e76\u91cd\u8bd5\u3002",
     "This post could not be unflagged for abuse. Refresh the page and try again.": "\u65e0\u6cd5\u53d6\u6d88\u6b64\u5e16\u5b50\u7684\u6ee5\u7528\u4e3e\u62a5\uff0c\u8bf7\u5237\u65b0\u9875\u9762\u5e76\u91cd\u8bd5\u3002",
     "This post could not be unpinned. Refresh the page and try again.": "\u65e0\u6cd5\u53d6\u6d88\u7f6e\u9876\u6b64\u5e16\u5b50\uff0c\u8bf7\u5237\u65b0\u9875\u9762\u5e76\u91cd\u8bd5\u3002",
+    "This post is visible only to %(group_name)s.": "\u6b64\u5e16\u53ea\u5bf9%(group_name)s\u7ec4\u53ef\u89c1\u3002",
+    "This post is visible to everyone.": "\u6b64\u5e16\u5bf9\u6240\u6709\u4eba\u53ef\u89c1\u3002",
+    "This post will be visible only to %(group_name)s.": "\u6b64\u5e16\u5b50\u4ec5%(group_name)s\u53ef\u89c1\u3002",
+    "This post will be visible to everyone.": "\u6b64\u5e16\u5b50\u5bf9\u6240\u6709\u4eba\u53ef\u89c1\u3002",
     "This problem could not be saved.": "\u8be5\u95ee\u9898\u65e0\u6cd5\u4fdd\u5b58\u3002",
     "This problem has already been released. Any changes will apply only to future assessments.": "\u6b64\u95ee\u9898\u5df2\u53d1\u5e03\u3002\u4efb\u4f55\u66f4\u6539\u90fd\u53ea\u9002\u7528\u4e8e\u672a\u6765\u7684\u8bc4\u4f30\u3002",
     "This problem has been reset.": "\u6b64\u95ee\u9898\u5df2\u91cd\u7f6e\u3002",
@@ -1893,6 +1926,7 @@
     "Tools": "\u5de5\u5177",
     "Top": "\u9876\u7aef",
     "Topic": "\u4e3b\u9898",
+    "Topic area": "\u4e3b\u9898\u8303\u56f4",
     "Topics": "\u4e3b\u9898",
     "Total": "\u603b\u8ba1",
     "Total Number": "\u603b\u6570",
@@ -1923,7 +1957,9 @@
     "Undo Changes": "\u64a4\u9500\u66f4\u6539",
     "Undo move": "\u64a4\u9500\u79fb\u52a8",
     "Undo moving": "\u64a4\u9500\u79fb\u52a8",
+    "Unendorse": "\u53d6\u6d88\u652f\u6301",
     "Unexpected server error.": "\u670d\u52a1\u5668\u5f02\u5e38\u9519\u8bef\u3002",
+    "Unfollow": "\u53d6\u6d88\u5173\u6ce8",
     "Ungraded": "\u672a\u5206\u7ea7",
     "Ungraded Practice Exam": "\u4e0d\u8ba1\u5206\u6a21\u62df\u8003\u8bd5",
     "Unit": "\u5355\u5143",
@@ -1936,15 +1972,20 @@
     "Unlink This Account": "\u89e3\u7ed1\u6b64\u8d26\u6237",
     "Unlink your {accountName} account": "\u89e3\u7ed1\u60a8\u7684{accountName}\u5e10\u6237",
     "Unlinking": "\u89e3\u7ed1\u4e2d",
+    "Unmark as Answer": "\u53d6\u6d88\u6807\u8bb0\u4f5c\u4e3a\u7b54\u6848",
     "Unmute": "\u53d6\u6d88\u9759\u97f3",
     "Unnamed Option": "\u672a\u547d\u540d\u9009\u9879",
+    "Unpin": "\u4e0d\u505a\u5904\u7406",
     "Unpublished changes to content that will release in the future": "\u5c06\u5728\u672a\u6765\u516c\u5f00\u7684\u3001\u5c1a\u672a\u53d1\u5e03\u7684\u5185\u5bb9\u66f4\u65b0",
     "Unpublished changes to live content": "\u5bf9\u5728\u7ebf\u5185\u5bb9\u6709\u672a\u53d1\u5e03\u7684\u66f4\u6539",
     "Unpublished units will not be released": "\u5c1a\u672a\u53d1\u5e03\u7684\u5355\u5143\u5c06\u4e0d\u4f1a\u88ab\u516c\u5f00",
+    "Unreport": "\u53d6\u6d88\u62a5\u544a",
     "Unscheduled": "\u5c1a\u672a\u8ba1\u5212",
     "Update": "\u66f4\u65b0",
     "Update Settings": "\u66f4\u65b0\u8bbe\u7f6e",
+    "Update comment": "\u66f4\u65b0\u8bc4\u8bba",
     "Update post": "\u66f4\u65b0\u8ba8\u8bba\u5e16",
+    "Update response": "\u66f4\u65b0\u56de\u590d",
     "Update team.": "\u66f4\u65b0\u56e2\u961f\u3002",
     "Updating Tags": "\u66f4\u65b0\u6807\u7b7e\u4e2d",
     "Updating with latest library content": "\u66f4\u65b0\u6700\u65b0\u7684\u5e93\u5185\u5bb9",
@@ -2045,6 +2086,7 @@
     "View Teams in the {topic_name} Topic": "\u67e5\u770b {topic_name}\u4e3b\u9898\u4e0b\u7684\u56e2\u961f",
     "View all errors": "\u67e5\u770b\u6240\u6709\u9519\u8bef",
     "View child items": "\u67e5\u770b\u5b50\u7c7b\u76ee",
+    "View discussion": "\u67e5\u770b\u8ba8\u8bba",
     "View my exam": "\u67e5\u770b\u6211\u7684\u8003\u8bd5",
     "View {span_start} {team_name} {span_end}": "\u67e5\u770b{span_start} {team_name} {span_end}",
     "Viewing %s course": [
@@ -2057,6 +2099,7 @@
     "Visual aids": "\u7f51\u683c\u7ebf",
     "Volume": "\u97f3\u91cf",
     "Vote for good posts and responses": "\u4e3a\u51fa\u8272\u7684\u5e16\u5b50\u548c\u56de\u590d\u6295\u7968",
+    "Vote for this post,": "\u4e3a\u8be5\u5e16\u6295\u7968",
     "Waiting": "\u7b49\u5f85",
     "Want to confirm your identity later?": "\u5e0c\u671b\u7a0d\u540e\u518d\u9a8c\u8bc1\u60a8\u7684\u8eab\u4efd\uff1f",
     "Warning": "\u8b66\u544a",
@@ -2239,6 +2282,7 @@
     "and others": "\u5176\u4ed6",
     "anonymous": "\u533f\u540d",
     "answer": "\u7b54\u6848",
+    "answered question": "\u5df2\u56de\u590d\u7684\u95ee\u9898",
     "are": "\u4e3a",
     "asset_path is required": "asset_path\u5fc5\u586b",
     "by": "\u7531",
@@ -2254,7 +2298,9 @@
     "delete chapter": "\u5220\u9664\u7ae0",
     "delete group": "\u5220\u9664\u7ec4",
     "details about the failure": "\u5931\u8d25\u8be6\u7ec6",
+    "discussion": "\u8ba8\u8bba",
     "discussion posted": "\u53d1\u5e03\u6b64\u8ba8\u8bba\u5e16",
+    "discussion posted %(time_ago)s by %(author)s": "\u7531%(author)s\u4e8e%(time_ago)s\u53d1\u5e03\u6b64\u8ba8\u8bba\u5e16",
     "dragging": "\u62d6\u62fd",
     "dragging out of slider": "\u62d6\u62fd\u51fa\u6ed1\u5757\u533a\u57df",
     "dropped in slider": "\u5728\u6ed1\u5757\u4e2d\u653e\u4e0b",
@@ -2265,6 +2311,8 @@
     "e.g. 'http://google.com'": "\u4f8b\u5982\u201chttp://google.com/\u201d",
     "e.g. johndoe@example.com, JaneDoe, joeydoe@example.com": "\u4f8b\u5982\uff1ajohndoe@example.com, JaneDoe, joeydoe@example.com",
     "emphasized text": "\u5f3a\u8c03\u6587\u5b57",
+    "endorsed %(time_ago)s": "%(time_ago)s\u524d\u83b7\u5f97\u652f\u6301",
+    "endorsed %(time_ago)s by %(user)s": "%(time_ago)s\u524d\u83b7\u5f97%(user)s\u7684\u652f\u6301",
     "engage with posts": "\u53c2\u4e0e\u8ba8\u8bba",
     "enter code here": "\u6b64\u5904\u8f93\u5165\u4ee3\u7801",
     "enter link description here": "\u6b64\u5904\u8f93\u5165\u94fe\u63a5\u7684\u63cf\u8ff0",
@@ -2279,6 +2327,8 @@
     "internally reviewed": "\u5185\u90e8\u5ba1\u6838",
     "last activity": "\u6700\u540e\u6d3b\u52a8",
     "less than a minute": "\u5c11\u4e8e\u4e00\u5206\u949f",
+    "marked as answer %(time_ago)s": "%(time_ago)s\u524d\u88ab\u6807\u8bb0\u4e3a\u7b54\u6848 ",
+    "marked as answer %(time_ago)s by %(user)s": "%(time_ago)s \u524d\u88ab%(user)s\u6807\u8bb0\u4e3a\u7b54\u6848",
     "menu to see a list of all topics.": "\u83dc\u5355\u67e5\u770b\u6240\u6709\u4e3b\u9898\u7684\u5217\u8868\u3002",
     "minute": "\u5206",
     "minutes": "\u5206",
@@ -2295,6 +2345,7 @@
     "post anonymously": "\u533f\u540d\u53d1\u5e16",
     "post anonymously to classmates": "\u5411\u540c\u5b66\u533f\u540d\u53d1\u5e16",
     "posted": "\u53d1\u5e03",
+    "posted %(time_ago)s by %(author)s": "%(author)s\u5728%(time_ago)s\u524d\u53d1\u8868",
     "posted:": "\u53d1\u5e03\uff1a",
     "practice": "\u6a21\u8003",
     "price": "\u4ef7\u683c",
@@ -2326,6 +2377,7 @@
     "title_word_{uniqueId}": "title_word_{uniqueId}",
     "toggle chapter %(displayName)s": "\u5207\u6362%(displayName)s\u7ae0",
     "toggle subsection %(displayName)s": "\u5207\u6362%(displayName)s\u5c0f\u8282",
+    "unanswered question": "\u5f85\u56de\u590d\u7684\u95ee\u9898",
     "unit": "\u5355\u5143",
     "unsatisfactory": "\u4e0d\u6ee1\u610f",
     "unsubmitted": "\u672a\u63d0\u4ea4",
@@ -2437,7 +2489,7 @@
   for (var key in newcatalog) {
     django.catalog[key] = newcatalog[key];
   }
-  
+
 
   if (!django.jsi18n_initialized) {
     django.gettext = function(msgid) {

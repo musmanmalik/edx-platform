@@ -6830,27 +6830,22 @@ msgstr "清空搜索结果"
 msgid "Search"
 msgstr "搜索"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread.underscore
 msgid "Add a Response"
-msgstr ""
+msgstr "添加回复"
+
+#: common/static/common/templates/discussion/thread.underscore
+msgid "Add a response:"
+msgstr "添加一条回复："
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "This thread is closed."
 msgstr "这个帖子已经关闭。"
 
 #: common/static/common/templates/discussion/templates.underscore
-msgid "Add a response:"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
 #: lms/templates/verify_student/incourse_reverify.underscore
 msgid "Submit"
 msgstr "提交"
-
-#: common/static/common/templates/discussion/templates.underscore
-#, python-format
-msgid "discussion posted %(time_ago)s by %(author)s"
-msgstr ""
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
@@ -6863,25 +6858,25 @@ msgstr "已固定"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Reported"
-msgstr ""
+msgstr "已报告"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Closed"
-msgstr ""
+msgstr "已关闭"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "Related to: %(courseware_title_linked)s"
-msgstr ""
+msgstr "与%(courseware_title_linked)s相关"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-show.underscore
 #, python-format
 msgid "This post is visible only to %(group_name)s."
-msgstr ""
+msgstr "此帖只对%(group_name)s组可见。"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-show.underscore
 msgid "This post is visible to everyone."
-msgstr ""
+msgstr "此帖对所有人可见。"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Editing post"
@@ -6900,68 +6895,73 @@ msgstr "编辑帖子"
 msgid "Update post"
 msgstr "更新讨论帖"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
+#, python-format
+msgid "marked as answer %(time_ago)s by %(user)s"
+msgstr "%(time_ago)s 前被%(user)s标记为答案"
+
+#: common/static/common/templates/discussion/thread-response.underscore
 #, python-format
 msgid "Show Comment (%(num_comments)s)"
 msgid_plural "Show Comments (%(num_comments)s)"
-msgstr[0] ""
+msgstr[0] "显示评论 (%(num_comments)s)"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response.underscore
 msgid "Add a comment"
-msgstr ""
+msgstr "添加评论"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-show.underscore
 #, python-format
-msgid "marked as answer %(time_ago)s by %(user)s"
-msgstr ""
+msgid "discussion posted %(time_ago)s by %(author)s"
+msgstr "由%(author)s于%(time_ago)s发布此讨论帖"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "marked as answer %(time_ago)s"
-msgstr ""
+msgstr "%(time_ago)s前被标记为答案 "
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "endorsed %(time_ago)s by %(user)s"
-msgstr ""
+msgstr "%(time_ago)s前获得%(user)s的支持"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-show.underscore
 #, python-format
 msgid "endorsed %(time_ago)s"
-msgstr ""
+msgstr "%(time_ago)s前获得支持"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-edit.underscore
 msgid "Editing response"
-msgstr ""
+msgstr "编辑回复"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/thread-response-edit.underscore
 msgid "Update response"
-msgstr ""
+msgstr "更新回复"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "posted %(time_ago)s by %(author)s"
-msgstr ""
+msgstr "%(author)s在%(time_ago)s前发表"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Editing comment"
-msgstr ""
+msgstr "编辑评论"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Update comment"
-msgstr ""
+msgstr "更新评论"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "discussion"
-msgstr ""
+msgstr "讨论"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "answered question"
-msgstr ""
+msgstr "已回复的问题"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "unanswered question"
-msgstr ""
+msgstr "待回复的问题"
 
 #: common/static/common/templates/discussion/thread-list-item.underscore
 msgid "discussion posted"
@@ -7029,24 +7029,24 @@ msgstr "向同学匿名发帖"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Error posting your message."
-msgstr ""
+msgstr "发布消息时发生错误。"
 
 #: common/static/common/templates/discussion/templates.underscore
 #, python-format
 msgid "This post will be visible only to %(group_name)s."
-msgstr ""
+msgstr "此帖子仅%(group_name)s可见。"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "This post will be visible to everyone."
-msgstr ""
+msgstr "此帖子对所有人可见。"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Topic area"
-msgstr ""
+msgstr "主题范围"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/topic.underscore
 msgid "Add your post to a relevant topic to help others find it. (Required)"
-msgstr ""
+msgstr "把您的帖子发布到相应的主题以帮助别人找到它 (必填项)"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "(Community TA)"
@@ -7071,11 +7071,11 @@ msgstr ""
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "View discussion"
-msgstr ""
+msgstr "查看讨论"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Load more"
-msgstr ""
+msgstr "载入更多"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Post type"
@@ -7095,57 +7095,57 @@ msgstr "问题"
 msgid "Discussion"
 msgstr "讨论"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-endorse.underscore
 msgid "Endorse"
-msgstr ""
+msgstr "支持"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-endorse.underscore
 msgid "Unendorse"
-msgstr ""
+msgstr "取消支持"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-answer.underscore
 msgid "Mark as Answer"
-msgstr ""
+msgstr "标记作为答案"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-answer.underscore
 msgid "Unmark as Answer"
-msgstr ""
+msgstr "取消标记作为答案"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-follow.underscore
 msgid "Follow"
-msgstr ""
+msgstr "关注"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-follow.underscore
 msgid "Unfollow"
-msgstr ""
+msgstr "取消关注"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Vote for this post,"
-msgstr ""
+msgstr "为该帖投票"
 
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Report abuse"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Report"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
-msgid "Unreport"
-msgstr ""
-
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-pin.underscore
 msgid "Pin"
-msgstr ""
+msgstr "处理"
 
-#: common/static/common/templates/discussion/templates.underscore
+#: common/static/common/templates/discussion/forum-action-pin.underscore
 msgid "Unpin"
-msgstr ""
+msgstr "不做处理"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Report abuse"
+msgstr "报告辱骂"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Report"
+msgstr "报告"
+
+#: common/static/common/templates/discussion/forum-action-report.underscore
+msgid "Unreport"
+msgstr "取消报告"
 
 #: common/static/common/templates/discussion/templates.underscore
 msgid "Open"
-msgstr ""
+msgstr "打开"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Discussion Home"
