@@ -5,7 +5,7 @@
   var django = globals.django || (globals.django = {});
 
 
-  django.pluralidx = function(n) {
+   django.pluralidx = function(n) {
     var v=0;
     if (typeof(v) == 'boolean') {
       return v ? 1 : 0;
@@ -1389,7 +1389,7 @@
     "Publishing Status": "\u53d1\u5e03\u72b6\u6001",
     "Question": "\u95ee\u9898",
     "Questions raise issues that need answers. Discussions share ideas and start conversations.": "\u4f7f\u7528\u201c\u95ee\u9898\u201d\u53ef\u63d0\u51fa\u9700\u8981\u89e3\u7b54\u7684\u95ee\u9898\u3002\u4f7f\u7528\u201c\u8ba8\u8bba\u201d\u53ef\u5206\u4eab\u60f3\u6cd5\u5e76\u5f00\u59cb\u5bf9\u8bdd",
-    "Questions raise issues that need answers. Discussions share ideas and start conversations. (Required)": "\u201c\u95ee\u9898\u201d\u6307\u9700\u8981\u56de\u7b54\u7684\u95ee\u9898\u3002\u201c\u8ba8\u8bba\u201d\u6307\u5206\u4eab\u60f3\u6cd5\u5e76\u5f00\u59cb\u4ea4\u6d41\u3002(\u5fc5\u586b\u9879)",
+    "Questions raise issues that need answers. Discussions share ideas and start conversations. (Required)": "\u4f7f\u7528\u201c\u95ee\u9898\u201d\u53ef\u63d0\u51fa\u9700\u8981\u89e3\u7b54\u7684\u95ee\u9898\u3002\u4f7f\u7528\u201c\u8ba8\u8bba\u201d\u53ef\u5206\u4eab\u60f3\u6cd5\u5e76\u5f00\u59cb\u5bf9\u8bdd\u3002(\u5fc5\u586b\u9879)",
     "Queued": "\u5df2\u6392\u961f",
     "REMAINING COURSES": "\u5269\u4f59\u8bfe\u7a0b",
     "Re-run Course": "\u91cd\u542f\u8bfe\u7a0b",
