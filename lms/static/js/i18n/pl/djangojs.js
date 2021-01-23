@@ -31,7 +31,6 @@
     " learners are not enrolled in course and not added to the exception list": "student\u00f3w nie uczestniczy w kursie i nie zosta\u0142o dodanych do listy wyj\u0105tk\u00f3w",
     " learners are successfully added to exception list": "student\u00f3w pomy\u015blnie dodanych do listy wyj\u0105tk\u00f3w",
     " learners do not exist in LMS and not added to the exception list": "student\u00f3w nie figuruje w LMS i nie zosta\u0142o dodanych do listy wyj\u0105tk\u00f3w",
-    " menu to see a list of all topics.": " aby zobaczy\u0107 list\u0119 wszystkich temat\u00f3w.",
     " record is not in correct format and not added to the exception list": "pozycja nie znajduje si\u0119 we w\u0142a\u015bciwym formacie i nie zosta\u0142a dodana do listy wyj\u0105tk\u00f3w",
     " records are not in correct format and not added to the exception list": "pozycji nie znajduje si\u0119 we w\u0142a\u015bciwym formacie i nie zosta\u0142o dodanych do listy wyj\u0105tk\u00f3w",
     "${listPrice}": "${listPrice}",
@@ -59,8 +58,8 @@
     "%d day": [
       "%d dzie\u0144",
       "%d dni",
-      "",
-      ""
+      "%d dni",
+      "%d dni"
     ],
     "%d minute": [
       "%d minute",
@@ -485,7 +484,7 @@
     "Due:": "Termin:",
     "Duplicate": "Zduplikuj",
     "Duration (sec)": "Czas trwania (sek)",
-    "Earn points for your engagement by adding a new post of responding to an existing post.": "Zwi\u0119ksz swoj\u0105 punktacj\u0119 \u201ePoziomu zaanga\u017cowania\u201d, publikuj\u0105c nowe posty lub odpowiedzi do ju\u017c istniej\u0105cych.",
+    "Earn points for your engagement by adding a new post or responding to an existing post.": "Zwi\u0119ksz swoj\u0105 punktacj\u0119 \u201ePoziomu zaanga\u017cowania\u201d, publikuj\u0105c nowe posty lub odpowiedzi do ju\u017c istniej\u0105cych.",
     "Earned %(created)s.": "Zdoby\u0142e\u015b %(created)s.",
     "Earned Certificates": "Uzyskane certyfikaty",
     "EdX doesn't have a timed transcript for this video in Studio, but we found a transcript on YouTube. You can import the YouTube transcript or upload your own .srt transcript file.": "Nie posiadamy transkrypcji dla tego filmu w Studio, ale odnale\u017ali\u015bmy transkrypcj\u0119 w serwisie YouTube. Mo\u017cesz zaimportowa\u0107 transkrypcj\u0119 z YouTube lub przes\u0142a\u0107 w\u0142asny plik transkrypcji w formacie .srt.",
@@ -517,7 +516,7 @@
     "End My Exam": "Zako\u0144cz m\u00f3j egzamin",
     "Endorse": "Poprzyj",
     "Ends {end}": "Zako\u0144czy si\u0119 {end}",
-    "Engage with posts": "Zareaguj na wpisy",
+    "Engage with posts": "Reaguj na posty",
     "Enroll Now": "Zapisz si\u0119",
     "Enrolled": "Zapisany",
     "Enrolling you in the selected course": "Trwa zapisywanie ciebie na wybrany kurs",
@@ -614,7 +613,7 @@
     "Find discussions": "Znajd\u017a dyskusj\u0119",
     "First time here?": "Pierwszy raz w portalu?",
     "Follow": "\u015aled\u017a",
-    "Follow or unfollow posts": "\u015aled\u017a wybrane wpisy",
+    "Follow or unfollow posts": "\u015aled\u017a lub przesta\u0144 \u015bledzi\u0107 posty",
     "Following": "\u015aledzisz",
     "For grading to work, you must change all {oldName} subsections to {newName}.": "Aby ocenianie dzia\u0142a\u0142o prawid\u0142owo, musisz zmieni\u0107 wszystkie lekcje z {oldName} na {newName}.",
     "Free text notes": "Dowolne notatki",
@@ -1083,7 +1082,7 @@
     "Scheduled:": "Zaplanowany:",
     "Search": "Szukaj",
     "Search Results": "Wyniki wyszukiwania",
-    "Search all posts": "Przeszukaj wszystkie wpisy",
+    "Search all posts": "Przeszukaj wszystkie posty",
     "Search and filter all posts to find specific topics or posts.": "Wyszukuj i filtruj wszystkie posty, aby znale\u017a\u0107 konkretne tematy lub posty.",
     "Search teams": "Przeszukaj zespo\u0142y",
     "Section": "Rozdzia\u0142",
@@ -1577,7 +1576,7 @@
     "Visibility": "Widoczno\u015b\u0107",
     "Visible to": "Widoczne dla",
     "Visible to Staff Only": "Widoczna tylko dla kadry",
-    "Vote for good posts and responses": "G\u0142osuj na dobre wpisy i odpowiedzi",
+    "Vote for good posts and responses": "Przyznawaj punkty dobrym postom i odpowiedziom",
     "Vote for goods post and responses": "Przyznawaj punkty dobrym postom i odpowiedziom",
     "Vote for this post,": "Przyznaj temu postowi punkt",
     "Waiting": "Oczekuje",
@@ -1749,6 +1748,7 @@
     "delete group": "usu\u0144 grup\u0119",
     "details about the failure": "na temat szczeg\u00f3\u0142\u00f3w b\u0142\u0119du",
     "discussion": "dyskusja",
+    "discussion posted": "opublikowana dyskusja",
     "discussion posted %(time_ago)s by %(author)s": "opublikowana dyskusja %(time_ago)s przez %(author)s",
     "dragging": "przeci\u0105ganie",
     "dragging out of slider": "przeci\u0105ganie poza suwak",
@@ -1777,6 +1777,7 @@
     "less than a minute": "mniej ni\u017c minut\u0119",
     "marked as answer %(time_ago)s": "oznaczono jako odpowied\u017a %(time_ago)s",
     "marked as answer %(time_ago)s by %(user)s": "oznacz jako odpowied\u017a %(time_ago)s przez %(user)s",
+    "menu to see a list of all topics.": "aby zobaczy\u0107 list\u0119 wszystkich temat\u00f3w.",
     "minute": "minuta",
     "minutes": "minut/y",
     "name": "nazwa",
@@ -1801,6 +1802,7 @@
     "price": "cena",
     "provide the title/name of the chapter that will be used in navigating": "podaj tytu\u0142/nazw\u0119 rozdzia\u0142u, kt\u00f3ry zostanie u\u017cyty w nawigacji kursu",
     "provide the title/name of the text book as you would like your students to see it": "wprowad\u017a tytu\u0142/nazw\u0119 podr\u0119cznika, pod jakim maj\u0105 go widzie\u0107 studenci",
+    "question posted": "opublikowane pytanie",
     "question posted %(time_ago)s by %(author)s": "opublikowane pytanie %(time_ago)s przez %(author)s",
     "remove": "usu\u0144",
     "remove all": "usu\u0144 wszystko",
@@ -1814,8 +1816,8 @@
     "there is currently {numVotes} vote": [
       "aktualna liczba punkt\u00f3w to: {numVotes}",
       "aktualna liczba punkt\u00f3w to: {numVotes}",
-      "",
-      ""
+      "aktualna liczba punkt\u00f3w to: {numVotes}",
+      "aktualna liczba punkt\u00f3w to: {numVotes}"
     ],
     "times": "u\u017cytkownik\u00f3w",
     "toggle chapter %(displayName)s": "prze\u0142\u0105cz na rozdzia\u0142 %(displayName)s",
@@ -1881,8 +1883,8 @@
     "{numVotes} Vote": [
       "{numVotes} Punkt",
       "{numVotes} Punkty",
-      "",
-      ""
+      "{numVotes} Punkty",
+      "{numVotes} Punkty"
     ],
     "{organization}\\'s logo": "Logo \"{organization}\"",
     "{screen_reader_start}Warning:{screen_reader_end} No content groups exist.": "{screen_reader_start}Uwaga:{screen_reader_end} Nie istniej\u0105 \u017cadne grupy tre\u015bci.",

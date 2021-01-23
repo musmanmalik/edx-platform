@@ -162,6 +162,13 @@ msgstr "Zapisywanie"
 msgid "Delete"
 msgstr "Usuń"
 
+msgid "discussion posted"
+msgstr "opublikowana dyskusja"
+
+#: common/static/common/templates/discussion/thread-list-item.underscore
+msgid "question posted"
+msgstr "opublikowane pytanie"
+
 
 #. Translators: this is a message from the raw HTML editor displayed in the
 #. browser when a user needs to edit HTML
@@ -2046,12 +2053,16 @@ msgid "there is currently {numVotes} vote"
 msgid_plural "there are currently {numVotes} votes"
 msgstr[0] "aktualna liczba punktów to: {numVotes}"
 msgstr[1] "aktualna liczba punktów to: {numVotes}"
+msgstr[2] "aktualna liczba punktów to: {numVotes}"
+msgstr[3] "aktualna liczba punktów to: {numVotes}"
 
 #: common/static/common/js/discussion/views/discussion_content_view.js
 msgid "{numVotes} Vote"
 msgid_plural "{numVotes} Votes"
 msgstr[0] "{numVotes} Punkt"
 msgstr[1] "{numVotes} Punkty"
+msgstr[2] "{numVotes} Punkty"
+msgstr[3] "{numVotes} Punkty"
 
 #: common/static/common/js/discussion/views/discussion_content_view.js
 msgid ""
@@ -7308,7 +7319,7 @@ msgstr "Otwórz"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid ""
-"Earn points for your engagement by adding a new post of responding to an "
+"Earn points for your engagement by adding a new post or responding to an "
 "existing post."
 msgstr ""
 "Zwiększ swoją punktację „Poziomu zaangażowania”, publikując nowe posty lub "
@@ -7358,8 +7369,8 @@ msgid "Use the"
 msgstr "Użyj menu"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
-msgid " menu to see a list of all topics."
-msgstr " aby zobaczyć listę wszystkich tematów."
+msgid "menu to see a list of all topics."
+msgstr "aby zobaczyć listę wszystkich tematów."
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Search and filter all posts to find specific topics or posts."
@@ -7385,7 +7396,7 @@ msgstr "Użyj menu \"Wszystkie tematy\", aby znaleźć określone tematy."
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 #: lms/djangoapps/discussion/static/discussion/templates/search.underscore
 msgid "Search all posts"
-msgstr "Przeszukaj wszystkie wpisy"
+msgstr "Przeszukaj wszystkie posty"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Filter and sort topics"
@@ -7393,11 +7404,11 @@ msgstr "Filtruj i sortuj tematy"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Engage with posts"
-msgstr "Zareaguj na wpisy"
+msgstr "Reaguj na posty"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Vote for good posts and responses"
-msgstr "Głosuj na dobre wpisy i odpowiedzi"
+msgstr "Przyznawaj punkty dobrym postom i odpowiedziom"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Report abuse, topics, and responses"
@@ -7405,7 +7416,7 @@ msgstr "Zgłoś naruszenie zasad"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Follow or unfollow posts"
-msgstr "Śledź wybrane wpisy"
+msgstr "Śledź lub przestań śledzić posty"
 
 #: lms/djangoapps/discussion/static/discussion/templates/discussion-home.underscore
 msgid "Receive updates"
@@ -11356,3 +11367,5 @@ msgid "%d day"
 msgid_plural "%d days"
 msgstr[0] "%d dzień"
 msgstr[1] "%d dni"
+msgstr[2] "%d dni"
+msgstr[3] "%d dni"
