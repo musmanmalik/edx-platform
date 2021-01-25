@@ -169,6 +169,9 @@ msgstr "opublikowana dyskusja"
 msgid "question posted"
 msgstr "opublikowane pytanie"
 
+#: wiki/templates/wiki/includes/revision_info.html
+msgid "by"
+msgstr "przez"
 
 #. Translators: this is a message from the raw HTML editor displayed in the
 #. browser when a user needs to edit HTML

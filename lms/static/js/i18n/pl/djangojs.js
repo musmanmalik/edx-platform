@@ -1738,6 +1738,7 @@
     "anonymous": "u\u017cytkownik anonimowy",
     "answered question": "pytanie posiadaj\u0105ce odpowied\u017a",
     "are": "s\u0105",
+    "by": "przez",
     "bytes": "bajt\u00f3w",
     "certificate": "certyfikat",
     "close": "zamknij",
