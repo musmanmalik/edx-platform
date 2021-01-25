@@ -15,6 +15,7 @@ if (typeof MathJax === 'undefined') {
             setMathJaxDisplayDivSettings;
         MathJax.Hub.Config({
             tex2jax: {
+                ignoreClass: "djdt-hidden",// don't parse Django Debug Toolbar for Math Equations.
                 inlineMath: [
                     ['\\(', '\\)'],
                     ['[mathjaxinline]', '[/mathjaxinline]']
@@ -23,6 +24,9 @@ if (typeof MathJax === 'undefined') {
                     ['\\[', '\\]'],
                     ['[mathjax]', '[/mathjax]']
                 ]
+            },
+            asciimath2jax: {
+               ignoreClass: "djdt-hidden",  // don't parse Django Debug Toolbar for Math Equations.
             }
         });
         if (disableFastPreview) {
