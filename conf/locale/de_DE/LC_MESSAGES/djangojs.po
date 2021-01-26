@@ -7225,7 +7225,7 @@ msgid ""
 "Questions raise issues that need answers. Discussions share ideas and start "
 "conversations. (Required)"
 msgstr ""
-"Fragen benötigen Antworten. Diskussionen lösen eine Konversation aus. "
+"Fragen werfen Probleme auf, die gelöst werden müssen. Diskussionen dienen dem Ideenaustausch und regen Gespräche an. "
 "(Erforderlich)"
 
 #: common/static/common/templates/discussion/thread-type.underscore

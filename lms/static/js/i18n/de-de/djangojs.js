@@ -1191,7 +1191,7 @@
     "Publishing Status": "Ver\u00f6ffentlichungsstatus",
     "Question": "Frage",
     "Questions raise issues that need answers. Discussions share ideas and start conversations.": "Fragen werfen Probleme auf, die gel\u00f6st werden m\u00fcssen. Diskussionen dienen dem Ideenaustausch und regen Gespr\u00e4che an",
-    "Questions raise issues that need answers. Discussions share ideas and start conversations. (Required)": "Fragen ben\u00f6tigen Antworten. Diskussionen l\u00f6sen eine Konversation aus. (Erforderlich)",
+    "Questions raise issues that need answers. Discussions share ideas and start conversations. (Required)": "Fragen werfen Probleme auf, die gel\u00f6st werden m\u00fcssen. Diskussionen dienen dem Ideenaustausch und regen Gespr\u00e4che an. (Erforderlich)",
     "Queued": "Eingereiht",
     "Read More": "Weiterlesen",
     "Ready To Start": "Bereit um zu starten",
