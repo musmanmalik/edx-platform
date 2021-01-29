@@ -9,7 +9,6 @@ import six
 from config_models.models import ConfigurationModel
 from django.db import models
 from django.utils.text import compress_string
-from opaque_keys.edx.django.models import CreatorMixin
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -39,16 +38,15 @@ def decompress_string(value):
         val = base64.b64decode(value.encode('utf8'))
         zbuf = BytesIO(val)
         zfile = gzip.GzipFile(fileobj=zbuf)
-        ret = zfile.read()
+        ret = zfile.read().decode('utf8')
         zfile.close()
-        ret = ret.decode('utf8')
     except Exception as e:
         logger.error('String decompression failed. There may be corrupted data in the database: %s', e)
         ret = value
     return ret
 
 
-class CompressedTextField(CreatorMixin, models.TextField):
+class CompressedTextField(models.TextField):
     """
     TextField that transparently compresses data when saving to the database, and decompresses the data
     when retrieving it from the database.
@@ -73,3 +71,6 @@ class CompressedTextField(CreatorMixin, models.TextField):
             value = decompress_string(value)
 
         return value
+
+    def from_db_value(self, value, expression, connection):  # pylint: disable=unused-argument
+        return self.to_python(value)
