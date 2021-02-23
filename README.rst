@@ -1,5 +1,8 @@
 This is the main edX platform which consists of LMS and Studio.
 
+Notice: This repo will be moved to the `openedx organization <https://github.com/openedx>`_ in April 2021.
+#######
+
 
 Installation
 ------------
