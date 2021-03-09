@@ -4,11 +4,12 @@ import json
 
 from completion import waffle as completion_waffle
 from completion.models import BlockCompletion
-from courseware.models import StudentModule
-from courseware.tests.factories import StudentModuleFactory
+from lms.djangoapps.courseware.models import StudentModule
+from lms.djangoapps.courseware.tests.factories import StudentModuleFactory
 
 from django.contrib.auth.models import User
 from django.core import mail
+from openedx.core.djangolib.testing.utils import skip_unless_lms
 
 
 from openedx.core.djangoapps.user_api.completion.tasks import (
@@ -34,6 +35,7 @@ from mock import call, patch
 import uuid
 
 
+@skip_unless_lms
 class ProgressMigrationTestCase(ModuleStoreTestCase):
     """
     Parent test case for progress migration tests.
@@ -76,7 +78,6 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
         with completion_waffle.waffle().override(completion_waffle.ENABLE_COMPLETION_TRACKING, True):
             BlockCompletion.objects.submit_completion(
                 user=user,
-                course_key=block.location.course_key,
                 block_key=block.location,
                 completion=completion_test_value,
             )
@@ -161,7 +162,7 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
 
         # Check that all user's progress transferred to another user
         assert CourseEnrollment.objects.filter(user=target, course=self.course.id).exists()
-        assert BlockCompletion.user_course_completion_queryset(user=target, course_key=self.course.id).exists()
+        assert BlockCompletion.user_learning_context_completion_queryset(user=target, context_key=self.course.id).exists()
         assert StudentItem.objects.filter(
             course_id=self.course.id, student_id=anonymous_id_for_user(target, self.course.id)
         ).exists()
@@ -177,6 +178,7 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
                 OUTCOME_FAILED_MIGRATION
             )
 
+    @skip_unless_lms
     def test_migrate_progress(self):
         """
         Integration test, that checks that:
@@ -230,4 +232,4 @@ class ProgressMigrationTestCase(ModuleStoreTestCase):
         self.assertEqual(len(attachments), 1)
 
         attachment_content = attachments[0][1]
-        self.assertEqual(attachment_content, _create_results_csv(result_csv_rows))
+        self.assertEqual(attachment_content, _create_results_csv(result_csv_rows).decode('utf-8'))
