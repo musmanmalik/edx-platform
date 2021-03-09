@@ -1,16 +1,19 @@
 """
 Common MongoDB connection functions.
 """
+
+
 import logging
 
 import pymongo
+from mongodb_proxy import MongoProxy
 from pymongo.read_preferences import (
     ReadPreference,
     read_pref_mode_from_name,
     _MONGOS_MODES,
     _MODES
 )
-from mongodb_proxy import MongoProxy
+
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -42,6 +45,14 @@ def connect_to_mongodb(
         # No 'replicaSet' in kwargs - so no secondary reads.
         mongo_client_class = pymongo.MongoClient
 
+    # If the MongoDB server uses a separate authentication database that should be specified here
+    auth_source = kwargs.get('authsource', '') or None
+
+    # sanitize a kwarg which may be present and is no longer expected
+    # AED 2020-03-02 TODO: Remove this when 'auth_source' will no longer exist in kwargs
+    if 'auth_source' in kwargs:
+        kwargs.pop('auth_source')
+
     # If read_preference is given as a name of a valid ReadPreference.<NAME>
     # constant such as "SECONDARY_PREFERRED" or a mongo mode such as
     # "secondaryPreferred", convert it. Otherwise pass it through unchanged.
@@ -71,10 +82,9 @@ def connect_to_mongodb(
             mongo_conn,
             wait_time=retry_wait_time
         )
-
     # If credentials were provided, authenticate the user.
     if user is not None and password is not None:
-        mongo_conn.authenticate(user, password)
+        mongo_conn.authenticate(user, password, source=auth_source)
 
     return mongo_conn
 
