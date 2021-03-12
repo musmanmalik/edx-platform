@@ -648,8 +648,6 @@ class ViewsTestCase(
             )
         self.assertEqual(response.status_code, 200)
 
-    # TODO : juniper rebase - check if we can remove this skip
-    @skip("Saving these changes after signal is handled by Celery task. It needs to be tested differently")
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_NOTIFICATIONS": True})
     @patch.dict("django.conf.settings.FEATURES", {"ENABLE_SOCIAL_ENGAGEMENT": True})
     def test_create_cohorted_thread(self, mock_request):
@@ -710,7 +708,7 @@ class ViewsTestCase(
 
         leaderboard_position = StudentSocialEngagementScore.get_user_leaderboard_position(
             self.course.id,
-            self.student.id
+            user_id=self.student.id
         )
 
         # should be 0 points
