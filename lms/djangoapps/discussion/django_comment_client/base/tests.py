@@ -729,7 +729,7 @@ class ViewsTestCase(
         # in order to test social engagement scoring, we have
         # to mock out the social stats cs_comment_service
         # API
-        with patch('social_engagement.engagement._get_user_social_stats') as mock_func:
+        with patch('social_engagement.engagement._get_course_social_stats') as mock_func:
             mock_func.return_value = {
                 'num_threads': 1,
                 'num_comments': 0,
@@ -824,7 +824,7 @@ class ViewsTestCase(
             "comments_count": 0,
         })
 
-        with patch('social_engagement.engagement._get_user_social_stats') as mock_func:
+        with patch('social_engagement.engagement._get_course_social_stats') as mock_func:
             mock_func.return_value = {
                 'num_threads': 2,
                 'num_comments': 0,
