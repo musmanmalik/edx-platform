@@ -748,7 +748,7 @@ class ViewsTestCase(
             # based on default scoring rules
             leaderboard_position = StudentSocialEngagementScore.get_user_leaderboard_position(
                 self.course.id,
-                self.student.id
+                user_id=self.student.id
             )
 
             # should be 10 points
@@ -844,7 +844,7 @@ class ViewsTestCase(
             # created two threads
             leaderboard_position = StudentSocialEngagementScore.get_user_leaderboard_position(
                 self.course.id,
-                self.student.id
+                user_id=self.student.id
             )
 
             # should be 10 points
