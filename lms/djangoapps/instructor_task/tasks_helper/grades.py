@@ -923,7 +923,8 @@ class ProblemResponses(object):
                         # human-readable formatting for user state.
                         if hasattr(block, 'generate_report_data'):
                             try:
-                                user_state_iterator = user_state_client.iter_all_for_block(block_key, batch_no, batch_size)
+                                user_state_iterator = user_state_client.iter_all_for_block(block_key, batch_no,
+                                                                                           batch_size)
                                 for username, state in block.generate_report_data(user_state_iterator, max_count):
                                     generated_report_data[username].append(state)
                             except NotImplementedError:
