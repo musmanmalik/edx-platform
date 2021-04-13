@@ -213,7 +213,7 @@ class EdXSAMLIdentityProvider(SAMLIdentityProvider):
         for field in extra_field_definitions:
             value = attributes[field['urn']] if field['urn'] in attributes else None
             if isinstance(value, list):
-                if len(value):
+                if value:
                     value = value[0]
                 else:
                     value = None
