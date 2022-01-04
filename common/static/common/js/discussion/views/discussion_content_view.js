@@ -179,7 +179,7 @@
             };
 
             return DiscussionContentView;
-        })(Backbone.View);
+        }(Backbone.View));
         this.DiscussionContentShowView = (function(_super) {
             __extends(DiscussionContentShowView, _super);
 
@@ -365,16 +365,17 @@
             };
 
             DiscussionContentShowView.prototype.toggleEndorse = function(event) {
-                var isEndorsing, msg, updates, url,
+                var isEndorsing, msg, updates, url, user,
                     self = this;
                 event.preventDefault();
                 isEndorsing = !this.model.get('endorsed');
                 url = this.model.urlFor('endorse');
+                user = DiscussionUtil.getUser();
                 updates = {
                     endorsed: isEndorsing,
                     endorsement: isEndorsing ? {
-                        username: DiscussionUtil.getUser().get('username'),
-                        user_id: DiscussionUtil.getUser().id,
+                        username: this.getDisplayName(user),
+                        user_id: user.id,
                         time: new Date().toISOString()
                     } : null
                 };
@@ -494,11 +495,23 @@
 
             DiscussionContentShowView.prototype.getAuthorDisplay = function() {
                 return _.template($('#post-user-display-template').html())({
-                    username: this.model.get('username') || null,
+                    username: this.getDisplayName(this.model),
                     user_url: this.model.get('user_url'),
                     is_community_ta: this.model.get('community_ta_authored'),
                     is_staff: this.model.get('staff_authored')
                 });
+            };
+
+            DiscussionContentShowView.prototype.getDisplayName = function(user) {
+                var firstName, lastName, displayName;
+                firstName = user.get('first_name');
+                lastName = user.get('last_name');
+                if (typeof firstName === 'undefined' || typeof lastName === 'undefined') {
+                    displayName = user.get('username');
+                } else {
+                    displayName = firstName + ' ' + lastName[0];
+                }
+                return displayName;
             };
 
             DiscussionContentShowView.prototype.getEndorserDisplay = function() {
@@ -508,7 +521,8 @@
                     return _.template($('#post-user-display-template').html())({
                         username: endorsement.username,
                         user_url: DiscussionUtil.urlFor('user_profile', endorsement.user_id),
-                        is_community_ta: DiscussionUtil.isTA(endorsement.user_id),
+                        is_community_ta: DiscussionUtil.isTA(endorsement.user_id) ||
+                                         DiscussionUtil.isGroupTA(endorsement.user_id),
                         is_staff: DiscussionUtil.isStaff(endorsement.user_id)
                     });
                 } else {

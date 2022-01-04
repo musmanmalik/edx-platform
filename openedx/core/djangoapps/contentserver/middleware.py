@@ -2,37 +2,53 @@
 Middleware to serve assets.
 """
 
-import logging
+
 import datetime
+import logging
+from importlib import import_module
+
+import six
+from cryptography.fernet import Fernet, InvalidToken
+from django.conf import settings
+from django.contrib.auth import SESSION_KEY
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseNotFound,
+    HttpResponseNotModified,
+    HttpResponsePermanentRedirect
+)
+from django.utils.deprecation import MiddlewareMixin
+from opaque_keys import InvalidKeyError
+from opaque_keys.edx.locator import AssetLocator
+from six import text_type
+
+from openedx.core.djangoapps.header_control import force_header_for_response
+from student.models import CourseEnrollment
+from xmodule.assetstore.assetmgr import AssetManager
+from xmodule.contentstore.content import XASSET_LOCATION_TAG, StaticContent
+from xmodule.exceptions import NotFoundError
+from xmodule.modulestore import InvalidLocationError
+from xmodule.modulestore.exceptions import ItemNotFoundError
+
+from .caching import get_cached_content, set_cached_content
+from .models import CdnUserAgentsConfig, CourseAssetCacheTtlConfig
+
 log = logging.getLogger(__name__)
 try:
     import newrelic.agent
 except ImportError:
     newrelic = None  # pylint: disable=invalid-name
-from django.http import (
-    HttpResponse, HttpResponseNotModified, HttpResponseForbidden,
-    HttpResponseBadRequest, HttpResponseNotFound, HttpResponsePermanentRedirect)
-from student.models import CourseEnrollment
 
-from xmodule.assetstore.assetmgr import AssetManager
-from xmodule.contentstore.content import StaticContent, XASSET_LOCATION_TAG
-from xmodule.modulestore import InvalidLocationError
-from opaque_keys import InvalidKeyError
-from opaque_keys.edx.locator import AssetLocator
-from openedx.core.djangoapps.header_control import force_header_for_response
-from .caching import get_cached_content, set_cached_content
-from xmodule.modulestore.exceptions import ItemNotFoundError
-from xmodule.exceptions import NotFoundError
-
-from .models import CourseAssetCacheTtlConfig, CdnUserAgentsConfig
 
 # TODO: Soon as we have a reasonable way to serialize/deserialize AssetKeys, we need
 # to change this file so instead of using course_id_partial, we're just using asset keys
 
-HTTP_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S GMT"
+HTTP_DATE_FORMAT = u"%a, %d %b %Y %H:%M:%S GMT"
 
 
-class StaticContentServer(object):
+class StaticContentServer(MiddlewareMixin):
     """
     Serves course assets to end users.  Colloquially referred to as "contentserver."
     """
@@ -132,18 +148,19 @@ class StaticContentServer(object):
                 except ValueError as exception:
                     # If the header field is syntactically invalid it should be ignored.
                     log.exception(
-                        u"%s in Range header: %s for content: %s", exception.message, header_value, unicode(loc)
+                        u"%s in Range header: %s for content: %s",
+                        text_type(exception), header_value, six.text_type(loc)
                     )
                 else:
                     if unit != 'bytes':
                         # Only accept ranges in bytes
-                        log.warning(u"Unknown unit in Range header: %s for content: %s", header_value, unicode(loc))
+                        log.warning(u"Unknown unit in Range header: %s for content: %s", header_value, text_type(loc))
                     elif len(ranges) > 1:
                         # According to Http/1.1 spec content for multiple ranges should be sent as a multipart message.
                         # http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
                         # But we send back the full content.
                         log.warning(
-                            u"More than 1 ranges in Range header: %s for content: %s", header_value, unicode(loc)
+                            u"More than 1 ranges in Range header: %s for content: %s", header_value, text_type(loc)
                         )
                     else:
                         first, last = ranges[0]
@@ -151,7 +168,7 @@ class StaticContentServer(object):
                         if 0 <= first <= last < content.length:
                             # If the byte range is satisfiable
                             response = HttpResponse(content.stream_data_in_range(first, last))
-                            response['Content-Range'] = 'bytes {first}-{last}/{length}'.format(
+                            response['Content-Range'] = u'bytes {first}-{last}/{length}'.format(
                                 first=first, last=last, length=content.length
                             )
                             response['Content-Length'] = str(last - first + 1)
@@ -161,7 +178,8 @@ class StaticContentServer(object):
                                 newrelic.agent.add_custom_parameter('contentserver.ranged', True)
                         else:
                             log.warning(
-                                u"Cannot satisfy ranges in Range header: %s for content: %s", header_value, unicode(loc)
+                                u"Cannot satisfy ranges in Range header: %s for content: %s",
+                                header_value, text_type(loc)
                             )
                             return HttpResponse(status=416)  # Requested Range Not Satisfiable
 
@@ -177,6 +195,7 @@ class StaticContentServer(object):
             # "Accept-Ranges: bytes" tells the user that only "bytes" ranges are allowed
             response['Accept-Ranges'] = 'bytes'
             response['Content-Type'] = content.content_type
+            response['X-Frame-Options'] = 'ALLOW'
 
             # Set any caching headers, and do any response cleanup needed.  Based on how much
             # middleware we have in place, there's no easy way to use the built-in Django
@@ -204,7 +223,7 @@ class StaticContentServer(object):
                 newrelic.agent.add_custom_parameter('contentserver.cacheable', True)
 
             response['Expires'] = StaticContentServer.get_expiration_value(datetime.datetime.utcnow(), cache_ttl)
-            response['Cache-Control'] = "public, max-age={ttl}, s-maxage={ttl}".format(ttl=cache_ttl)
+            response['Cache-Control'] = u"public, max-age={ttl}, s-maxage={ttl}".format(ttl=cache_ttl)
         elif is_locked:
             if newrelic:
                 newrelic.agent.add_custom_parameter('contentserver.cacheable', False)
@@ -253,7 +272,22 @@ class StaticContentServer(object):
         if not self.is_content_locked(content):
             return True
 
-        if not hasattr(request, "user") or not request.user.is_authenticated():
+        # use token based auth if a token is passed and feature is enabled
+        if request.GET.get('access_token') and settings.ASSETS_ACCESS_BY_TOKEN:
+            access_token = request.GET.get('access_token')
+            encryption_key = Fernet(bytes(settings.ASSETS_TOKEN_ENCRYPTION_KEY, 'utf-8'))
+
+            try:
+                session_id = encryption_key.decrypt(bytes(access_token, 'utf-8'), settings.ASSETS_TOKEN_TTL)
+                session_id = session_id.decode() if type(session_id) is bytes else session_id
+            except (InvalidToken, TypeError):
+                return False
+            else:
+                engine = import_module(settings.SESSION_ENGINE)
+                session = engine.SessionStore(session_id)
+                return not (session is None or SESSION_KEY not in session)
+
+        if not hasattr(request, "user") or not request.user.is_authenticated:
             return False
 
         if not request.user.is_staff:

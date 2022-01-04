@@ -2,19 +2,26 @@
 Common utility functions useful throughout the contentstore
 """
 
+
 import logging
+from contextlib import contextmanager
 from datetime import datetime
 
+import six
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from django.utils import translation
 from django.utils.translation import ugettext as _
 from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.locator import LibraryLocator
 from pytz import UTC
+from six import text_type
 
-from django_comment_common.models import assign_default_role
-from django_comment_common.utils import seed_permissions_roles
-from openedx.core.djangoapps.self_paced.models import SelfPacedConfiguration
+from openedx.core.djangoapps.django_comment_common.models import assign_default_role
+from openedx.core.djangoapps.django_comment_common.utils import seed_permissions_roles
 from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
+from openedx.features.content_type_gating.models import ContentTypeGatingConfig
+from openedx.features.content_type_gating.partitions import CONTENT_TYPE_GATING_SCHEME
 from student import auth
 from student.models import CourseEnrollment
 from student.roles import CourseInstructorRole, CourseStaffRole
@@ -87,12 +94,12 @@ def _remove_instructors(course_key):
     """
     In the django layer, remove all the user/groups permissions associated with this course
     """
-    print 'removing User permissions from course....'
+    print('removing User permissions from course....')
 
     try:
         remove_all_instructors(course_key)
     except Exception as err:
-        log.error("Error in deleting course groups for {0}: {1}".format(course_key, err))
+        log.error(u"Error in deleting course groups for {0}: {1}".format(course_key, err))
 
 
 def get_lms_link_for_item(location, preview=False):
@@ -126,13 +133,12 @@ def get_lms_link_for_item(location, preview=False):
 
     return u"//{lms_base}/courses/{course_key}/jump_to/{location}".format(
         lms_base=lms_base,
-        course_key=location.course_key.to_deprecated_string(),
-        location=location.to_deprecated_string(),
+        course_key=text_type(location.course_key),
+        location=text_type(location),
     )
 
 
-# pylint: disable=invalid-name
-def get_lms_link_for_certificate_web_view(user_id, course_key, mode):
+def get_lms_link_for_certificate_web_view(course_key, mode):
     """
     Returns the url to the certificate web view.
     """
@@ -144,10 +150,9 @@ def get_lms_link_for_certificate_web_view(user_id, course_key, mode):
     if lms_base is None:
         return None
 
-    return u"//{certificate_web_base}/certificates/user/{user_id}/course/{course_id}?preview={mode}".format(
+    return u"//{certificate_web_base}/certificates/course/{course_id}?preview={mode}".format(
         certificate_web_base=lms_base,
-        user_id=user_id,
-        course_id=unicode(course_key),
+        course_id=six.text_type(course_key),
         mode=mode
     )
 
@@ -271,10 +276,10 @@ def reverse_url(handler_name, key_name=None, key_value=None, kwargs=None):
     Creates the URL for the given handler.
     The optional key_name and key_value are passed in as kwargs to the handler.
     """
-    kwargs_for_reverse = {key_name: unicode(key_value)} if key_name else None
+    kwargs_for_reverse = {key_name: six.text_type(key_value)} if key_name else None
     if kwargs:
         kwargs_for_reverse.update(kwargs)
-    return reverse('contentstore.views.' + handler_name, kwargs=kwargs_for_reverse)
+    return reverse(handler_name, kwargs=kwargs_for_reverse)
 
 
 def reverse_course_url(handler_name, course_key, kwargs=None):
@@ -311,7 +316,7 @@ def get_split_group_display_name(xblock, course):
     """
     for user_partition in get_user_partition_info(xblock, schemes=['random'], course=course):
         for group in user_partition['groups']:
-            if 'Group ID {group_id}'.format(group_id=group['id']) == xblock.display_name_with_default:
+            if u'Group ID {group_id}'.format(group_id=group['id']) == xblock.display_name_with_default:
                 return group['name']
 
 
@@ -379,7 +384,7 @@ def get_user_partition_info(xblock, schemes=None, course=None):
 
     if course is None:
         log.warning(
-            "Could not find course %s to retrieve user partition information",
+            u"Could not find course %s to retrieve user partition information",
             xblock.location.course_key
         )
         return []
@@ -391,17 +396,18 @@ def get_user_partition_info(xblock, schemes=None, course=None):
     for p in sorted(get_all_partitions_for_course(course, active_only=True), key=lambda p: p.name):
 
         # Exclude disabled partitions, partitions with no groups defined
+        # The exception to this case is when there is a selected group within that partition, which means there is
+        # a deleted group
         # Also filter by scheme name if there's a filter defined.
-        if p.groups and (schemes is None or p.scheme.name in schemes):
+        selected_groups = set(xblock.group_access.get(p.id, []) or [])
+        if (p.groups or selected_groups) and (schemes is None or p.scheme.name in schemes):
 
             # First, add groups defined by the partition
             groups = []
             for g in p.groups:
-
                 # Falsey group access for a partition mean that all groups
                 # are selected.  In the UI, though, we don't show the particular
                 # groups selected, since there's a separate option for "all users".
-                selected_groups = set(xblock.group_access.get(p.id, []) or [])
                 groups.append({
                     "id": g.id,
                     "name": g.name,
@@ -423,7 +429,7 @@ def get_user_partition_info(xblock, schemes=None, course=None):
             # Put together the entire partition dictionary
             partitions.append({
                 "id": p.id,
-                "name": unicode(p.name),  # Convert into a string in case ugettext_lazy was used
+                "name": six.text_type(p.name),  # Convert into a string in case ugettext_lazy was used
                 "scheme": p.scheme.name,
                 "groups": groups,
             })
@@ -431,7 +437,7 @@ def get_user_partition_info(xblock, schemes=None, course=None):
     return partitions
 
 
-def get_visibility_partition_info(xblock):
+def get_visibility_partition_info(xblock, course=None):
     """
     Retrieve user partition information for the component visibility editor.
 
@@ -440,12 +446,16 @@ def get_visibility_partition_info(xblock):
     Arguments:
         xblock (XBlock): The component being edited.
 
+        course (XBlock): The course descriptor.  If provided, uses this to look up the user partitions
+            instead of loading the course.  This is useful if we're calling this function multiple
+            times for the same course want to minimize queries to the modulestore.
+
     Returns: dict
 
     """
     selectable_partitions = []
     # We wish to display enrollment partitions before cohort partitions.
-    enrollment_user_partitions = get_user_partition_info(xblock, schemes=["enrollment_track"])
+    enrollment_user_partitions = get_user_partition_info(xblock, schemes=["enrollment_track"], course=course)
 
     # For enrollment partitions, we only show them if there is a selected group or
     # or if the number of groups > 1.
@@ -453,8 +463,13 @@ def get_visibility_partition_info(xblock):
         if len(partition["groups"]) > 1 or any(group["selected"] for group in partition["groups"]):
             selectable_partitions.append(partition)
 
+    course_key = xblock.scope_ids.usage_id.course_key
+    is_library = isinstance(course_key, LibraryLocator)
+    if not is_library and ContentTypeGatingConfig.current(course_key=course_key).studio_override_enabled:
+        selectable_partitions += get_user_partition_info(xblock, schemes=[CONTENT_TYPE_GATING_SCHEME], course=course)
+
     # Now add the cohort user partitions.
-    selectable_partitions = selectable_partitions + get_user_partition_info(xblock, schemes=["cohort"])
+    selectable_partitions = selectable_partitions + get_user_partition_info(xblock, schemes=["cohort"], course=course)
 
     # Find the first partition with a selected group. That will be the one initially enabled in the dialog
     # (if the course has only been added in Studio, only one partition should have a selected group).
@@ -471,7 +486,7 @@ def get_visibility_partition_info(xblock):
                 else:
                     # Translators: This is building up a list of groups. It is marked for translation because of the
                     # comma, which is used as a separator between each group.
-                    selected_groups_label = _('{previous_groups}, {current_group}').format(
+                    selected_groups_label = _(u'{previous_groups}, {current_group}').format(
                         previous_groups=selected_groups_label,
                         current_group=group['name']
                     )
@@ -503,4 +518,83 @@ def is_self_paced(course):
     """
     Returns True if course is self-paced, False otherwise.
     """
-    return course and course.self_paced and SelfPacedConfiguration.current().enabled
+    return course and course.self_paced
+
+
+def get_sibling_urls(subsection):
+    """
+    Given a subsection, returns the urls for the next and previous units.
+
+    (the first unit of the next subsection or section, and
+    the last unit of the previous subsection/section)
+    """
+    section = subsection.get_parent()
+    prev_url = next_url = ''
+    prev_loc = next_loc = None
+    last_block = None
+    siblings = list(section.get_children())
+    for i, block in enumerate(siblings):
+        if block.location == subsection.location:
+            if last_block:
+                try:
+                    prev_loc = last_block.get_children()[0].location
+                except IndexError:
+                    pass
+            try:
+                next_loc = siblings[i + 1].get_children()[0].location
+            except IndexError:
+                pass
+            break
+        last_block = block
+    if not prev_loc:
+        try:
+            # section.get_parent SHOULD return the course, but for some reason, it might not
+            sections = section.get_parent().get_children()
+        except AttributeError:
+            log.error(u"URL Retrieval Error # 1: subsection {subsection} included in section {section}".format(
+                section=section.location,
+                subsection=subsection.location
+            ))
+            # This should not be a fatal error. The worst case is that the navigation on the unit page
+            # won't display a link to a previous unit.
+        else:
+            try:
+                prev_section = sections[sections.index(section) - 1]
+                prev_loc = prev_section.get_children()[-1].get_children()[-1].location
+            except IndexError:
+                pass
+    if not next_loc:
+        try:
+            sections = section.get_parent().get_children()
+        except AttributeError:
+            log.error(u"URL Retrieval Error # 2: subsection {subsection} included in section {section}".format(
+                section=section.location,
+                subsection=subsection.location
+            ))
+        else:
+            try:
+                next_section = sections[sections.index(section) + 1]
+                next_loc = next_section.get_children()[0].get_children()[0].location
+            except IndexError:
+                pass
+    if prev_loc:
+        prev_url = reverse_usage_url('container_handler', prev_loc)
+    if next_loc:
+        next_url = reverse_usage_url('container_handler', next_loc)
+    return prev_url, next_url
+
+
+@contextmanager
+def translation_language(language):
+    """Context manager to override the translation language for the scope
+    of the following block. Has no effect if language is None.
+    """
+    if language:
+        previous = translation.get_language()
+        translation.activate(language)
+        try:
+            yield
+        finally:
+            translation.activate(previous)
+    else:
+        yield

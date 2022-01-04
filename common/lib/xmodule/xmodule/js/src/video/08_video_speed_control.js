@@ -41,9 +41,9 @@
             '<span>',
             '<span class="icon fa fa-caret-right" aria-hidden="true"></span>',
             '</span>',
-            '<span class="label" aria-hidden="true">',
+            '<span class="label">',
             gettext('Speed'),
-            '</span>',
+            ' </span>',
             '<span class="value"></span>',
             '</button>',
             '<ol class="video-speeds menu"></ol>',
@@ -52,10 +52,10 @@
 
         destroy: function() {
             this.el.off({
-                'mouseenter': this.mouseEnterHandler,
-                'mouseleave': this.mouseLeaveHandler,
-                'click': this.clickMenuHandler,
-                'keydown': this.keyDownMenuHandler
+                mouseenter: this.mouseEnterHandler,
+                mouseleave: this.mouseLeaveHandler,
+                click: this.clickMenuHandler,
+                keydown: this.keyDownMenuHandler
             });
 
             this.state.el.off({
@@ -139,10 +139,10 @@
         bindHandlers: function() {
             // Attach various events handlers to the speed menu button.
             this.el.on({
-                'mouseenter': this.mouseEnterHandler,
-                'mouseleave': this.mouseLeaveHandler,
-                'click': this.openMenu,
-                'keydown': this.keyDownMenuHandler
+                mouseenter: this.mouseEnterHandler,
+                mouseleave: this.mouseLeaveHandler,
+                click: this.openMenu,
+                keydown: this.keyDownMenuHandler
             });
 
             // Attach click and keydown event handlers to the individual speed
@@ -231,21 +231,22 @@
          * not differs from current speed.
          */
         setSpeed: function(speed, silent, forceUpdate) {
-            if (speed !== this.currentSpeed || forceUpdate) {
+            var newSpeed = this.state.speedToString(speed);
+            if (newSpeed !== this.currentSpeed || forceUpdate) {
                 this.speedsContainer
                     .find('li')
-                    .siblings("li[data-speed='" + speed + "']");
+                    .siblings("li[data-speed='" + newSpeed + "']");
 
-                this.speedButton.find('.value').text(speed + 'x');
-                this.currentSpeed = speed;
+                this.speedButton.find('.value').text(newSpeed + 'x');
+                this.currentSpeed = newSpeed;
 
                 if (!silent) {
-                    this.el.trigger('speedchange', [speed, this.state.speed]);
+                    this.el.trigger('speedchange', [newSpeed, this.state.speed]);
                 }
             }
 
             this.resetActiveSpeed();
-            this.setActiveSpeed(speed);
+            this.setActiveSpeed(newSpeed);
         },
 
         resetActiveSpeed: function() {
@@ -259,13 +260,13 @@
         },
 
         setActiveSpeed: function(speed) {
-            var speedOption = this.speedsContainer.find('li[data-speed="' + speed + '"]');
+            var speedOption = this.speedsContainer.find('li[data-speed="' + this.state.speedToString(speed) + '"]');
 
             speedOption.addClass('is-active')
                 .find('.speed-option')
                 .attr('aria-pressed', 'true');
 
-            this.speedButton.attr('title', gettext('Video speed: ') + speed + 'x');
+            this.speedButton.attr('title', gettext('Video speed: ') + this.state.speedToString(speed) + 'x');
         },
 
         /**
@@ -341,7 +342,7 @@
             // We do not stop propagation and default behavior on a TAB
             // keypress.
             return event.keyCode === KEY.TAB;
-                                                },
+        },
 
         /**
          * Keydown event handler for speed links.
@@ -409,7 +410,7 @@
             }
 
             return true;
-                                                }
+        }
     };
 
     return SpeedControl;

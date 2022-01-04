@@ -1,6 +1,8 @@
 """
 Tests for grades.scores module.
 """
+
+
 import itertools
 # pylint: disable=protected-access
 from collections import namedtuple
@@ -20,6 +22,35 @@ from xmodule.graders import ProblemScore
 NOW = now()
 
 
+def submission_value_repr(self):
+    """
+    String representation for the SubmissionValue namedtuple which excludes
+    the "created_at" attribute that changes with each execution.  Needed for
+    consistency of ddt-generated test methods across pytest-xdist workers.
+    """
+    return u'<SubmissionValue exists={}>'.format(self.exists)
+
+
+def csm_value_repr(self):
+    """
+    String representation for the CSMValue namedtuple which excludes
+    the "created" attribute that changes with each execution.  Needed for
+    consistency of ddt-generated test methods across pytest-xdist workers.
+    """
+    return u'<CSMValue exists={} raw_earned={}>'.format(self.exists, self.raw_earned)
+
+
+def expected_result_repr(self):
+    """
+    String representation for the ExpectedResult namedtuple which excludes
+    the "first_attempted" attribute that changes with each execution.  Needed
+    for consistency of ddt-generated test methods across pytest-xdist workers.
+    """
+    included = ('raw_earned', 'raw_possible', 'weighted_earned', 'weighted_possible', 'weight', 'graded')
+    attributes = ['{}={}'.format(name, getattr(self, name)) for name in included]
+    return u'<ExpectedResult {}>'.format(' '.join(attributes))
+
+
 class TestScoredBlockTypes(TestCase):
     """
     Tests for the possibly_scored function.
@@ -34,10 +65,7 @@ class TestScoredBlockTypes(TestCase):
     # This test is failing because of the solutions's xblocks e.g. 'gp-v2-stage-completion', so this test is skipped.
     @unittest.skip
     def test_block_types_possibly_scored(self):
-        self.assertSetEqual(
-            self.possibly_scored_block_types,
-            scores._block_types_possibly_scored()
-        )
+        self.assertTrue(self.possibly_scored_block_types.issubset(scores._block_types_possibly_scored()))
 
     def test_possibly_scored(self):
         course_key = CourseLocator(u'org', u'course', u'run')
@@ -52,23 +80,27 @@ class TestGetScore(TestCase):
     Tests for get_score
     """
     display_name = 'test_name'
-    location = 'test_location'
+    course_key = CourseLocator(u'org', u'course', u'run')
+    location = BlockUsageLocator(course_key, 'problem', 'mock_block_id')
 
     SubmissionValue = namedtuple('SubmissionValue', 'exists, points_earned, points_possible, created_at')
+    SubmissionValue.__repr__ = submission_value_repr
     CSMValue = namedtuple('CSMValue', 'exists, raw_earned, raw_possible, created')
+    CSMValue.__repr__ = csm_value_repr
     PersistedBlockValue = namedtuple('PersistedBlockValue', 'exists, raw_possible, weight, graded')
     ContentBlockValue = namedtuple('ContentBlockValue', 'raw_possible, weight, explicit_graded')
     ExpectedResult = namedtuple(
         'ExpectedResult',
         'raw_earned, raw_possible, weighted_earned, weighted_possible, weight, graded, first_attempted'
     )
+    ExpectedResult.__repr__ = expected_result_repr
 
     def _create_submissions_scores(self, submission_value):
         """
         Creates a stub result from the submissions API for the given values.
         """
         if submission_value.exists:
-            return {self.location: submission_value._asdict()}
+            return {str(self.location): submission_value._asdict()}
         else:
             return {}
 
@@ -192,7 +224,7 @@ class TestGetScore(TestCase):
             self._create_block(block_value),
         )
         expected_score = ProblemScore(**expected_result._asdict())
-        self.assertEquals(score, expected_score)
+        self.assertEqual(score, expected_score)
 
 
 @ddt.ddt
@@ -200,6 +232,7 @@ class TestWeightedScore(TestCase):
     """
     Tests the helper method: weighted_score
     """
+
     @ddt.data(
         (0, 0, 1),
         (5, 0, 0),
@@ -210,7 +243,7 @@ class TestWeightedScore(TestCase):
     )
     @ddt.unpack
     def test_cannot_compute(self, raw_earned, raw_possible, weight):
-        self.assertEquals(
+        self.assertEqual(
             scores.weighted_score(raw_earned, raw_possible, weight),
             (raw_earned, raw_possible),
         )
@@ -225,7 +258,7 @@ class TestWeightedScore(TestCase):
     )
     @ddt.unpack
     def test_computed(self, raw_earned, raw_possible, weight, expected_score):
-        self.assertEquals(
+        self.assertEqual(
             scores.weighted_score(raw_earned, raw_possible, weight),
             expected_score,
         )
@@ -240,6 +273,7 @@ class TestInternalGetGraded(TestCase):
     """
     Tests the internal helper method: _get_explicit_graded
     """
+
     def _create_block(self, explicit_graded_value):
         """
         Creates and returns a minimal BlockData object with the give value
@@ -256,7 +290,7 @@ class TestInternalGetGraded(TestCase):
     @ddt.data(None, True, False)
     def test_with_no_persisted_block(self, explicitly_graded_value):
         block = self._create_block(explicitly_graded_value)
-        self.assertEquals(
+        self.assertEqual(
             scores._get_graded_from_block(None, block),
             explicitly_graded_value is not False,  # defaults to True unless explicitly False
         )
@@ -268,7 +302,7 @@ class TestInternalGetGraded(TestCase):
     def test_with_persisted_block(self, persisted_block_value, block_value):
         block = self._create_block(block_value)
         block_record = BlockRecord(block.location, 0, 0, persisted_block_value)
-        self.assertEquals(
+        self.assertEqual(
             scores._get_graded_from_block(block_record, block),
             block_record.graded,  # persisted value takes precedence
         )
@@ -279,12 +313,15 @@ class TestInternalGetScoreFromBlock(TestCase):
     """
     Tests the internal helper method: _get_score_from_persisted_or_latest_block
     """
+    course_key = CourseLocator(u'org', u'course', u'run')
+    location = BlockUsageLocator(course_key, 'problem', 'mock_block_id')
+
     def _create_block(self, raw_possible):
         """
         Creates and returns a minimal BlockData object with the give value
         for raw_possible.
         """
-        block = BlockData('any_key')
+        block = BlockData(self.location)
         block.transformer_data.get_or_create(GradesTransformer).max_score = raw_possible
         return block
 
@@ -292,18 +329,17 @@ class TestInternalGetScoreFromBlock(TestCase):
         """
         Verifies the result of _get_score_from_persisted_or_latest_block is as expected.
         """
-        # pylint: disable=unbalanced-tuple-unpacking
         (
             raw_earned, raw_possible, weighted_earned, weighted_possible, first_attempted
         ) = scores._get_score_from_persisted_or_latest_block(persisted_block, block, weight)
 
-        self.assertEquals(raw_earned, 0.0)
-        self.assertEquals(raw_possible, expected_r_possible)
-        self.assertEquals(weighted_earned, 0.0)
+        self.assertEqual(raw_earned, 0.0)
+        self.assertEqual(raw_possible, expected_r_possible)
+        self.assertEqual(weighted_earned, 0.0)
         if weight is None or expected_r_possible == 0:
-            self.assertEquals(weighted_possible, expected_r_possible)
+            self.assertEqual(weighted_possible, expected_r_possible)
         else:
-            self.assertEquals(weighted_possible, weight)
+            self.assertEqual(weighted_possible, weight)
         self.assertIsNone(first_attempted)
 
     @ddt.data(

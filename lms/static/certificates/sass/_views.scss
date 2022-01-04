@@ -17,23 +17,22 @@
 // #INVALID
 // ------------------------------
 .wrapper-content.status-invalid {
-    @extend %layout-wrapper;
+  @extend %layout-wrapper;
 
-    .wrapper-content-grid {
-        @extend %layout;
-    }
+  .wrapper-content-grid {
+    @extend %layout;
+  }
 
   .content-main {
     margin-bottom: spacing-vertical(base);
 
-    @media(min-width: $bp-screen-md) {
+    @media (min-width: $bp-screen-md) {
       @include span(9, after);
     }
   }
 
   .content-secondary {
-
-    @media(min-width: $bp-screen-md) {
+    @media (min-width: $bp-screen-md) {
       @include span(3, before);
     }
   }

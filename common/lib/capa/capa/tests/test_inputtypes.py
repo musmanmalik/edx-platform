@@ -16,21 +16,26 @@ TODO:
 - test funny xml chars -- should never get xml parse error if things are escaped properly.
 
 """
+
+
 import json
 import textwrap
 import unittest
 import xml.sax.saxutils as saxutils
 from collections import OrderedDict
 
+import six
+from lxml import etree
+from lxml.html import fromstring
+from mock import ANY, patch
+from pyparsing import ParseException
+from six.moves import zip
+
 from capa import inputtypes
 from capa.checker import DemoSystem
 from capa.tests.helpers import test_capa_system
 from capa.xqueue_interface import XQUEUE_TIMEOUT
-from lxml import etree
-from lxml.html import fromstring
-from mock import ANY, patch
 from openedx.core.djangolib.markup import HTML
-from pyparsing import ParseException
 
 # just a handy shortcut
 lookup_tag = inputtypes.registry.get_class_for_tag
@@ -51,9 +56,9 @@ def quote_attr(s):
 
 
 class OptionInputTest(unittest.TestCase):
-    '''
+    """
     Make sure option inputs work
-    '''
+    """
 
     def test_rendering(self):
         xml_str = """<optioninput options="('Up','Down','Don't know')" id="sky_input" correct="Up"/>"""
@@ -89,7 +94,9 @@ class OptionInputTest(unittest.TestCase):
         f = inputtypes.OptionInput.parse_options
 
         def check(input, options):
-            """Take list of options, confirm that output is in the silly doubled format"""
+            """
+            Take list of options, confirm that output is in the silly doubled format
+            """
             expected = [(o, o) for o in options]
             self.assertEqual(f(input), expected)
 
@@ -108,9 +115,9 @@ class OptionInputTest(unittest.TestCase):
 
 
 class ChoiceGroupTest(unittest.TestCase):
-    '''
+    """
     Test choice groups, radio groups, and checkbox groups
-    '''
+    """
 
     def check_group(self, tag, expected_input_type, expected_suffix):
         xml_str = """
@@ -248,9 +255,9 @@ class JSInputTest(unittest.TestCase):
 
 
 class TextLineTest(unittest.TestCase):
-    '''
+    """
     Check that textline inputs work, with and without math.
-    '''
+    """
 
     def test_rendering(self):
         size = "42"
@@ -369,9 +376,9 @@ class TextLineTest(unittest.TestCase):
 
 
 class FileSubmissionTest(unittest.TestCase):
-    '''
+    """
     Check that file submission inputs work
-    '''
+    """
 
     def test_rendering(self):
         allowed_files = "runme.py nooooo.rb ohai.java"
@@ -413,9 +420,9 @@ class FileSubmissionTest(unittest.TestCase):
 
 
 class CodeInputTest(unittest.TestCase):
-    '''
+    """
     Check that codeinput inputs work
-    '''
+    """
 
     def test_rendering(self):
         mode = "parrot"
@@ -433,8 +440,6 @@ class CodeInputTest(unittest.TestCase):
         />""".format(m=mode, c=cols, r=rows, ln=linenumbers, ts=tabsize)
 
         element = etree.fromstring(xml_str)
-
-        escapedict = {'"': '&quot;'}
 
         state = {
             'value': 'print "good evening"',
@@ -471,9 +476,9 @@ class CodeInputTest(unittest.TestCase):
 
 
 class MatlabTest(unittest.TestCase):
-    '''
+    """
     Test Matlab input types
-    '''
+    """
     def setUp(self):
         super(MatlabTest, self).setUp()
         self.rows = '10'
@@ -742,18 +747,27 @@ class MatlabTest(unittest.TestCase):
     def test_get_html(self):
         # usual output
         output = self.the_input.get_html()
-        self.assertEqual(
-            etree.tostring(output),
-            textwrap.dedent("""
-            <div>{\'status\': Status(\'queued\'), \'button_enabled\': True, \'rows\': \'10\', \'queue_len\': \'3\',
-            \'mode\': \'\', \'tabsize\': 4, \'cols\': \'80\', \'STATIC_URL\': \'/dummy-static/\', \'linenumbers\':
-            \'true\', \'queue_msg\': \'\', \'value\': \'print "good evening"\',
-            \'msg\': u\'Submitted. As soon as a response is returned, this message will be replaced by that feedback.\',
-            \'matlab_editor_js\': \'/dummy-static/js/vendor/CodeMirror/octave.js\',
-            \'hidden\': \'\', \'id\': \'prob_1_2\',
-            \'describedby_html\': Markup(u\'aria-describedby="status_prob_1_2"\'), \'response_data\': {}}</div>
-            """).replace('\n', ' ').strip()
-        )
+        output_string = etree.tostring(output).decode('utf-8')
+        assert output_string.startswith('<div>{')
+        assert output_string.endswith('}</div>')
+        output_string = output_string.replace('}</div>', '')
+        output_string = output_string.replace('<div>{', '')
+        output_list = output_string.split(',')
+        for index, value in enumerate(output_list):
+            output_list[index] = value.replace('u\'', '\'').strip()
+
+        expected_string = u"""
+        \'matlab_editor_js\': \'/dummy-static/js/vendor/CodeMirror/octave.js\',
+        \'value\': \'print "good evening"\', \'hidden\': \'\',
+        \'msg\': \'Submitted. As soon as a response is returned, this message will be replaced by that feedback.\',
+        \'status\': Status(\'queued\'), \'response_data\': {}, \'queue_msg\': \'\', \'mode\': \'\',
+        \'id\': \'prob_1_2\', \'queue_len\': \'3\', \'tabsize\': 4, \'STATIC_URL\': \'/dummy-static/\',
+        \'linenumbers\': \'true\', \'cols\': \'80\', \'button_enabled\': True, \'rows\': \'10\',
+        \'describedby_html\': Markup(\'aria-describedby="status_prob_1_2"\')"""
+        expected_list = (textwrap.dedent(expected_string).replace('\n', ' ').strip()).split(',')
+        for index, value in enumerate(expected_list):
+            expected_list[index] = value.replace('u\'', '\'').strip()
+        six.assertCountEqual(self, output_list, expected_list)
 
         # test html, that is correct HTML5 html, but is not parsable by XML parser.
         old_render_template = self.the_input.capa_system.render_template
@@ -763,16 +777,27 @@ class MatlabTest(unittest.TestCase):
                 <div>Right click <a href=https://endpoint.mss-mathworks.com/media/filename.wav>here</a> and click \"Save As\" to download the file</div></div>
                 <div style='white-space:pre' class='commandWindowOutput'></div><ul></ul></div>
             """).replace('\n', '')
+
         output = self.the_input.get_html()
-        self.assertEqual(
-            etree.tostring(output),
-            textwrap.dedent("""
-            <div class='matlabResponse'><div id='mwAudioPlaceHolder'>
-            <audio src='data:audio/wav;base64=' autobuffer="" controls="" autoplay="">Audio is not supported on this browser.</audio>
-            <div>Right click <a href="https://endpoint.mss-mathworks.com/media/filename.wav">here</a> and click \"Save As\" to download the file</div></div>
-            <div style='white-space:pre' class='commandWindowOutput'/><ul/></div>
-            """).replace('\n', '').replace('\'', '\"')
-        )
+        elements = []
+        element_tags = []
+        element_keys = []
+        for element in output.iter():
+            elements.append(element)
+            element_tags.append(element.tag)
+            element_keys.append(element.keys())
+        assert element_tags.count('div') == 4
+        assert element_tags.count('audio') == 1
+        audio_index = element_tags.index('audio')
+
+        six.assertCountEqual(self, element_keys[audio_index], ['autobuffer', 'controls', 'autoplay', 'src'])
+        self.assertEqual(elements[audio_index].get('src'), 'data:audio/wav;base64=')
+        self.assertEqual(elements[audio_index].text, 'Audio is not supported on this browser.')
+        href_index = element_keys.index(['href'])
+        self.assertEqual(elements[href_index].get('href'), 'https://endpoint.mss-mathworks.com/media/filename.wav')
+        id_index = element_keys.index(['id'])
+        self.assertEqual(elements[id_index].get('id'), 'mwAudioPlaceHolder')
+        output_string = etree.tostring(output).decode('utf-8')
 
         # check that exception is raised during parsing for html.
         self.the_input.capa_system.render_template = lambda *args: "<aaa"
@@ -861,7 +886,6 @@ class MatlabTest(unittest.TestCase):
             'response_data': {},
             'describedby_html': 'aria-describedby="status_{id}"'.format(id=prob_id)
         }
-
         self.assertEqual(context, expected)
         self.the_input.capa_system.render_template = DemoSystem().render_template
         self.the_input.get_html()  # Should not raise an exception
@@ -921,10 +945,9 @@ def html_tree_equal(received, expected):
 
 
 class SchematicTest(unittest.TestCase):
-    '''
+    """
     Check that schematic inputs work
-    '''
-
+    """
     def test_rendering(self):
         height = '12'
         width = '33'
@@ -977,10 +1000,9 @@ class SchematicTest(unittest.TestCase):
 
 
 class ImageInputTest(unittest.TestCase):
-    '''
+    """
     Check that image inputs work
-    '''
-
+    """
     def check(self, value, egx, egy):
         height = '78'
         width = '427'
@@ -1037,10 +1059,9 @@ class ImageInputTest(unittest.TestCase):
 
 
 class CrystallographyTest(unittest.TestCase):
-    '''
+    """
     Check that crystallography inputs work
-    '''
-
+    """
     def test_rendering(self):
         height = '12'
         width = '33'
@@ -1079,10 +1100,9 @@ class CrystallographyTest(unittest.TestCase):
 
 
 class VseprTest(unittest.TestCase):
-    '''
+    """
     Check that vsepr inputs work
-    '''
-
+    """
     def test_rendering(self):
         height = '12'
         width = '33'
@@ -1127,9 +1147,9 @@ class VseprTest(unittest.TestCase):
 
 
 class ChemicalEquationTest(unittest.TestCase):
-    '''
+    """
     Check that chemical equation inputs work.
-    '''
+    """
     def setUp(self):
         super(ChemicalEquationTest, self).setUp()
         self.size = "42"
@@ -1144,7 +1164,9 @@ class ChemicalEquationTest(unittest.TestCase):
         self.the_input = lookup_tag('chemicalequationinput')(test_capa_system(), element, state)
 
     def test_rendering(self):
-        ''' Verify that the render context matches the expected render context'''
+        """
+        Verify that the render context matches the expected render context
+        """
         context = self.the_input._get_render_context()  # pylint: disable=protected-access
         prob_id = 'prob_1_2'
         expected = {
@@ -1161,7 +1183,9 @@ class ChemicalEquationTest(unittest.TestCase):
         self.assertEqual(context, expected)
 
     def test_chemcalc_ajax_sucess(self):
-        ''' Verify that using the correct dispatch and valid data produces a valid response'''
+        """
+        Verify that using the correct dispatch and valid data produces a valid response
+        """
         data = {'formula': "H"}
         response = self.the_input.handle_ajax("preview_chemcalc", data)
 
@@ -1366,10 +1390,9 @@ class FormulaEquationTest(unittest.TestCase):
 
 
 class DragAndDropTest(unittest.TestCase):
-    '''
+    """
     Check that drag and drop inputs work
-    '''
-
+    """
     def test_rendering(self):
         path_to_images = '/dummy-static/images/'
 
@@ -1441,9 +1464,9 @@ class DragAndDropTest(unittest.TestCase):
 
 
 class AnnotationInputTest(unittest.TestCase):
-    '''
+    """
     Make sure option inputs work
-    '''
+    """
     def test_rendering(self):
         xml_str = '''
 <annotationinput>
@@ -1596,7 +1619,7 @@ class TestChoiceText(unittest.TestCase):
         Test to ensure having a tag other than <choice> inside of
         a checkbox or radiotextgroup problem raises an error.
         """
-        with self.assertRaisesRegexp(Exception, "Error in xml"):
+        with self.assertRaisesRegex(Exception, "Error in xml"):
             self.check_group('checkboxtextgroup', 'invalid', 'checkbox')
 
 
@@ -1610,7 +1633,7 @@ class TestStatus(unittest.TestCase):
         """
         statobj = inputtypes.Status('test')
         self.assertEqual(str(statobj), 'test')
-        self.assertEqual(unicode(statobj), u'test')
+        self.assertEqual(six.text_type(statobj), u'test')
 
     def test_classes(self):
         """

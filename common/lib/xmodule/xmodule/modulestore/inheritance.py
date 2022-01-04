@@ -1,16 +1,17 @@
 """
 Support for inheritance of fields down an XBlock hierarchy.
 """
-from __future__ import absolute_import
 
-from django.conf import settings
 
-from xmodule.partitions.partitions import UserPartition
-from xblock.fields import Scope, Boolean, String, Float, XBlockMixin, Dict, Integer, List
+from django.utils import timezone
+from xblock.core import XBlockMixin
+from xblock.fields import Boolean, Dict, Float, Integer, List, Scope, String
 from xblock.runtime import KeyValueStore, KvsFieldData
-from xmodule.fields import Date, Timedelta
-from ..course_metadata_utils import DEFAULT_START_DATE
 
+from xmodule.fields import Date, Timedelta
+from xmodule.partitions.partitions import UserPartition
+
+from ..course_metadata_utils import DEFAULT_START_DATE
 
 # Make '_' a no-op so we can scrape strings
 # Using lambda instead of `django.utils.translation.ugettext_noop` because Django cannot be imported in this file
@@ -66,18 +67,6 @@ class InheritanceMixin(XBlockMixin):
         display_name=_("XQA Key"),
         help=_("This setting is not currently supported."), scope=Scope.settings,
         deprecated=True
-    )
-    annotation_storage_url = String(
-        help=_("Enter the location of the annotation storage server. The textannotation, videoannotation, and imageannotation advanced modules require this setting."),
-        scope=Scope.settings,
-        default="http://your_annotation_storage.com",
-        display_name=_("URL for Annotation Storage")
-    )
-    annotation_token_secret = String(
-        help=_("Enter the secret string for annotation storage. The textannotation, videoannotation, and imageannotation advanced modules require this string."),
-        scope=Scope.settings,
-        default="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        display_name=_("Secret Token String for Annotation")
     )
     graceperiod = Timedelta(
         help="Amount of time after the due date that submissions will be accepted",
@@ -172,13 +161,22 @@ class InheritanceMixin(XBlockMixin):
         default=True,
         scope=Scope.settings
     )
+    video_auto_advance = Boolean(
+        display_name=_("Enable video auto-advance"),
+        help=_(
+            "Specify whether to show an auto-advance button in videos. If the student clicks it, when the last video in a unit finishes it will automatically move to the next unit and autoplay the first video."
+        ),
+        scope=Scope.settings,
+        default=False
+    )
     video_bumper = Dict(
         display_name=_("Video Pre-Roll"),
         help=_(
             "Identify a video, 5-10 seconds in length, to play before course videos. Enter the video ID from "
             "the Video Uploads page and one or more transcript files in the following format: {format}. "
             "For example, an entry for a video with two transcripts looks like this: {example}"
-        ).format(
+        ),
+        help_format_args=dict(
             format='{"video_id": "ID", "transcripts": {"language": "/static/filename.srt"}}',
             example=(
                 '{'
@@ -190,8 +188,6 @@ class InheritanceMixin(XBlockMixin):
         scope=Scope.settings
     )
 
-    reset_key = "DEFAULT_SHOW_RESET_BUTTON"
-    default_reset_button = getattr(settings, reset_key) if hasattr(settings, reset_key) else False
     show_reset_button = Boolean(
         display_name=_("Show Reset Button for Problems"),
         help=_(
@@ -200,7 +196,7 @@ class InheritanceMixin(XBlockMixin):
             "this course-wide setting is changed."
         ),
         scope=Scope.settings,
-        default=default_reset_button
+        default=False
     )
     edxnotes = Boolean(
         display_name=_("Enable Student Notes"),
@@ -234,6 +230,39 @@ class InheritanceMixin(XBlockMixin):
         default=False,
         scope=Scope.settings
     )
+
+    @property
+    def close_date(self):
+        """
+        Return the date submissions should be closed from.
+
+        If graceperiod is present for the course, all the submissions
+        can be submitted till due date and the graceperiod. If no
+        graceperiod, then the close date is same as the due date.
+        """
+        due_date = self.due
+
+        if self.graceperiod is not None and due_date:
+            return due_date + self.graceperiod
+        return due_date
+
+    def is_past_due(self):
+        """
+        Returns the boolean identifying if the submission due date has passed.
+        """
+        return self.close_date is not None and timezone.now() > self.close_date
+
+    def has_deadline_passed(self):
+        """
+        Returns a boolean indicating if the submission is past its deadline.
+
+        If the course is self-paced or no due date has been
+        specified, then the submission can be made. If none of these
+        cases exists, check if the submission due date has passed or not.
+        """
+        if self.self_paced or self.close_date is None:
+            return False
+        return self.is_past_due()
 
 
 def compute_inherited_metadata(descriptor):
@@ -317,7 +346,7 @@ class InheritingFieldData(KvsFieldData):
             # from parent as '_copy_from_templates' puts fields into
             # defaults.
             if ancestor and \
-               ancestor.location.category == 'library_content' and \
+               ancestor.location.block_type == 'library_content' and \
                self.has_default_value(name):
                 return super(InheritingFieldData, self).default(block, name)
 

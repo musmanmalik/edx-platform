@@ -47,34 +47,29 @@ class Command(BaseCommand):
 
     help = 'Command to force-send the daily/weekly digest emails'
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             '--daily',
             action='store_true',
             dest='send_daily_digest',
             default=False,
             help='Force send daily digest email.'
         ),
-    )
 
-    option_list = option_list + (
-        make_option(
+        parser.add_argument(
             '--weekly',
             action='store_true',
             dest='send_weekly_digest',
             default=False,
             help='Force send weekly digest email.'
         ),
-    )
 
-    option_list = option_list + (
-        make_option(
+        parser.add_argument(
             '--ns',
             dest='namespace',
             default='All',
             help='Specify the namespace. Default = All.'
         ),
-    )
 
     def _send_digest(self, subject, preference_name, day_delta, namespace):
         """
@@ -131,7 +126,7 @@ class Command(BaseCommand):
         """
 
         if not settings.FEATURES.get('ENABLE_NOTIFICATIONS', False):
-            print 'ENABLE_NOTIFICATIONS not set to "true". Stopping...'
+            print('ENABLE_NOTIFICATIONS not set to "true". Stopping...')
             return
 
         usage = "usage: %prog [--daily] [--weekly] [--ns=NAMESPACE]"

@@ -1,23 +1,33 @@
+"""
+Experimentation views
+"""
+
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from edx_rest_framework_extensions.authentication import JwtAuthentication
+from django_filters.rest_framework import DjangoFilterBackend
+from edx_rest_framework_extensions.auth.jwt.authentication import JwtAuthentication
+from edx_rest_framework_extensions.auth.session.authentication import SessionAuthenticationAllowInactiveUser
 from rest_framework import permissions, viewsets
-from rest_framework.decorators import list_route
-from rest_framework.filters import DjangoFilterBackend
 from rest_framework.response import Response
 
 from experiments import filters, serializers
 from experiments.models import ExperimentData, ExperimentKeyValue
 from experiments.permissions import IsStaffOrOwner, IsStaffOrReadOnly
-from openedx.core.lib.api.authentication import SessionAuthenticationAllowInactiveUser
+from openedx.core.djangoapps.cors_csrf.authentication import SessionAuthenticationCrossDomainCsrf
 
 User = get_user_model()  # pylint: disable=invalid-name
 
 
+class ExperimentCrossDomainSessionAuth(SessionAuthenticationAllowInactiveUser, SessionAuthenticationCrossDomainCsrf):
+    """Session authentication that allows inactive users and cross-domain requests. """
+    pass
+
+
 class ExperimentDataViewSet(viewsets.ModelViewSet):
-    authentication_classes = (JwtAuthentication, SessionAuthenticationAllowInactiveUser,)
+    authentication_classes = (JwtAuthentication, ExperimentCrossDomainSessionAuth,)
     filter_backends = (DjangoFilterBackend,)
-    filter_class = filters.ExperimentDataFilter
+    filterset_class = filters.ExperimentDataFilter
     permission_classes = (permissions.IsAuthenticated, IsStaffOrOwner,)
     queryset = ExperimentData.objects.all()
     serializer_class = serializers.ExperimentDataSerializer
@@ -46,7 +56,6 @@ class ExperimentDataViewSet(viewsets.ModelViewSet):
             try:
                 obj = self.get_queryset().get(user=self.request.user, experiment_id=experiment_id, key=key)
                 self.kwargs['pk'] = obj.pk
-                self.request.data['id'] = obj.pk
                 return self.update(request, *args, **kwargs)
             except ExperimentData.DoesNotExist:
                 pass
@@ -67,39 +76,11 @@ class ExperimentDataViewSet(viewsets.ModelViewSet):
 
         return user
 
-    @list_route(methods=['put'], permission_classes=[permissions.IsAdminUser])
-    def bulk_upsert(self, request):
-        upserted = []
-        self._cache_users([datum['user'] for datum in request.data])
-
-        with transaction.atomic():
-            for item in request.data:
-                user = self._get_user(username=item['user'])
-                datum, __ = ExperimentData.objects.update_or_create(
-                    user=user, experiment_id=item['experiment_id'], key=item['key'], defaults={'value': item['value']})
-                upserted.append(datum)
-
-            serializer = self.get_serializer(upserted, many=True)
-            return Response(serializer.data)
-
 
 class ExperimentKeyValueViewSet(viewsets.ModelViewSet):
-    authentication_classes = (JwtAuthentication, SessionAuthenticationAllowInactiveUser,)
+    authentication_classes = (JwtAuthentication, ExperimentCrossDomainSessionAuth,)
     filter_backends = (DjangoFilterBackend,)
-    filter_class = filters.ExperimentKeyValueFilter
+    filterset_class = filters.ExperimentKeyValueFilter
     permission_classes = (IsStaffOrReadOnly,)
     queryset = ExperimentKeyValue.objects.all()
     serializer_class = serializers.ExperimentKeyValueSerializer
-
-    @list_route(methods=['put'], permission_classes=[permissions.IsAdminUser])
-    def bulk_upsert(self, request):
-        upserted = []
-
-        with transaction.atomic():
-            for item in request.data:
-                datum, __ = ExperimentKeyValue.objects.update_or_create(
-                    experiment_id=item['experiment_id'], key=item['key'], defaults={'value': item['value']})
-                upserted.append(datum)
-
-            serializer = self.get_serializer(upserted, many=True)
-            return Response(serializer.data)

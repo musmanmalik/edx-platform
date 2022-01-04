@@ -19,6 +19,7 @@
         describe('constructor', function() {
             beforeEach(function() {
                 state = jasmine.initializePlayer();
+                jasmine.mockFullscreenAPI();
             });
 
             it('renders the fullscreen control', function() {
@@ -27,9 +28,9 @@
             });
 
             it('correctly adds ARIA attributes to fullscreen control', function() {
-                var fullScreenControl = $('.add-fullscreen');
+                var $fullScreenControl = $('.add-fullscreen');
 
-                expect(fullScreenControl).toHaveAttrs({
+                expect($fullScreenControl).toHaveAttrs({
                     'aria-disabled': 'false'
                 });
             });
@@ -48,13 +49,13 @@
             });
 
             it('correctly updates ARIA on state change', function() {
-                var fullScreenControl = $('.add-fullscreen');
-                fullScreenControl.click();
-                expect(fullScreenControl).toHaveAttrs({
+                var $fullScreenControl = $('.add-fullscreen');
+                $fullScreenControl.click();
+                expect($fullScreenControl).toHaveAttrs({
                     'aria-disabled': 'false'
                 });
-                fullScreenControl.click();
-                expect(fullScreenControl).toHaveAttrs({
+                $fullScreenControl.click();
+                expect($fullScreenControl).toHaveAttrs({
                     'aria-disabled': 'false'
                 });
             });
@@ -69,9 +70,9 @@
             });
 
             it('can update video dimensions on state change', function() {
-                state.el.trigger('fullscreen', [true]);
+                state.videoFullScreen.enter();
                 expect(state.resizer.setMode).toHaveBeenCalledWith('both');
-                state.el.trigger('fullscreen', [false]);
+                state.videoFullScreen.exit();
                 expect(state.resizer.setMode).toHaveBeenCalledWith('width');
             });
 
@@ -88,9 +89,10 @@
             });
 
             state = jasmine.initializePlayer();
-            $(state.el).trigger('fullscreen');
 
+            state.videoFullScreen.enter();
             expect(state.videoFullScreen.height).toBe(150);
+            state.videoFullScreen.exit();
         });
     });
 }).call(this);

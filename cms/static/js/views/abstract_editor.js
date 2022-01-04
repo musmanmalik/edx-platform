@@ -9,6 +9,7 @@ define(['js/views/baseview', 'underscore'], function(BaseView, _) {
             // Backbone model cid is only unique within the collection.
             this.uniqueId = _.uniqueId(templateName + '_');
             this.template = this.loadTemplate(templateName);
+            // xss-lint: disable=javascript-jquery-html
             this.$el.html(this.template({model: this.model, uniqueId: this.uniqueId}));
             this.listenTo(this.model, 'change', this.render);
             this.render();
@@ -72,8 +73,7 @@ define(['js/views/baseview', 'underscore'], function(BaseView, _) {
 
             if (this.model.isExplicitlySet()) {
                 this.showClearButton();
-            }
-            else {
+            } else {
                 this.$el.removeClass('is-set');
                 this.getClearButton().addClass('inactive');
                 this.getClearButton().removeClass('active');

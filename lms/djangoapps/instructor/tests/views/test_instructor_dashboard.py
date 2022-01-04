@@ -1,28 +1,37 @@
 """
 Unit tests for instructor_dashboard.py.
 """
+
+
 import datetime
+import re
 
 import ddt
+import six
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.test.client import RequestFactory
+from django.contrib.sites.models import Site
 from django.test.utils import override_settings
+from django.urls import reverse
 from mock import patch
-from nose.plugins.attrib import attr
+from pyquery import PyQuery as pq
 from pytz import UTC
+from six import text_type
+from six.moves import range
 
 from common.test.utils import XssTestMixin
 from course_modes.models import CourseMode
-from courseware.tabs import get_course_tab_list
-from courseware.tests.factories import StaffFactory, StudentModuleFactory, UserFactory
-from courseware.tests.helpers import LoginEnrollmentTestCase
 from edxmako.shortcuts import render_to_response
+from lms.djangoapps.courseware.tabs import get_course_tab_list
+from lms.djangoapps.courseware.tests.factories import StaffFactory, StudentModuleFactory, UserFactory
+from lms.djangoapps.courseware.tests.helpers import LoginEnrollmentTestCase
+from lms.djangoapps.grades.config.waffle import WRITABLE_GRADEBOOK, waffle_flags
 from lms.djangoapps.instructor.views.gradebook_api import calculate_page_info
+from openedx.core.djangoapps.site_configuration.models import SiteConfiguration
+from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from shoppingcart.models import CourseRegCodeItem, Order, PaidCourseRegistration
 from student.models import CourseEnrollment
 from student.roles import CourseFinanceAdminRole
-from student.tests.factories import AdminFactory, CourseEnrollmentFactory
+from student.tests.factories import AdminFactory, CourseAccessRoleFactory, CourseEnrollmentFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, check_mongo_calls
@@ -42,7 +51,6 @@ def intercept_renderer(path, context):
     return response
 
 
-@attr(shard=3)
 @ddt.ddt
 class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssTestMixin):
     """
@@ -65,27 +73,33 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
             mode_display_name=CourseMode.DEFAULT_MODE.name,
             min_price=40
         )
+        self.course_info = CourseFactory.create(
+            org="ACME",
+            number="001",
+            run="2017",
+            name="How to defeat the Road Runner"
+        )
         self.course_mode.save()
         # Create instructor account
         self.instructor = AdminFactory.create()
         self.client.login(username=self.instructor.username, password="test")
 
         # URL for instructor dash
-        self.url = reverse('instructor_dashboard', kwargs={'course_id': self.course.id.to_deprecated_string()})
+        self.url = reverse('instructor_dashboard', kwargs={'course_id': text_type(self.course.id)})
 
     def get_dashboard_enrollment_message(self):
         """
         Returns expected dashboard enrollment message with link to Insights.
         """
-        return 'Enrollment data is now available in <a href="http://example.com/courses/{}" ' \
-               'target="_blank">Example</a>.'.format(unicode(self.course.id))
+        return u'Enrollment data is now available in <a href="http://example.com/courses/{}" ' \
+               'rel="noopener" target="_blank">Example</a>.'.format(text_type(self.course.id))
 
     def get_dashboard_analytics_message(self):
         """
         Returns expected dashboard demographic message with link to Insights.
         """
-        return 'For analytics about your course, go to <a href="http://example.com/courses/{}" ' \
-               'target="_blank">Example</a>.'.format(unicode(self.course.id))
+        return u'For analytics about your course, go to <a href="http://example.com/courses/{}" ' \
+               'rel="noopener" target="_blank">Example</a>.'.format(text_type(self.course.id))
 
     def test_instructor_tab(self):
         """
@@ -93,9 +107,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         """
         def has_instructor_tab(user, course):
             """Returns true if the "Instructor" tab is shown."""
-            request = RequestFactory().request()
-            request.user = user
-            tabs = get_course_tab_list(request, course)
+            tabs = get_course_tab_list(user, course)
             return len([tab for tab in tabs if tab.name == 'Instructor']) == 1
 
         self.assertTrue(has_instructor_tab(self.instructor, self.course))
@@ -106,6 +118,187 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         student = UserFactory.create()
         self.assertFalse(has_instructor_tab(student, self.course))
 
+        researcher = UserFactory.create()
+        CourseAccessRoleFactory(
+            course_id=self.course.id,
+            user=researcher,
+            role='data_researcher',
+            org=self.course.id.org
+        )
+        self.assertTrue(has_instructor_tab(researcher, self.course))
+
+        org_researcher = UserFactory.create()
+        CourseAccessRoleFactory(
+            course_id=None,
+            user=org_researcher,
+            role='data_researcher',
+            org=self.course.id.org
+        )
+        self.assertTrue(has_instructor_tab(org_researcher, self.course))
+
+    @ddt.data(
+        ('staff', False),
+        ('instructor', False),
+        ('data_researcher', True),
+        ('global_staff', True),
+    )
+    @ddt.unpack
+    def test_data_download(self, access_role, can_access):
+        """
+        Verify that the Data Download tab only shows up for certain roles
+        """
+        download_section = '<li class="nav-item"><button type="button" class="btn-link data_download" '\
+                           'data-section="data_download">Data Download</button></li>'
+        user = UserFactory.create(is_staff=access_role == 'global_staff')
+        CourseAccessRoleFactory(
+            course_id=self.course.id,
+            user=user,
+            role=access_role,
+            org=self.course.id.org
+        )
+        self.client.login(username=user.username, password="test")
+        response = self.client.get(self.url)
+        if can_access:
+            self.assertContains(response, download_section)
+        else:
+            self.assertNotContains(response, download_section)
+
+    @override_settings(ANALYTICS_DASHBOARD_URL='http://example.com')
+    @override_settings(ANALYTICS_DASHBOARD_NAME='Example')
+    def test_data_download_only(self):
+        """
+        Verify that only the data download tab is visible for data researchers.
+        """
+        user = UserFactory.create()
+        CourseAccessRoleFactory(
+            course_id=self.course.id,
+            user=user,
+            role='data_researcher',
+            org=self.course.id.org
+        )
+        self.client.login(username=user.username, password="test")
+        response = self.client.get(self.url)
+        matches = re.findall(
+            rb'<li class="nav-item"><button type="button" class="btn-link .*" data-section=".*">.*',
+            response.content
+        )
+        assert len(matches) == 1
+
+    @ddt.data(
+        ("How to defeat the Road Runner", "2017", "001", "ACME"),
+    )
+    @ddt.unpack
+    def test_instructor_course_info(self, display_name, run, number, org):
+        """
+        Verify that it shows the correct course information
+        """
+        url = reverse(
+            'instructor_dashboard',
+            kwargs={
+                'course_id': six.text_type(self.course_info.id)
+            }
+        )
+
+        response = self.client.get(url)
+        content = pq(response.content)
+
+        self.assertEqual(
+            display_name,
+            content('#field-course-display-name b').contents()[0].strip()
+        )
+
+        self.assertEqual(
+            run,
+            content('#field-course-name b').contents()[0].strip()
+        )
+
+        self.assertEqual(
+            number,
+            content('#field-course-number b').contents()[0].strip()
+        )
+
+        self.assertEqual(
+            org,
+            content('#field-course-organization b').contents()[0].strip()
+        )
+
+    @ddt.data(True, False)
+    def test_membership_reason_field_visibility(self, enbale_reason_field):
+        """
+        Verify that reason field is enabled by site configuration flag 'ENABLE_MANUAL_ENROLLMENT_REASON_FIELD'
+        """
+
+        configuration_values = {
+            "ENABLE_MANUAL_ENROLLMENT_REASON_FIELD": enbale_reason_field
+        }
+        site = Site.objects.first()
+        SiteConfiguration.objects.create(
+            site=site,
+            site_values=configuration_values,
+            enabled=True
+        )
+
+        url = reverse(
+            'instructor_dashboard',
+            kwargs={
+                'course_id': six.text_type(self.course_info.id)
+            }
+        )
+        response = self.client.get(url)
+        reason_field = '<textarea rows="2" id="reason-field-id" name="reason-field" ' \
+                       'placeholder="Reason" spellcheck="false"></textarea>'
+        if enbale_reason_field:
+            self.assertContains(response, reason_field)
+        else:
+            self.assertNotContains(response, reason_field)
+
+    def test_membership_site_configuration_role(self):
+        """
+        Verify that the role choices set via site configuration are loaded in the membership tab
+        of the instructor dashboard
+        """
+
+        configuration_values = {
+            "MANUAL_ENROLLMENT_ROLE_CHOICES": [
+                "role1",
+                "role2",
+            ]
+        }
+        site = Site.objects.first()
+        SiteConfiguration.objects.create(
+            site=site,
+            site_values=configuration_values,
+            enabled=True
+        )
+        url = reverse(
+            'instructor_dashboard',
+            kwargs={
+                'course_id': six.text_type(self.course_info.id)
+            }
+        )
+
+        response = self.client.get(url)
+        self.assertContains(response, '<option value="role1">role1</option>')
+        self.assertContains(response, '<option value="role2">role2</option>')
+
+    def test_membership_default_role(self):
+        """
+        Verify that in the absence of site configuration role choices, default values of role choices are loaded
+        in the membership tab of the instructor dashboard
+        """
+
+        url = reverse(
+            'instructor_dashboard',
+            kwargs={
+                'course_id': six.text_type(self.course_info.id)
+            }
+        )
+
+        response = self.client.get(url)
+        self.assertContains(response, '<option value="Learner">Learner</option>')
+        self.assertContains(response, '<option value="Support">Support</option>')
+        self.assertContains(response, '<option value="Partner">Partner</option>')
+
     def test_student_admin_staff_instructor(self):
         """
         Verify that staff users are not able to see course-wide options, while still
@@ -113,15 +306,68 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         """
         # Original (instructor) user can see both specific grades, and course-wide grade adjustment tools
         response = self.client.get(self.url)
-        self.assertIn('<h4 class="hd hd-4">Adjust all enrolled learners', response.content)
-        self.assertIn('<h4 class="hd hd-4">View a specific learner&#39;s grades and progress', response.content)
+        self.assertContains(response, '<h4 class="hd hd-4">Adjust all enrolled learners')
+        self.assertContains(response, '<h4 class="hd hd-4">View a specific learner&#39;s grades and progress')
 
         # But staff user can only see specific grades
         staff = StaffFactory(course_key=self.course.id)
         self.client.login(username=staff.username, password="test")
         response = self.client.get(self.url)
-        self.assertNotIn('<h4 class="hd hd-4">Adjust all enrolled learners', response.content)
-        self.assertIn('<h4 class="hd hd-4">View a specific learner&#39;s grades and progress', response.content)
+        self.assertNotContains(response, '<h4 class="hd hd-4">Adjust all enrolled learners')
+        self.assertContains(response, '<h4 class="hd hd-4">View a specific learner&#39;s grades and progress')
+
+    @patch(
+        'lms.djangoapps.instructor.views.instructor_dashboard.settings.WRITABLE_GRADEBOOK_URL',
+        'http://gradebook.local.edx.org'
+    )
+    def test_staff_can_see_writable_gradebook(self):
+        """
+        Test that, when the writable gradebook featue is enabled, a staff member can see it.
+        """
+        waffle_flag = waffle_flags()[WRITABLE_GRADEBOOK]
+        with override_waffle_flag(waffle_flag, active=True):
+            response = self.client.get(self.url)
+
+        expected_gradebook_url = 'http://gradebook.local.edx.org/{}'.format(self.course.id)
+        self.assertContains(response, expected_gradebook_url)
+        self.assertContains(response, 'View Gradebook')
+
+    GRADEBOOK_LEARNER_COUNT_MESSAGE = (
+        'Note: This feature is available only to courses with a small number ' +
+        'of enrolled learners.'
+    )
+
+    def test_gradebook_learner_count_message(self):
+        """
+        Test that, when the writable gradebook featue is NOT enabled, there IS
+        a message that the feature is only available for courses with small
+        numbers of learners.
+        """
+        response = self.client.get(self.url)
+        self.assertContains(
+            response,
+            self.GRADEBOOK_LEARNER_COUNT_MESSAGE,
+        )
+        self.assertContains(response, 'View Gradebook')
+
+    @patch(
+        'lms.djangoapps.instructor.views.instructor_dashboard.settings.WRITABLE_GRADEBOOK_URL',
+        'http://gradebook.local.edx.org'
+    )
+    def test_no_gradebook_learner_count_message(self):
+        """
+        Test that, when the writable gradebook featue IS enabled, there is NOT
+        a message that the feature is only available for courses with small
+        numbers of learners.
+        """
+        waffle_flag = waffle_flags()[WRITABLE_GRADEBOOK]
+        with override_waffle_flag(waffle_flag, active=True):
+            response = self.client.get(self.url)
+        self.assertNotIn(
+            TestInstructorDashboard.GRADEBOOK_LEARNER_COUNT_MESSAGE,
+            response.content.decode('utf-8')
+        )
+        self.assertContains(response, 'View Gradebook')
 
     def test_default_currency_in_the_html_response(self):
         """
@@ -130,7 +376,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         CourseFinanceAdminRole(self.course.id).add_users(self.instructor)
         total_amount = PaidCourseRegistration.get_total_amount_of_purchased_item(self.course.id)
         response = self.client.get(self.url)
-        self.assertIn('${amount}'.format(amount=total_amount), response.content)
+        self.assertContains(response, '${amount}'.format(amount=total_amount))
 
     def test_course_name_xss(self):
         """Test that the instructor dashboard correctly escapes course names
@@ -147,7 +393,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         CourseFinanceAdminRole(self.course.id).add_users(self.instructor)
         total_amount = PaidCourseRegistration.get_total_amount_of_purchased_item(self.course.id)
         response = self.client.get(self.url)
-        self.assertIn('{currency}{amount}'.format(currency='Rs', amount=total_amount), response.content)
+        self.assertContains(response, '{currency}{amount}'.format(currency='Rs', amount=total_amount))
 
     @patch.dict(settings.FEATURES, {'DISPLAY_ANALYTICS_ENROLLMENTS': False})
     @override_settings(ANALYTICS_DASHBOARD_URL='')
@@ -157,7 +403,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         """
         response = self.client.get(self.url)
         # no enrollment information should be visible
-        self.assertNotIn('<h3 class="hd hd-3">Enrollment Information</h3>', response.content)
+        self.assertNotContains(response, '<h3 class="hd hd-3">Enrollment Information</h3>')
 
     @patch.dict(settings.FEATURES, {'DISPLAY_ANALYTICS_ENROLLMENTS': True})
     @override_settings(ANALYTICS_DASHBOARD_URL='')
@@ -168,14 +414,14 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         response = self.client.get(self.url)
 
         # enrollment information visible
-        self.assertIn('<h4 class="hd hd-4">Enrollment Information</h4>', response.content)
-        self.assertIn('<th scope="row">Verified</th>', response.content)
-        self.assertIn('<th scope="row">Audit</th>', response.content)
-        self.assertIn('<th scope="row">Honor</th>', response.content)
-        self.assertIn('<th scope="row">Professional</th>', response.content)
+        self.assertContains(response, '<h4 class="hd hd-4">Enrollment Information</h4>')
+        self.assertContains(response, '<th scope="row">Verified</th>')
+        self.assertContains(response, '<th scope="row">Audit</th>')
+        self.assertContains(response, '<th scope="row">Honor</th>')
+        self.assertContains(response, '<th scope="row">Professional</th>')
 
         # dashboard link hidden
-        self.assertNotIn(self.get_dashboard_enrollment_message(), response.content)
+        self.assertNotContains(response, self.get_dashboard_enrollment_message())
 
     @patch.dict(settings.FEATURES, {'DISPLAY_ANALYTICS_ENROLLMENTS': True})
     @override_settings(ANALYTICS_DASHBOARD_URL='')
@@ -201,14 +447,14 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         response = self.client.get(self.url)
 
         # enrollment information hidden
-        self.assertNotIn('<th scope="row">Verified</th>', response.content)
-        self.assertNotIn('<th scope="row">Audit</th>', response.content)
-        self.assertNotIn('<th scope="row">Honor</th>', response.content)
-        self.assertNotIn('<th scope="row">Professional</th>', response.content)
+        self.assertNotContains(response, '<th scope="row">Verified</th>')
+        self.assertNotContains(response, '<th scope="row">Audit</th>')
+        self.assertNotContains(response, '<th scope="row">Honor</th>')
+        self.assertNotContains(response, '<th scope="row">Professional</th>')
 
         # link to dashboard shown
         expected_message = self.get_dashboard_enrollment_message()
-        self.assertIn(expected_message, response.content)
+        self.assertIn(expected_message, response.content.decode(response.charset))
 
     @override_settings(ANALYTICS_DASHBOARD_URL='')
     @override_settings(ANALYTICS_DASHBOARD_NAME='')
@@ -218,7 +464,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         """
         response = self.client.get(self.url)
         analytics_section = '<li class="nav-item"><a href="" data-section="instructor_analytics">Analytics</a></li>'
-        self.assertNotIn(analytics_section, response.content)
+        self.assertNotContains(response, analytics_section)
 
     @override_settings(ANALYTICS_DASHBOARD_URL='http://example.com')
     @override_settings(ANALYTICS_DASHBOARD_NAME='Example')
@@ -227,12 +473,13 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         Test analytics dashboard message is shown
         """
         response = self.client.get(self.url)
-        analytics_section = '<li class="nav-item"><button type="button" class="btn-link instructor_analytics" data-section="instructor_analytics">Analytics</button></li>'  # pylint: disable=line-too-long
-        self.assertIn(analytics_section, response.content)
+        analytics_section = '<li class="nav-item"><button type="button" class="btn-link instructor_analytics"' \
+                            ' data-section="instructor_analytics">Analytics</button></li>'
+        self.assertContains(response, analytics_section)
 
         # link to dashboard shown
         expected_message = self.get_dashboard_analytics_message()
-        self.assertIn(expected_message, response.content)
+        self.assertIn(expected_message, response.content.decode(response.charset))
 
     def add_course_to_user_cart(self, cart, course_key):
         """
@@ -260,15 +507,13 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         bulk_purchase_total = CourseRegCodeItem.get_total_amount_of_purchased_item(self.course.id)
         total_amount = single_purchase_total + bulk_purchase_total
         response = self.client.get(self.url)
-        self.assertIn('{currency}{amount}'.format(currency='$', amount=total_amount), response.content)
+        self.assertContains(response, '{currency}{amount}'.format(currency='$', amount=total_amount))
 
     @ddt.data(
         (True, True, True),
         (True, False, False),
-        (True, None, False),
         (False, True, False),
         (False, False, False),
-        (False, None, False),
     )
     @ddt.unpack
     def test_ccx_coaches_option_on_admin_list_management_instructor(
@@ -283,17 +528,16 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
 
             response = self.client.get(self.url)
 
-            self.assertEquals(
-                expected_result,
-                'CCX Coaches are able to create their own Custom Courses based on this course' in response.content
-            )
+            self.assertEqual(expected_result,
+                             'CCX Coaches are able to create their own Custom Courses based on this course'
+                             in response.content.decode('utf-8'))
 
     def test_grade_cutoffs(self):
         """
         Verify that grade cutoffs are displayed in the correct order.
         """
         response = self.client.get(self.url)
-        self.assertIn('D: 0.5, C: 0.57, B: 0.63, A: 0.75', response.content)
+        self.assertContains(response, 'D: 0.5, C: 0.57, B: 0.63, A: 0.75')
 
     @patch('lms.djangoapps.instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 2)
     def test_calculate_page_info(self):
@@ -307,7 +551,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
     @patch('lms.djangoapps.instructor.views.gradebook_api.render_to_response', intercept_renderer)
     @patch('lms.djangoapps.instructor.views.gradebook_api.MAX_STUDENTS_PER_PAGE_GRADE_BOOK', 1)
     def test_spoc_gradebook_pages(self):
-        for i in xrange(2):
+        for i in range(2):
             username = "user_%d" % i
             student = UserFactory.create(username=username)
             CourseEnrollmentFactory.create(user=student, course_id=self.course.id)
@@ -318,7 +562,7 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         # Max number of student per page is one.  Patched setting MAX_STUDENTS_PER_PAGE_GRADE_BOOK = 1
-        self.assertEqual(len(response.mako_context['students']), 1)  # pylint: disable=no-member
+        self.assertEqual(len(response.mako_context['students']), 1)
 
     def test_open_response_assessment_page(self):
         """
@@ -333,11 +577,11 @@ class TestInstructorDashboard(ModuleStoreTestCase, LoginEnrollmentTestCase, XssT
         )
 
         response = self.client.get(self.url)
-        self.assertNotIn(ora_section, response.content)
+        self.assertNotContains(response, ora_section)
 
         ItemFactory.create(parent_location=self.course.location, category="openassessment")
         response = self.client.get(self.url)
-        self.assertIn(ora_section, response.content)
+        self.assertContains(response, ora_section)
 
     def test_open_response_assessment_page_orphan(self):
         """
@@ -399,7 +643,7 @@ class TestInstructorDashboardPerformance(ModuleStoreTestCase, LoginEnrollmentTes
         )
 
         students = []
-        for i in xrange(20):
+        for i in range(20):
             username = "user_%d" % i
             student = UserFactory.create(username=username)
             CourseEnrollmentFactory.create(user=student, course_id=self.course.id)
@@ -427,11 +671,11 @@ class TestInstructorDashboardPerformance(ModuleStoreTestCase, LoginEnrollmentTes
             publish_item=True,
             start=datetime.datetime(2015, 4, 1, tzinfo=UTC),
         )
-        for i in xrange(10):
+        for i in range(10):
             problem = ItemFactory.create(
                 category="problem",
                 parent=vertical,
-                display_name="A Problem Block %d" % i,
+                display_name=u"A Problem Block %d" % i,
                 weight=1,
                 publish_item=False,
                 metadata={'rerandomize': 'always'},

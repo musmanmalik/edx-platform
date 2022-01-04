@@ -1,11 +1,11 @@
 """ Tests for commerce views. """
 
+
 import json
 
 import ddt
 import mock
-from django.core.urlresolvers import reverse
-from nose.plugins.attrib import attr
+from django.urls import reverse
 
 from course_modes.models import CourseMode
 from openedx.core.djangoapps.theming.tests.test_util import with_comprehensive_theme
@@ -27,7 +27,6 @@ class UserMixin(object):
         self.client.login(username=self.user.username, password='test')
 
 
-@attr(shard=1)
 @ddt.ddt
 class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
     """ Tests for the receipt view. """
@@ -64,14 +63,18 @@ class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
         """
         # Enroll as verified in the course with the current user.
         CourseEnrollment.enroll(self.user, self.course.id, mode=CourseMode.VERIFIED)
-        response = self.client.get(reverse('commerce:user_verification_status'), data={'course_id': self.course.id})
-        json_data = json.loads(response.content)
+        response = self.client.get(
+            reverse('commerce:user_verification_status'), data={'course_id': str(self.course.id)}
+        )
+        json_data = json.loads(response.content.decode('utf-8'))
         self.assertEqual(json_data['is_verification_required'], True)
 
         # Enroll as honor in the course with the current user.
         CourseEnrollment.enroll(self.user, self.course.id, mode=CourseMode.HONOR)
-        response = self.client.get(reverse('commerce:user_verification_status'), data={'course_id': self.course.id})
-        json_data = json.loads(response.content)
+        response = self.client.get(
+            reverse('commerce:user_verification_status'), data={'course_id': str(self.course.id)}
+        )
+        json_data = json.loads(response.content.decode('utf-8'))
         self.assertEqual(json_data['is_verification_required'], False)
 
     def test_user_verification_status_failure(self):
@@ -95,7 +98,7 @@ class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
         else:
             expected_pattern = r"<title>(\s+)Payment Failed"
         response = self.post_to_receipt_page(post_data)
-        self.assertRegexpMatches(response.content, expected_pattern)
+        self.assertRegex(response.content.decode('utf-8'), expected_pattern)
 
     @ddt.data('ACCEPT', 'REJECT', 'ERROR')
     def test_cybersource_decision(self, decision):
@@ -106,10 +109,10 @@ class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
         post_data = {'decision': decision, 'reason_code': '200', 'signed_field_names': 'dummy'}
         expected_pattern = r"<title>(\s+)Receipt" if decision == 'ACCEPT' else r"<title>(\s+)Payment Failed"
         response = self.post_to_receipt_page(post_data)
-        self.assertRegexpMatches(response.content, expected_pattern)
+        self.assertRegex(response.content.decode('utf-8'), expected_pattern)
 
     @ddt.data(True, False)
-    @mock.patch('commerce.views.is_user_payment_error')
+    @mock.patch('lms.djangoapps.commerce.views.is_user_payment_error')
     def test_cybersource_message(self, is_user_message_expected, mock_is_user_payment_error):
         """
         Ensure that the page displays the right message for the reason_code (it
@@ -123,8 +126,14 @@ class ReceiptViewTests(UserMixin, ModuleStoreTestCase):
 
         user_message = "There was a problem with this transaction"
         system_message = "A system error occurred while processing your payment"
-        self.assertRegexpMatches(response.content, user_message if is_user_message_expected else system_message)
-        self.assertNotRegexpMatches(response.content, user_message if not is_user_message_expected else system_message)
+        self.assertRegex(
+            response.content.decode('utf-8'),
+            user_message if is_user_message_expected else system_message
+        )
+        self.assertNotRegex(
+            response.content.decode('utf-8'),
+            user_message if not is_user_message_expected else system_message
+        )
 
     @with_comprehensive_theme("edx.org")
     def test_hide_nav_header(self):

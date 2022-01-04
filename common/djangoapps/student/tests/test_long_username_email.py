@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+
 import json
 
-from django.core.urlresolvers import reverse
 from django.test import TestCase
+from django.urls import reverse
+
+from openedx.core.djangoapps.user_api.accounts import USERNAME_BAD_LENGTH_MSG
 
 
 class TestLongUsernameEmail(TestCase):
@@ -31,11 +34,19 @@ class TestLongUsernameEmail(TestCase):
         # Status code should be 400.
         self.assertEqual(response.status_code, 400)
 
-        obj = json.loads(response.content)
+        obj = json.loads(response.content.decode('utf-8'))
         self.assertEqual(
-            obj['value'],
-            "Username cannot be more than 30 characters long",
+            obj['username'][0]['user_message'],
+            USERNAME_BAD_LENGTH_MSG,
         )
+
+    def test_spoffed_name(self):
+        """
+        Test name cannot contain html.
+        """
+        self.url_params['name'] = '<p style="font-size:300px; color:green;"></br>Name<input type="text"></br>Content spoof'
+        response = self.client.post(self.url, self.url_params)
+        self.assertEqual(response.status_code, 400)
 
     def test_long_email(self):
         """
@@ -51,8 +62,8 @@ class TestLongUsernameEmail(TestCase):
         # Status code should be 400.
         self.assertEqual(response.status_code, 400)
 
-        obj = json.loads(response.content)
+        obj = json.loads(response.content.decode('utf-8'))
         self.assertEqual(
-            obj['value'],
+            obj['email'][0]['user_message'],
             "Email cannot be more than 254 characters long",
         )

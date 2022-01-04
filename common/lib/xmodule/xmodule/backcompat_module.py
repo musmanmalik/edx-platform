@@ -1,6 +1,8 @@
 """
 These modules exist to translate old format XML into newer, semantic forms
 """
+
+
 import logging
 import traceback
 from functools import wraps
@@ -24,7 +26,7 @@ def process_includes(fn):
         next_include = xml_object.find('include')
         while next_include is not None:
             system.error_tracker("WARNING: the <include> tag is deprecated, and will go away.")
-            file = next_include.get('file')
+            file = next_include.get('file').decode('utf-8')
             parent = next_include.getparent()
 
             if file is None:

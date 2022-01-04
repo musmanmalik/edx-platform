@@ -1,3 +1,5 @@
+/* global _ */
+
 (function() {
     'use strict';
     var origAjax = $.ajax;
@@ -82,13 +84,13 @@
                 duration: 'PT5M0S'
             }
         },
-        'cogebirgzzM': {
+        cogebirgzzM: {
             contentDetails: {
                 id: 'cogebirgzzM',
                 duration: 'PT3M20S'
             }
         },
-        'abcdefghijkl': {
+        abcdefghijkl: {
             contentDetails: {
                 id: 'abcdefghijkl',
                 duration: 'PT6M40S'
@@ -174,13 +176,13 @@
                 settings.url.match(/.+\/problem_(check|reset|show|save)$/)
             ) {
                 // Do nothing.
-                return;
+                return {};
             } else if (settings.url === '/save_user_state') {
                 return {success: true};
             } else if (settings.url.match(new RegExp(jasmine.getFixtures().fixturesPath + '.+', 'g'))) {
                 return origAjax(settings);
             } else {
-                $.ajax.and.callThrough();
+                return $.ajax.and.callThrough();
             }
         });
     };
@@ -194,21 +196,8 @@
     // Stub jQuery.scrollTo module.
     $.fn.scrollTo = jasmine.createSpy('jQuery.scrollTo');
 
-    // Stub window.Video.loadYouTubeIFrameAPI()
-    window.Video.loadYouTubeIFrameAPI = jasmine.createSpy('window.Video.loadYouTubeIFrameAPI').and.returnValue(
-        function(scriptTag) {
-            var event = document.createEvent('Event');
-            if (fixture === 'video.html') {
-                event.initEvent('load', false, false);
-            } else {
-                event.initEvent('error', false, false);
-            }
-            scriptTag.dispatchEvent(event);
-        }
-    );
-
     jasmine.initializePlayer = function(fixture, params) {
-        var state;
+        var state, metadata;
 
         if (_.isString(fixture)) {
             // `fixture` is a name of a fixture file.
@@ -228,7 +217,7 @@
         // If `params` is an object, assign its properties as data attributes
         // to the main video DIV element.
         if (_.isObject(params)) {
-            var metadata = _.extend($('#video_id').data('metadata'), params);
+            metadata = _.extend($('#video_id').data('metadata'), params);
             $('#video_id').data('metadata', metadata);
         }
 
@@ -276,5 +265,37 @@
     jasmine.DescribeInfo = function(description, specDefinitions) {
         this.description = description;
         this.specDefinitions = specDefinitions;
+    };
+
+    // This HTML Fullscreen API mock should use promises or async functions
+    // as the spec defines. We do not use them here because we're locked
+    // in to a version of jasmine that doesn't fully support async functions
+    // or promises. This mock also assumes that if non-vendor prefixed methods
+    // and properties are missing, then we'll use mozilla prefixed names since
+    // automated tests happen in firefox.
+    jasmine.mockFullscreenAPI = function() {
+        var fullscreenElement;
+        var vendorChangeEvent = 'fullscreenEnabled' in document ?
+            'fullscreenchange' : 'mozfullscreenchange';
+        var vendorRequestFullscreen = 'requestFullscreen' in window.HTMLElement.prototype ?
+            'requestFullscreen' : 'mozRequestFullScreen';
+        var vendorExitFullscreen = 'exitFullscreen' in document ?
+            'exitFullscreen' : 'mozCancelFullScreen';
+        var vendorFullscreenElement = 'fullscreenEnabled' in document ?
+            'fullscreenElement' : 'mozFullScreenElement';
+
+        spyOn(window.HTMLElement.prototype, vendorRequestFullscreen).and.callFake(function() {
+            fullscreenElement = this;
+            document.dispatchEvent(new Event(vendorChangeEvent));
+        });
+
+        spyOn(document, vendorExitFullscreen).and.callFake(function() {
+            fullscreenElement = null;
+            document.dispatchEvent(new Event(vendorChangeEvent));
+        });
+
+        spyOnProperty(document, vendorFullscreenElement).and.callFake(function() {
+            return fullscreenElement;
+        });
     };
 }).call(this);

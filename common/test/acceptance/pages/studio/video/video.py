@@ -1,7 +1,10 @@
 """
 CMS Video
 """
+
+
 import os
+import os.path
 import time
 
 import requests
@@ -9,6 +12,7 @@ from bok_choy.javascript import js_defined, wait_for_js
 from bok_choy.promise import EmptyPromise, Promise
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from six.moves import range
 
 from common.test.acceptance.pages.common.utils import sync_on_notification
 from common.test.acceptance.pages.lms.video.video import VideoPage
@@ -17,7 +21,7 @@ from common.test.acceptance.tests.helpers import YouTubeStubConfig
 CLASS_SELECTORS = {
     'video_container': '.video',
     'video_init': '.is-initialized',
-    'video_xmodule': '.xmodule_VideoModule',
+    'video_xmodule': '.xmodule_VideoBlock',
     'video_spinner': '.video-wrapper .spinner',
     'video_controls': '.video-controls',
     'attach_asset': '.upload-dialog > input[type="file"]',
@@ -29,6 +33,7 @@ CLASS_SELECTORS = {
     'collapse_bar': '.videolist-extra-videos',
     'status': '.transcripts-message-status',
     'attach_transcript': '.file-chooser > input[type="file"]',
+    'basic_metadata': '.basic_metadata_edit',
 }
 
 BUTTON_SELECTORS = {
@@ -50,6 +55,10 @@ BUTTON_SELECTORS = {
     'collapse_link': '.collapse-action.collapse-setting',
 }
 
+DROP_DOWN_SELECTORS = {
+    'transcript_language': '.wrapper-translations-settings .list-settings .list-settings-item select'
+}
+
 DISPLAY_NAME = "Component Display Name"
 
 DEFAULT_SETTINGS = [
@@ -60,7 +69,6 @@ DEFAULT_SETTINGS = [
 
     # advanced
     [DISPLAY_NAME, 'Video', False],
-    ['Default Timed Transcript', '', False],
     ['Download Transcript Allowed', 'False', False],
     ['Downloadable Transcript URL', '', False],
     ['Show Transcript', 'True', False],
@@ -78,13 +86,18 @@ DEFAULT_SETTINGS = [
     ['YouTube ID for 1.5x speed', '', False]
 ]
 
+# field names without clear button
+FIELDS_WO_CLEAR = [
+    'Transcript Languages'
+]
+
 
 # We should wait 300 ms for event handler invocation + 200ms for safety.
 DELAY = 0.5
 
 
-@js_defined('window.Video', 'window.RequireJS.require', 'window.jQuery', 'window.XModule', 'window.XBlock',
-            'window.MathJax', 'window.MathJax.isReady')
+@js_defined('window.Video', 'window.jQuery', 'window.XModule', 'window.XBlock',
+            'window.MathJax')
 class VideoComponentPage(VideoPage):
     """
     CMS Video Component Page
@@ -94,8 +107,10 @@ class VideoComponentPage(VideoPage):
 
     @wait_for_js
     def is_browser_on_page(self):
-        return self.q(css='div{0}'.format(CLASS_SELECTORS['video_xmodule'])).present or self.q(
-            css='div{0}'.format(CLASS_SELECTORS['xblock'])).present
+        return (
+            self.q(css='div{0}'.format(CLASS_SELECTORS['video_xmodule'])).present or
+            self.q(css='div{0}'.format(CLASS_SELECTORS['xblock'])).present
+        )
 
     def get_element_selector(self, class_name, vertical=False):
         return super(VideoComponentPage, self).get_element_selector(class_name, vertical=vertical)
@@ -160,10 +175,47 @@ class VideoComponentPage(VideoPage):
             index (int): query index
 
         """
+        self.scroll_to_button(button_name, index)
         self.q(css=BUTTON_SELECTORS[button_name]).nth(index).click()
         if require_notification:
             sync_on_notification(self)
         self.wait_for_ajax()
+
+    def scroll_to_button(self, button_name, index=0):
+        """
+        Scroll to a button specified by `button_name`
+
+        Arguments:
+            button_name (str): button name
+            index (int): query index
+
+        """
+        element = self.q(css=BUTTON_SELECTORS[button_name])[index]
+        self.browser.execute_script("arguments[0].scrollIntoView();", element)
+
+    def get_drop_down_items(self, drop_down_name, index=0):
+        """
+        Get the items from a drop down list specified by `drop_down_name`
+
+        Arguments:
+            drop_down_name (str): name of the drop down list
+            index (int): query index
+
+        """
+        drop_downs = self.q(css=DROP_DOWN_SELECTORS[drop_down_name])
+        return drop_downs[index].find_elements_by_tag_name("option")
+
+    def is_language_disabled(self, lang_code):
+        """
+        Determine whether or not a lanuage is disabled in a drop down
+
+        Arguments:
+            lang_code (str): two letter language code
+
+        """
+        language_options = self.get_drop_down_items('transcript_language', index=1)
+        language = [l for l in language_options if l.get_attribute('value') == lang_code][0]
+        return language.get_attribute("disabled")
 
     @staticmethod
     def file_path(filename):
@@ -174,7 +226,7 @@ class VideoComponentPage(VideoPage):
             filename (str): asset filename
 
         """
-        return os.sep.join(__file__.split(os.sep)[:-5]) + '/data/uploads/' + filename
+        return os.sep.join(os.path.abspath(__file__).split(os.sep)[:-5]) + '/data/uploads/' + filename
 
     def upload_handout(self, handout_filename):
         """
@@ -197,6 +249,7 @@ class VideoComponentPage(VideoPage):
 
         """
         asset_file_path = self.file_path(asset_filename)
+        self.scroll_to_button('upload_asset')
         self.click_button('upload_asset', index)
         self.q(css=CLASS_SELECTORS['attach_asset']).results[0].send_keys(asset_file_path)
         # Only srt format transcript files can be uploaded, If an error
@@ -279,7 +332,7 @@ class VideoComponentPage(VideoPage):
             line_number (int): caption line number
 
         """
-        caption_line_selector = ".subtitles li span[data-index='{index}']".format(index=line_number - 1)
+        caption_line_selector = u".subtitles li span[data-index='{index}']".format(index=line_number - 1)
         self.q(css=caption_line_selector).results[0].send_keys(Keys.ENTER)
 
     def is_caption_line_focused(self, line_number):
@@ -290,7 +343,7 @@ class VideoComponentPage(VideoPage):
             line_number (int): caption line number
 
         """
-        caption_line_selector = ".subtitles li span[data-index='{index}']".format(index=line_number - 1)
+        caption_line_selector = u".subtitles li span[data-index='{index}']".format(index=line_number - 1)
         caption_container = self.q(css=caption_line_selector).results[0].find_element_by_xpath('..')
         return 'focused' in caption_container.get_attribute('class').split()
 
@@ -305,15 +358,22 @@ class VideoComponentPage(VideoPage):
         """
         Verify that video component has correct default settings.
         """
-        query = '.wrapper-comp-setting'
-        settings = self.q(css=query).results
-        if len(DEFAULT_SETTINGS) != len(settings):
-            return False
+        def _check_settings_length():
+            """Check video settings"""
+            query = '.wrapper-comp-setting'
+            settings = self.q(css=query).results
+            if len(DEFAULT_SETTINGS) == len(settings):
+                return True, settings
+            return (False, None)
+
+        settings = Promise(_check_settings_length, 'All video fields are present').fulfill()
 
         for counter, setting in enumerate(settings):
-            is_verified = self._verify_setting_entry(setting,
-                                                     DEFAULT_SETTINGS[counter][0],
-                                                     DEFAULT_SETTINGS[counter][1])
+            is_verified = self._verify_setting_entry(
+                setting,
+                DEFAULT_SETTINGS[counter][0],
+                DEFAULT_SETTINGS[counter][1]
+            )
 
             if not is_verified:
                 return is_verified
@@ -354,9 +414,8 @@ class VideoComponentPage(VideoPage):
         if field_value != current_value:
             return False
 
-        # Clear button should be visible(active class is present) for
-        # every setting that don't have 'metadata-videolist-enum' class
-        if 'metadata-videolist-enum' not in setting.get_attribute('class'):
+        # Verify if clear button is active for expected video fields
+        if field_name not in FIELDS_WO_CLEAR and 'metadata-videolist-enum' not in setting.get_attribute('class'):
             setting_clear_button = setting.find_elements_by_class_name('setting-clear')[0]
             if 'active' not in setting_clear_button.get_attribute('class'):
                 return False
@@ -384,7 +443,7 @@ class VideoComponentPage(VideoPage):
 
             self.q(css='#{}'.format(field_id)).fill(field_value)
         elif field_type == 'select':
-            self.q(css='select[name="{0}"] option[value="{1}"]'.format(field_name, field_value)).first.click()
+            self.q(css=u'select[name="{0}"] option[value="{1}"]'.format(field_name, field_value)).first.click()
 
     def verify_field_value(self, field_name, field_value):
         """
@@ -432,7 +491,7 @@ class VideoComponentPage(VideoPage):
 
         """
         translations_items = '.wrapper-translations-settings .list-settings-item'
-        language_selector = translations_items + ' select option[value="{}"]'.format(language_code)
+        language_selector = translations_items + u' select option[value="{}"]'.format(language_code)
         self.q(css=language_selector).nth(index).click()
 
     def upload_translation(self, transcript_name, language_code):
@@ -472,8 +531,8 @@ class VideoComponentPage(VideoPage):
             list: list of translation language codes
 
         """
-        translations_selector = '.metadata-video-translations .remove-setting'
-        return self.q(css=translations_selector).attrs('data-lang')
+        translations_selector = '.metadata-video-translations .list-settings-item'
+        return self.q(css=translations_selector).attrs('data-original-lang')
 
     def download_translation(self, language_code, text_to_search):
         """
@@ -488,7 +547,7 @@ class VideoComponentPage(VideoPage):
 
         """
         mime_type = 'application/x-subrip'
-        lang_code = '/{}?'.format(language_code)
+        lang_code = '?language_code={}'.format(language_code)
         link = [link for link in self.q(css='.download-action').attrs('href') if lang_code in link]
         result, headers, content = self._get_transcript(link[0])
 
@@ -502,7 +561,9 @@ class VideoComponentPage(VideoPage):
             language_code (str): language code
 
         """
-        self.q(css='.remove-action').filter(lambda el: language_code == el.get_attribute('data-lang')).click()
+        selector = '.metadata-video-translations .list-settings-item'
+        translation = self.q(css=selector).filter(lambda el: language_code == el.get_attribute('data-original-lang'))
+        translation[0].find_element_by_class_name('remove-action').click()
 
     @property
     def upload_status_message(self):
@@ -518,7 +579,7 @@ class VideoComponentPage(VideoPage):
         As all the captions lines are exactly same so only getting partial lines will work.
         """
         self.wait_for_captions()
-        selector = '.subtitles li:nth-child({})'
+        selector = u'.subtitles li:nth-child({})'
         return ' '.join([self.q(css=selector.format(i)).text[0] for i in range(1, 6)])
 
     def set_url_field(self, url, field_number):
@@ -550,7 +611,7 @@ class VideoComponentPage(VideoPage):
         """
         if message_type == 'status':
             self.wait_for_element_visibility(CLASS_SELECTORS[message_type],
-                                             '{} message is Visible'.format(message_type.title()))
+                                             u'{} message is Visible'.format(message_type.title()))
 
         return self.q(css=CLASS_SELECTORS[message_type]).text[0]
 
@@ -570,7 +631,7 @@ class VideoComponentPage(VideoPage):
         if field_numbers:
             index_list = [number - 1 for number in field_numbers]
         else:
-            index_list = range(3)  # maximum three fields
+            index_list = list(range(3))  # maximum three fields
 
         statuses = {}
         for index in index_list:
@@ -596,7 +657,7 @@ class VideoComponentPage(VideoPage):
         """
         Clear video url fields.
         """
-        script = """
+        script = u"""
         $('{selector}')
             .prop('disabled', false)
             .removeClass('is-disabled')

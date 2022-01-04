@@ -2,16 +2,14 @@
 Generate a report of certificate statuses
 """
 
-from optparse import make_option
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Count
-from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from six import text_type
 
-from certificates.models import GeneratedCertificate
+from lms.djangoapps.certificates.models import GeneratedCertificate
 
 
 class Command(BaseCommand):
@@ -38,25 +36,20 @@ class Command(BaseCommand):
 
     """
 
-    option_list = BaseCommand.option_list + (
-        make_option('-c', '--course',
-                    metavar='COURSE_ID',
-                    dest='course',
-                    default=None,
-                    help='Only generate for COURSE_ID'),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '-c', '--course',
+            metavar='COURSE_ID',
+            dest='course',
+            default=None,
+            help='Only generate for COURSE_ID'
+        )
 
     def handle(self, *args, **options):
-
         # Find all courses that have ended
 
         if options['course']:
-            try:
-                course_id = CourseKey.from_string(options['course'])
-            except InvalidKeyError:
-                print ("Course id {} could not be parsed as a CourseKey; "
-                       "falling back to SSCK.from_dep_str").format(options['course'])
-                course_id = SlashSeparatedCourseKey.from_deprecated_string(options['course'])
+            course_id = CourseKey.from_string(options['course'])
         else:
             raise CommandError("You must specify a course")
 
@@ -64,7 +57,7 @@ class Command(BaseCommand):
 
         # find students who are active
         # number of enrolled students = downloadable + notpassing
-        print "Looking up certificate states for {0}".format(options['course'])
+        print(u"Looking up certificate states for {0}".format(options['course']))
         enrolled_current = User.objects.filter(
             courseenrollment__course_id=course_id,
             courseenrollment__is_active=True
@@ -72,15 +65,15 @@ class Command(BaseCommand):
         enrolled_total = User.objects.filter(
             courseenrollment__course_id=course_id
         )
-        verified_enrolled = GeneratedCertificate.objects.filter(  # pylint: disable=no-member
+        verified_enrolled = GeneratedCertificate.objects.filter(
             course_id__exact=course_id,
             mode__exact='verified'
         )
-        honor_enrolled = GeneratedCertificate.objects.filter(  # pylint: disable=no-member
+        honor_enrolled = GeneratedCertificate.objects.filter(
             course_id__exact=course_id,
             mode__exact='honor'
         )
-        audit_enrolled = GeneratedCertificate.objects.filter(  # pylint: disable=no-member
+        audit_enrolled = GeneratedCertificate.objects.filter(
             course_id__exact=course_id,
             mode__exact='audit'
         )
@@ -93,7 +86,7 @@ class Command(BaseCommand):
             'audit_enrolled': audit_enrolled.count()
         }
 
-        status_tally = GeneratedCertificate.objects.filter(  # pylint: disable=no-member
+        status_tally = GeneratedCertificate.objects.filter(
             course_id__exact=course_id
         ).values('status').annotate(
             dcount=Count('status')
@@ -105,7 +98,7 @@ class Command(BaseCommand):
             }
         )
 
-        mode_tally = GeneratedCertificate.objects.filter(  # pylint: disable=no-member
+        mode_tally = GeneratedCertificate.objects.filter(
             course_id__exact=course_id,
             status__exact='downloadable'
         ).values('mode').annotate(
@@ -121,14 +114,14 @@ class Command(BaseCommand):
         )
 
         # print the heading for the report
-        print "{:>26}".format("course ID"),
-        print ' '.join(["{:>16}".format(heading) for heading in status_headings])
+        print("{:>26}".format("course ID"), end=' ')
+        print(' '.join(["{:>16}".format(heading) for heading in status_headings]))
 
         # print the report
-        print "{0:>26}".format(course_id.to_deprecated_string()),
+        print("{0:>26}".format(text_type(course_id)), end=' ')
         for heading in status_headings:
             if heading in cert_data[course_id]:
-                print "{:>16}".format(cert_data[course_id][heading]),
+                print("{:>16}".format(cert_data[course_id][heading]), end=' ')
             else:
-                print " " * 16,
-        print
+                print(" " * 16, end=' ')
+        print()

@@ -2,16 +2,20 @@
 Module for the dual-branch fall-back Draft->Published Versioning ModuleStore
 """
 
-from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore, EXCLUDE_ALL
+
+from contracts import contract
+from opaque_keys.edx.locator import CourseLocator, LibraryLocator, LibraryUsageLocator
+
 from xmodule.exceptions import InvalidVersionError
 from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.exceptions import InsufficientSpecificationError, ItemNotFoundError
 from xmodule.modulestore.draft_and_published import (
-    ModuleStoreDraftAndPublished, DIRECT_ONLY_CATEGORIES, UnsupportedRevisionError
+    DIRECT_ONLY_CATEGORIES,
+    ModuleStoreDraftAndPublished,
+    UnsupportedRevisionError
 )
-from opaque_keys.edx.locator import CourseLocator, LibraryLocator, LibraryUsageLocator
+from xmodule.modulestore.exceptions import InsufficientSpecificationError, ItemNotFoundError
 from xmodule.modulestore.split_mongo import BlockKey
-from contracts import contract
+from xmodule.modulestore.split_mongo.split import EXCLUDE_ALL, SplitMongoModuleStore
 
 
 class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPublished):
@@ -39,7 +43,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
             )
             if master_branch == ModuleStoreEnum.BranchName.draft and not skip_auto_publish:
                 # any other value is hopefully only cloning or doing something which doesn't want this value add
-                self._auto_publish_no_children(item.location, item.location.category, user_id, **kwargs)
+                self._auto_publish_no_children(item.location, item.location.block_type, user_id, **kwargs)
 
                 # create any other necessary things as a side effect: ensure they populate the draft branch
                 # and rely on auto publish to populate the published branch: split's create course doesn't
@@ -130,7 +134,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
                 keys_to_check = list(new_keys)
                 while keys_to_check:
                     usage_key = keys_to_check.pop()
-                    if usage_key.category in DIRECT_ONLY_CATEGORIES:
+                    if usage_key.block_type in DIRECT_ONLY_CATEGORIES:
                         self.publish(usage_key.version_agnostic(), user_id, blacklist=EXCLUDE_ALL, **kwargs)
                         children = getattr(self.get_item(usage_key, **kwargs), "children", [])
                         # e.g. if usage_key is a chapter, it may have an auto-publish sequential child
@@ -152,11 +156,11 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
                 asides=asides,
                 **kwargs
             )
-            self._auto_publish_no_children(item.location, item.location.category, user_id, **kwargs)
+            self._auto_publish_no_children(item.location, item.location.block_type, user_id, **kwargs)
             descriptor.location = old_descriptor_locn
             return item
 
-    def create_item(self, user_id, course_key, block_type, block_id=None,     # pylint: disable=too-many-statements
+    def create_item(self, user_id, course_key, block_type, block_id=None,     # pylint: disable=W0221
                     definition_locator=None, fields=None, asides=None, force=False, skip_auto_publish=False, **kwargs):
         """
         See :py:meth `ModuleStoreDraftAndPublished.create_item`
@@ -171,7 +175,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
                 force=force, **kwargs
             )
             if not skip_auto_publish:
-                self._auto_publish_no_children(item.location, item.location.category, user_id, **kwargs)
+                self._auto_publish_no_children(item.location, item.location.block_type, user_id, **kwargs)
             return item
 
     def create_child(
@@ -185,8 +189,8 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
                 fields=fields, asides=asides, **kwargs
             )
             # Publish both the child and the parent, if the child is a direct-only category
-            self._auto_publish_no_children(item.location, item.location.category, user_id, **kwargs)
-            self._auto_publish_no_children(parent_usage_key, item.location.category, user_id, **kwargs)
+            self._auto_publish_no_children(item.location, item.location.block_type, user_id, **kwargs)
+            self._auto_publish_no_children(parent_usage_key, item.location.block_type, user_id, **kwargs)
             return item
 
     def delete_item(self, location, user_id, revision=None, skip_auto_publish=False, **kwargs):
@@ -215,7 +219,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
         with self.bulk_operations(location.course_key):
             if isinstance(location, LibraryUsageLocator):
                 branches_to_delete = [ModuleStoreEnum.BranchName.library]  # Libraries don't yet have draft/publish support
-            elif location.category in DIRECT_ONLY_CATEGORIES:
+            elif location.block_type in DIRECT_ONLY_CATEGORIES:
                 branches_to_delete = [ModuleStoreEnum.BranchName.published, ModuleStoreEnum.BranchName.draft]
             elif revision == ModuleStoreEnum.RevisionOption.all:
                 branches_to_delete = [ModuleStoreEnum.BranchName.published, ModuleStoreEnum.BranchName.draft]
@@ -408,7 +412,7 @@ class DraftVersioningModuleStore(SplitMongoModuleStore, ModuleStoreDraftAndPubli
 
         :raises InvalidVersionError: if no published version exists for the location specified
         """
-        if location.category in DIRECT_ONLY_CATEGORIES:
+        if location.block_type in DIRECT_ONLY_CATEGORIES:
             return
 
         draft_course_key = location.course_key.for_branch(ModuleStoreEnum.BranchName.draft)

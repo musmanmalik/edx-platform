@@ -2,16 +2,15 @@
 Milestones Transformer
 """
 
+
 import logging
 
+import six
 from django.conf import settings
 from edx_proctoring.api import get_attempt_status_summary
 from edx_proctoring.exceptions import ProctoredExamNotFoundException
 
-from openedx.core.djangoapps.content.block_structure.transformer import (
-    BlockStructureTransformer,
-    FilteringTransformerMixin
-)
+from openedx.core.djangoapps.content.block_structure.transformer import BlockStructureTransformer
 from student.models import EntranceExamConfiguration
 from util import milestones_helpers
 
@@ -22,8 +21,9 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
     """
     A transformer that handles both milestones and special (timed) exams.
 
-    It excludes all blocks with unfulfilled milestones from the student view.  An entrance exam is considered a
-    milestone, and is not considered a "special exam".
+    It includes or excludes all unfulfilled milestones from the student view based on the value of `include_gated_sections`.
+
+    An entrance exam is considered a milestone, and is not considered a "special exam".
 
     It also includes or excludes all special (timed) exams (timed, proctored, practice proctored) in/from the
     student view, based on the value of `include_special_exams`.
@@ -36,8 +36,9 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
     def name(cls):
         return "milestones"
 
-    def __init__(self, include_special_exams=True):
+    def __init__(self, include_special_exams=True, include_gated_sections=True):
         self.include_special_exams = include_special_exams
+        self.include_gated_sections = include_gated_sections
 
     @classmethod
     def collect(cls, block_structure):
@@ -67,9 +68,9 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
 
             if usage_info.has_staff_access:
                 return False
-            elif self.has_pending_milestones_for_user(block_key, usage_info):
-                return True
             elif self.gated_by_required_content(block_key, block_structure, required_content):
+                return True
+            elif not self.include_gated_sections and self.has_pending_milestones_for_user(block_key, usage_info):
                 return True
             elif (settings.FEATURES.get('ENABLE_SPECIAL_EXAMS', False) and
                   (self.is_special_exam(block_key, block_structure) and
@@ -101,8 +102,8 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
         them from accessing this block.
         """
         return bool(milestones_helpers.get_course_content_milestones(
-            unicode(block_key.course_key),
-            unicode(block_key),
+            six.text_type(block_key.course_key),
+            six.text_type(block_key),
             'requires',
             usage_info.user.id
         ))
@@ -119,8 +120,8 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
             # This will return None, if (user, course_id, content_id) is not applicable.
             special_exam_attempt_context = get_attempt_status_summary(
                 usage_info.user.id,
-                unicode(block_key.course_key),
-                unicode(block_key)
+                six.text_type(block_key.course_key),
+                six.text_type(block_key)
             )
         except ProctoredExamNotFoundException as ex:
             log.exception(ex)
@@ -143,7 +144,10 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
 
         """
         course_key = block_structure.root_block_usage_key.course_key
-        user_can_skip_entrance_exam = EntranceExamConfiguration.user_can_skip_entrance_exam(usage_info.user, course_key)
+        user_can_skip_entrance_exam = False
+        if usage_info.user.is_authenticated:
+            user_can_skip_entrance_exam = EntranceExamConfiguration.user_can_skip_entrance_exam(
+                usage_info.user, course_key)
         required_content = milestones_helpers.get_required_content(course_key, usage_info.user)
 
         if not required_content:
@@ -165,7 +169,7 @@ class MilestonesAndSpecialExamsTransformer(BlockStructureTransformer):
         if not required_content:
             return False
 
-        if block_key.block_type == 'chapter' and unicode(block_key) not in required_content:
+        if block_key.block_type == 'chapter' and six.text_type(block_key) not in required_content:
             return True
 
         return False

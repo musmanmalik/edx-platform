@@ -1,6 +1,8 @@
 """
 Tests for xmodule.x_module.ResourceTemplates
 """
+
+
 import unittest
 
 from xmodule.x_module import ResourceTemplates
@@ -10,6 +12,7 @@ class ResourceTemplatesTests(unittest.TestCase):
     """
     Tests for xmodule.x_module.ResourceTemplates
     """
+
     def test_templates(self):
         expected = set([
             'latex_html.yaml',
@@ -36,7 +39,7 @@ class TestClass(ResourceTemplates):
     derive a class from it in order to fill in some data it's expecting to find
     in its mro.
     """
-    template_packages = [__name__]
+    template_packages = ['xmodule']
 
     @classmethod
     def get_template_dir(cls):

@@ -1,22 +1,25 @@
 """
  Test contentstore.mongo functionality
 """
-import logging
-from uuid import uuid4
-import unittest
-import mimetypes
-from tempfile import mkdtemp
-import path
-import shutil
 
-from opaque_keys.edx.locator import CourseLocator, AssetLocator
-from opaque_keys.edx.keys import AssetKey
-from xmodule.tests import DATA_DIR
-from xmodule.contentstore.mongo import MongoContentStore
-from xmodule.contentstore.content import StaticContent
-from xmodule.exceptions import NotFoundError
+
+import logging
+import mimetypes
+import shutil
+import unittest
+from tempfile import mkdtemp
+from uuid import uuid4
+
 import ddt
-from xmodule.modulestore.tests.mongo_connection import MONGO_PORT_NUM, MONGO_HOST
+import path
+from opaque_keys.edx.keys import AssetKey
+from opaque_keys.edx.locator import AssetLocator, CourseLocator
+
+from xmodule.contentstore.content import StaticContent
+from xmodule.contentstore.mongo import MongoContentStore
+from xmodule.exceptions import NotFoundError
+from xmodule.modulestore.tests.mongo_connection import MONGO_HOST, MONGO_PORT_NUM
+from xmodule.tests import DATA_DIR
 
 log = logging.getLogger(__name__)
 
@@ -155,7 +158,7 @@ class TestContentstore(unittest.TestCase):
         self.assertEqual(count, len(self.course1_files), course1_assets)
         for asset in course1_assets:
             parsed = AssetKey.from_string(asset['filename'])
-            self.assertIn(parsed.name, self.course1_files)
+            self.assertIn(parsed.block_id, self.course1_files)
 
         course1_assets, __ = self.contentstore.get_all_content_for_course(self.course1_key, 1, 1)
         self.assertEqual(len(course1_assets), 1, course1_assets)
@@ -195,6 +198,18 @@ class TestContentstore(unittest.TestCase):
 
         __, count = self.contentstore.get_all_content_for_course(dest_course)
         self.assertEqual(count, len(self.course1_files))
+
+    @ddt.data(True, False)
+    def test_copy_assets_with_duplicates(self, deprecated):
+        """
+        Copy all assets even if the destination has some duplicate assets
+        """
+        self.set_up_assets(deprecated)
+        dest_course = self.course2_key
+        self.contentstore.copy_all_course_assets(self.course1_key, dest_course)
+
+        __, count = self.contentstore.get_all_content_for_course(dest_course)
+        self.assertEqual(count, 5)
 
     @ddt.data(True, False)
     def test_delete_assets(self, deprecated):

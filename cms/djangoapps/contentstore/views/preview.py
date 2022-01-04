@@ -1,15 +1,27 @@
-from __future__ import absolute_import
+
 
 import logging
 from functools import partial
+import six
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.http import Http404, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
-from edxmako.shortcuts import render_to_string
+from django.views.decorators.clickjacking import xframe_options_exempt
+from opaque_keys.edx.keys import UsageKey
+from web_fragments.fragment import Fragment
+from xblock.django.request import django_to_webob_request, webob_to_django_response
+from xblock.exceptions import NoSuchHandlerError
+from xblock.runtime import KvsFieldData
 
+import static_replace
+from cms.lib.xblock.field_data import CmsFieldData
+from contentstore.utils import get_visibility_partition_info
+from contentstore.views.access import get_user_role
+from edxmako.shortcuts import render_to_string
+from lms.djangoapps.lms_xblock.field_data import LmsFieldData
 from openedx.core.lib.license import wrap_with_license
 from openedx.core.lib.xblock_utils import (
     replace_static_urls,
@@ -19,33 +31,21 @@ from openedx.core.lib.xblock_utils import (
     wrap_xblock_aside,
     xblock_local_resource_url
 )
-from xmodule.x_module import PREVIEW_VIEWS, STUDENT_VIEW, AUTHOR_VIEW, ModuleSystem
+from xmodule.util.sandboxing import can_execute_unsafe_code, get_python_lib_zip
+from xblock_config.models import StudioConfig
+from xblock_django.user_service import DjangoXBlockUserService
 from xmodule.contentstore.django import contentstore
 from xmodule.error_module import ErrorDescriptor
 from xmodule.exceptions import NotFoundError, ProcessingError
-from xmodule.studio_editable import has_author_view
+from xmodule.modulestore.django import ModuleI18nService, modulestore
 from xmodule.partitions.partitions_service import PartitionService
-from xmodule.modulestore.django import modulestore, ModuleI18nService
-from opaque_keys.edx.keys import UsageKey
-from xmodule.x_module import ModuleSystem
-from xblock.runtime import KvsFieldData
-from xblock.django.request import webob_to_django_response, django_to_webob_request
-from xblock.exceptions import NoSuchHandlerError
-from xblock.fragment import Fragment
-from xblock_django.user_service import DjangoXBlockUserService
 from xmodule.services import SettingsService, NotificationsService, CoursewareParentInfoService
+from xmodule.studio_editable import has_author_view
+from xmodule.util.xmodule_django import add_webpack_to_fragment
+from xmodule.x_module import AUTHOR_VIEW, PREVIEW_VIEWS, STUDENT_VIEW, ModuleSystem, XModule, XModuleDescriptor
 
-from lms.djangoapps.lms_xblock.field_data import LmsFieldData
-from cms.lib.xblock.field_data import CmsFieldData
-
-from util.sandboxing import can_execute_unsafe_code, get_python_lib_zip
-
-import static_replace
-from .session_kv_store import SessionKeyValueStore
 from .helpers import render_from_lms
-from contentstore.utils import get_visibility_partition_info
-from contentstore.views.access import get_user_role
-from xblock_config.models import StudioConfig
+from .session_kv_store import SessionKeyValueStore
 
 __all__ = ['preview_handler']
 
@@ -53,6 +53,7 @@ log = logging.getLogger(__name__)
 
 
 @login_required
+@xframe_options_exempt
 def preview_handler(request, usage_key_string, handler, suffix=''):
     """
     Dispatch an AJAX action to an xblock
@@ -72,7 +73,7 @@ def preview_handler(request, usage_key_string, handler, suffix=''):
         resp = instance.handle(handler, req, suffix)
 
     except NoSuchHandlerError:
-        log.exception("XBlock %s attempted to access missing handler %r", instance, handler)
+        log.exception(u"XBlock %s attempted to access missing handler %r", instance, handler)
         raise Http404
 
     except NotFoundError:
@@ -101,7 +102,7 @@ class PreviewModuleSystem(ModuleSystem):  # pylint: disable=abstract-method
 
     def handler_url(self, block, handler_name, suffix='', query='', thirdparty=False):
         return reverse('preview_handler', kwargs={
-            'usage_key_string': unicode(block.scope_ids.usage_id),
+            'usage_key_string': six.text_type(block.scope_ids.usage_id),
             'handler': handler_name,
             'suffix': suffix,
         }) + '?' + query
@@ -133,14 +134,14 @@ class PreviewModuleSystem(ModuleSystem):  # pylint: disable=abstract-method
     def layout_asides(self, block, context, frag, view_name, aside_frag_fns):
         position_for_asides = '<!-- footer for xblock_aside -->'
         result = Fragment()
-        result.add_frag_resources(frag)
+        result.add_fragment_resources(frag)
 
         for aside, aside_fn in aside_frag_fns:
             aside_frag = aside_fn(block, context)
             if aside_frag.content != u'':
                 aside_frag_wrapped = self.wrap_aside(block, aside, view_name, aside_frag, context)
                 aside.save()
-                result.add_frag_resources(aside_frag_wrapped)
+                result.add_fragment_resources(aside_frag_wrapped)
                 replacement = position_for_asides + aside_frag_wrapped.content
                 frag.content = frag.content.replace(position_for_asides, replacement)
 
@@ -191,7 +192,7 @@ def _preview_module_system(request, descriptor, field_data):
             wrap_xblock,
             'PreviewRuntime',
             display_name_only=display_name_only,
-            usage_id_serializer=unicode,
+            usage_id_serializer=six.text_type,
             request_token=request_token(request)
         ),
 
@@ -205,7 +206,7 @@ def _preview_module_system(request, descriptor, field_data):
         partial(
             wrap_xblock_aside,
             'PreviewRuntime',
-            usage_id_serializer=unicode,
+            usage_id_serializer=six.text_type,
             request_token=request_token(request)
         )
     ]
@@ -305,7 +306,7 @@ def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):
         is_reorderable = _is_xblock_reorderable(xblock, context)
         selected_groups_label = get_visibility_partition_info(xblock)['selected_groups_label']
         if selected_groups_label:
-            selected_groups_label = _('Access restricted to: {list_of_groups}').format(list_of_groups=selected_groups_label)
+            selected_groups_label = _(u'Access restricted to: {list_of_groups}').format(list_of_groups=selected_groups_label)
         course = modulestore().get_course(xblock.location.course_key)
         template_context = {
             'xblock_context': context,
@@ -321,6 +322,13 @@ def _studio_wrap_xblock(xblock, view, frag, context, display_name_only=False):
             'can_move': context.get('can_move', True),
             'language': getattr(course, 'language', None)
         }
+
+        if isinstance(xblock, (XModule, XModuleDescriptor)):
+            # Add the webpackified asset tags
+            class_name = getattr(xblock.__class__, 'unmixed_class', xblock.__class__).__name__
+            add_webpack_to_fragment(frag, class_name)
+
+        add_webpack_to_fragment(frag, "js/factories/xblock_validation")
 
         html = render_to_string('studio_xblock_wrapper.html', template_context)
         frag = wrap_fragment(frag, html)
@@ -339,6 +347,6 @@ def get_preview_fragment(request, descriptor, context):
     try:
         fragment = module.render(preview_view, context)
     except Exception as exc:                          # pylint: disable=broad-except
-        log.warning("Unable to render %s for %r", preview_view, module, exc_info=True)
+        log.warning(u"Unable to render %s for %r", preview_view, module, exc_info=True)
         fragment = Fragment(render_to_string('html_error.html', {'message': str(exc)}))
     return fragment

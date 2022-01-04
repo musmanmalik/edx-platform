@@ -1,12 +1,15 @@
 """
 Tests for the course modes Django admin interface.
 """
+
+
 import unittest
 from datetime import datetime, timedelta
 
 import ddt
+import six
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from pytz import UTC, timezone
 
 from course_modes.admin import CourseModeForm
@@ -17,6 +20,7 @@ from course_modes.tests.factories import CourseModeFactory
 # of putting all this configuration in one place outweigh the downsides.
 # Once the course admin tool is deployed, we can remove this dependency.
 from lms.djangoapps.verify_student.models import VerificationDeadline
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from student.tests.factories import UserFactory
 from util.date_utils import get_time_display
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -40,16 +44,16 @@ class AdminCourseModePageTest(ModuleStoreTestCase):
         user.save()
         course = CourseFactory.create()
         expiration = datetime(2015, 10, 20, 1, 10, 23, tzinfo=timezone(settings.TIME_ZONE))
+        CourseOverview.load_from_module_store(course.id)
 
         data = {
-            'course_id': unicode(course.id),
+            'course': six.text_type(course.id),
             'mode_slug': 'verified',
             'mode_display_name': 'verified',
             'min_price': 10,
             'currency': 'usd',
             '_expiration_datetime_0': expiration.date(),  # due to django admin datetime widget passing as separate vals
             '_expiration_datetime_1': expiration.time(),
-
         }
 
         self.client.login(username=user.username, password='test')
@@ -63,13 +67,13 @@ class AdminCourseModePageTest(ModuleStoreTestCase):
         self.assertContains(response, get_time_display(expiration, '%B %d, %Y, %H:%M  %p'))
 
         # Verify that on the edit page the datetime value appears as UTC.
-        resp = self.client.get(reverse('admin:course_modes_coursemode_change', args=(1,)))
+        course_mode = CourseMode.objects.last()
+        resp = self.client.get(reverse('admin:course_modes_coursemode_change', args=(course_mode.id,)))
         self.assertContains(resp, expiration.date())
         self.assertContains(resp, expiration.time())
 
         # Verify that the expiration datetime is the same as what we set
         # (hasn't changed because of a timezone translation).
-        course_mode = CourseMode.objects.get(pk=1)
         self.assertEqual(course_mode.expiration_datetime.replace(tzinfo=None), expiration.replace(tzinfo=None))
 
 
@@ -89,6 +93,7 @@ class AdminCourseModeFormTest(ModuleStoreTestCase):
         """
         super(AdminCourseModeFormTest, self).setUp()
         self.course = CourseFactory.create()
+        CourseOverview.load_from_module_store(self.course.id)
 
     @ddt.data(
         ("honor", False),
@@ -197,7 +202,7 @@ class AdminCourseModeFormTest(ModuleStoreTestCase):
             mode_slug=mode,
         )
         return CourseModeForm({
-            "course_id": unicode(self.course.id),
+            "course": six.text_type(self.course.id),
             "mode_slug": mode,
             "mode_display_name": mode,
             "_expiration_datetime": upgrade_deadline,

@@ -1,3 +1,5 @@
+
+
 import argparse
 import csv
 import json
@@ -6,6 +8,7 @@ import sys
 from datetime import datetime
 
 import requests
+from six import text_type
 
 # Keys for the CSV and JSON interpretation
 PAGINATION_KEY = 'pagination'
@@ -103,7 +106,7 @@ def _get_course_data_summary(auth_token, months_restriction, xblock_type_set, ap
         # print to update the screen for status
         sys.stdout.write('.')
         sys.stdout.flush()
-    print 'Processed %d courses' % total_courses
+    print('Processed %d courses' % total_courses)
     return course_summary_data
 
 
@@ -158,24 +161,24 @@ def _get_block_types_from_json_file(xblock_json_file):
         set: A set of strings for all the types that are available in the configuration file
     """
     if not os.path.isfile(xblock_json_file):
-        print 'xBlock configuration file does not exist: %s' % xblock_json_file
+        print('xBlock configuration file does not exist: %s' % xblock_json_file)
         sys.exit(2)
     with open(xblock_json_file, 'r') as json_file:
         type_set = set()
         try:
             json_data = json.loads(json_file.read())
-        except ValueError, e:
-            print 'xBlock configuration file does not match the expected layout and is ' \
-                  'missing "data" list: %s' % xblock_json_file
-            sys.exit(e.message)
+        except ValueError as e:
+            print('xBlock configuration file does not match the expected layout and is '
+                  'missing "data" list: %s' % xblock_json_file)
+            sys.exit(text_type(e))
         if 'data' in json_data:
             xblock_type_list = json_data['data']
             for xblock in xblock_type_list:
                 type_set.add(xblock['name'])
             return type_set
         else:
-            print 'xBlock configuration file does not match the expected layout and is ' \
-                  'missing "data" list: %s' % xblock_json_file
+            print('xBlock configuration file does not match the expected layout and is '
+                  'missing "data" list: %s' % xblock_json_file)
             sys.exit(2)
 
 
@@ -214,7 +217,7 @@ def _get_course_block_counts(auth_token, block_url):
 
     response = requests.get(block_url, headers=headers)
     if response.status_code != 200:
-        print ("url {} returned status code {}".format(block_url, response.status_code))
+        print("url {} returned status code {}".format(block_url, response.status_code))
         return {}
     response_json = response.json()
 
@@ -373,7 +376,7 @@ if __name__ == "__main__":
     # Get User access token
     token = get_access_token(username, password, oauth2_client_id, api_root)
     if token is None:
-        print 'Failed to retrieve user token for user: %s ' % username
+        print('Failed to retrieve user token for user: %s ' % username)
         sys.exit(2)
 
     # Collect course data and write CSV reports
@@ -383,4 +386,4 @@ if __name__ == "__main__":
     if len(course_data) > 0:
         write_block_summary_report(course_data)
         write_course_block_detail_report(course_data)
-    print 'Start time: %s Total run time: %s' % (str(start_time), str(datetime.now() - start_time))
+    print('Start time: %s Total run time: %s' % (str(start_time), str(datetime.now() - start_time)))

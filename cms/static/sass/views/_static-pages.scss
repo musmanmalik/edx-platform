@@ -6,7 +6,7 @@
   // page structure
   .content-primary,
   .content-supplementary {
-    @include box-sizing(border-box);
+    box-sizing: border-box;
     float: left;
   }
 
@@ -16,6 +16,7 @@
 
     .add-pages {
       @extend %no-content;
+
       margin: ($baseline*1.5) 0;
       color: $gray-d1;
     }
@@ -26,6 +27,7 @@
 
       .copy {
         @extend %t-copy-base;
+
         opacity: 1;
       }
     }
@@ -39,7 +41,6 @@
     top: 6px;
 
     .actions-list {
-
       .action-item {
         position: relative;
         display: inline-block;
@@ -50,6 +51,7 @@
         .action-button,
         .toggle-actions-view {
           @include transition(all $tmg-f2 ease-in-out 0s);
+
           display: inline-block;
           border: 0;
           background: none;
@@ -128,18 +130,20 @@
       display: block !important;
 
       h2 {
-        margin: 0 0 5px 0;
+        margin: 0 0 5px;
       }
     }
 
     .wrapper-component-editor {
       @extend %ui-depth4;
+
       position: relative;
       background: $lightBluishGrey2;
     }
 
     .component-editor {
       @include edit-box;
+
       box-shadow: none;
       display: none;
       padding: 0;
@@ -147,17 +151,17 @@
 
       //Overrides general edit-box mixin
       .row {
-        margin-bottom: 0px;
+        margin-bottom: 0;
       }
 
       // This duplicates the styling from Unit page editing
       .module-actions {
         box-shadow: inset 0 1px 1px $shadow;
-        padding: 0px 0 10px 10px;
+        padding: 0 0 10px 10px;
         background-color: $gray-l6;
 
         .save-button {
-        margin: ($baseline/2) 8px 0 0;
+          margin: ($baseline/2) 8px 0 0;
         }
       }
     }
@@ -204,7 +208,9 @@
 
     .drag-handle {
       @extend %ui-depth1;
+
       @include right(0);
+
       position: absolute;
       display: block;
       top: 0;
@@ -228,7 +234,7 @@
 
     // uses similar styling as assets.scss, unit.scss
     .wrapper-component-action-header {
-      @include box-sizing(border-box);
+      box-sizing: border-box;
       position: absolute;
       width: 100%;
       padding: $baseline/4 $baseline/2;
@@ -243,9 +249,11 @@
     .component-actions,
     .course-nav-item-actions {
       display: inline-block;
+
       @include float(right);
       @include margin-right($baseline*2);
-      padding: 8px 0px;
+
+      padding: 8px 0;
       vertical-align: middle;
       text-align: center;
 
@@ -255,6 +263,7 @@
 
         .action-button {
           @include transition(all $tmg-f2 ease-in-out 0s);
+
           display: block;
           padding: 0 $baseline/2;
           width: auto;
@@ -284,7 +293,8 @@
           vertical-align: bottom;
         }
 
-        &.action-duplicate, &.action-move {
+        &.action-duplicate,
+        &.action-move {
           display: none;
         }
       }
@@ -298,13 +308,15 @@
 
     &.is-fixed {
       @extend %ui-disabled;
+
       @include transition(opacity $tmg-f2 ease-in-out 0s);
+
       opacity: 0.5;
     }
 
     .course-nav-item-header {
       display: inline-block;
-      width:80%;
+      width: 80%;
 
       .title {
         @extend %t-title4;
@@ -312,7 +324,8 @@
 
       .title-sub {
         @extend %t-title7;
-         color: $gray-l2;
+
+        color: $gray-l2;
       }
     }
 
@@ -337,7 +350,9 @@
 
   .xblock-student_view {
     @include transition(background-color $tmg-s3 linear 0s);
+
     @extend %t-title4;
+
     padding: 20px 20px 22px;
     background: $white;
   }
@@ -370,6 +385,7 @@
 
   .static-page-details {
     @extend %ui-window;
+
     padding: 32px 40px;
 
     .row {
@@ -379,13 +395,17 @@
 
   .page-display-name-input {
     @extend %t-copy-lead1;
+
     width: 100%;
   }
 
   .page-contents {
-    @include box-sizing(border-box);
-    @include linear-gradient(top, rgba(255, 255, 255, 0), rgba(255, 255, 255, .3));
+    box-sizing: border-box;
+
+    @include linear-gradient(top, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.3));
+
     @extend %t-copy-sub1;
+
     width: 100%;
     height: 360px;
     padding: 15px;

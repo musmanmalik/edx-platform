@@ -6,8 +6,10 @@
         'video/00_sjson.js',
         'video/00_async_process.js',
         'edx-ui-toolkit/js/utils/html-utils',
-        'draggabilly'
-    ], function(Sjson, AsyncProcess, HtmlUtils, Draggabilly) {
+        'draggabilly',
+        'time.js',
+        'underscore'
+    ], function(Sjson, AsyncProcess, HtmlUtils, Draggabilly, Time, _) {
         /**
          * @desc VideoCaption module exports a function.
          *
@@ -34,13 +36,15 @@
                 'previousLanguageMenuItem', 'nextLanguageMenuItem', 'handleCaptionToggle',
                 'showClosedCaptions', 'hideClosedCaptions', 'toggleClosedCaptions',
                 'updateCaptioningCookie', 'handleCaptioningCookie', 'handleTranscriptToggle',
-                'listenForDragDrop'
+                'listenForDragDrop', 'handleTranscriptCookie', 'updateTranscriptCookie'
             );
+
             this.state = state;
             this.state.videoCaption = this;
             this.renderElements();
             this.handleCaptioningCookie();
             this.listenForDragDrop();
+            this.handleTranscriptCookie();
 
             return $.Deferred().resolve().promise();
         };
@@ -53,11 +57,11 @@
                         'caption:fetch': this.fetchCaption,
                         'caption:resize': this.onResize,
                         'caption:update': this.onCaptionUpdate,
-                        'ended': this.pause,
-                        'fullscreen': this.onResize,
-                        'pause': this.pause,
-                        'play': this.play,
-                        'destroy': this.destroy
+                        ended: this.pause,
+                        fullscreen: this.onResize,
+                        pause: this.pause,
+                        play: this.play,
+                        destroy: this.destroy
                     })
                     .removeClass('is-captions-rendered');
                 if (this.fetchXHR && this.fetchXHR.abort) {
@@ -181,11 +185,11 @@
                         'caption:fetch': this.fetchCaption,
                         'caption:resize': this.onResize,
                         'caption:update': this.onCaptionUpdate,
-                        'ended': this.pause,
-                        'fullscreen': this.onResize,
-                        'pause': this.pause,
-                        'play': this.play,
-                        'destroy': this.destroy
+                        ended: this.pause,
+                        fullscreen: this.onResize,
+                        pause: this.pause,
+                        play: this.play,
+                        destroy: this.destroy
                     });
 
                 if ((state.videoType === 'html5') && (state.config.autohideHtml5)) {
@@ -206,6 +210,7 @@
                 case KEY.ENTER:
                     event.preventDefault();
                     this.toggleClosedCaptions(event);
+                // no default
                 }
             },
 
@@ -218,6 +223,7 @@
                 case KEY.ENTER:
                     event.preventDefault();
                     this.toggle(event);
+                // no default
                 }
             },
 
@@ -252,7 +258,9 @@
                 case KEY.ENTER:
                 case KEY.SPACE:
                     return true;
+                // no default
                 }
+                return true;
             },
 
             handleKeypress: function(event) {
@@ -271,6 +279,7 @@
                 case KEY.ESCAPE:
                     this.closeLanguageMenu(event);
                     break;
+                // no default
                 }
 
                 return event.keyCode === KEY.TAB;
@@ -321,10 +330,10 @@
             },
 
             openLanguageMenu: function(event) {
-                event.preventDefault();
-
                 var button = this.languageChooserEl,
                     menu = button.parent().find('.menu');
+
+                event.preventDefault();
 
                 button
                     .addClass('is-opened');
@@ -335,9 +344,8 @@
             },
 
             closeLanguageMenu: function(event) {
-                event.preventDefault();
-
                 var button = this.languageChooserEl;
+                event.preventDefault();
 
                 button
                     .removeClass('is-opened')
@@ -366,6 +374,7 @@
                 case 'keydown':
                     this.captionKeyDown(event);
                     break;
+                // no default
                 }
             },
 
@@ -476,8 +485,8 @@
                 var captions = results.captions;
 
                 return {
-                    'start': start,
-                    'captions': captions
+                    start: start,
+                    captions: captions
                 };
             },
 
@@ -530,10 +539,11 @@
                     notifyOnError: false,
                     data: data,
                     success: function(sjson) {
+                        var results, start, captions;
                         self.sjson = new Sjson(sjson);
-                        var results = self.getBoundedCaptions();
-                        var start = results.start;
-                        var captions = results.captions;
+                        results = self.getBoundedCaptions();
+                        start = results.start;
+                        captions = results.captions;
 
                         if (self.loaded) {
                             if (self.rendered) {
@@ -553,7 +563,7 @@
                             } else {
                                 self.renderCaption(start, captions);
                             }
-                            self.hideCaptions(state.hide_captions, false);
+                            self.hideCaptions(state.hideCaptions, false);
                             HtmlUtils.append(
                                 self.state.el.find('.video-wrapper').parent(),
                                 HtmlUtils.HTML(self.subtitlesEl)
@@ -667,7 +677,7 @@
                 if (_.keys(languages).length < 2) {
                     // Remove the menu toggle button
                     self.container.find('.lang').remove();
-                    return false;
+                    return;
                 }
 
                 this.showLanguageMenu = true;
@@ -697,11 +707,11 @@
 
                 $menu.on('click', '.control-lang', function(e) {
                     var el = $(e.currentTarget).parent(),
-                        state = self.state,
+                        captionState = self.state,
                         langCode = el.data('lang-code');
 
-                    if (state.lang !== langCode) {
-                        state.lang = langCode;
+                    if (captionState.lang !== langCode) {
+                        captionState.lang = langCode;
                         el.addClass('is-active')
                             .siblings('li')
                             .removeClass('is-active')
@@ -710,7 +720,7 @@
 
                         $(e.currentTarget).attr('aria-pressed', 'true');
 
-                        state.el.trigger('language_menu:change', [langCode]);
+                        captionState.el.trigger('language_menu:change', [langCode]);
                         self.fetchCaption();
 
                         // update the closed-captions lang attribute
@@ -737,10 +747,10 @@
             buildCaptions: function(container, start, captions) {
                 var process = function(text, index) {
                     var $spanEl = $('<span>', {
-                        'role': 'link',
+                        role: 'link',
                         'data-index': index,
                         'data-start': start[index],
-                        'tabindex': 0
+                        tabindex: 0
                     });
 
                     HtmlUtils.setHtml($($spanEl), HtmlUtils.HTML(text.toString()));
@@ -863,15 +873,14 @@
             *
             */
             captionMouseOverOut: function(event) {
-                var caption = $(event.target),
-                    captionIndex = parseInt(caption.attr('data-index'), 10);
+                var $caption = $(event.target),
+                    captionIndex = parseInt($caption.attr('data-index'), 10);
 
                 if (captionIndex === this.currentCaptionIndex) {
                     if (event.type === 'mouseover') {
-                        caption.removeClass('focused');
-                    }
-                    else { // mouseout
-                        caption.addClass('focused');
+                        $caption.removeClass('focused');
+                    } else { // mouseout
+                        $caption.addClass('focused');
                     }
                 }
             },
@@ -883,11 +892,11 @@
             *
             */
             captionMouseDown: function(event) {
-                var caption = $(event.target);
+                var $caption = $(event.target);
 
                 this.isMouseFocus = true;
                 this.autoScrolling = true;
-                caption.removeClass('focused');
+                $caption.removeClass('focused');
                 this.currentCaptionIndex = -1;
             },
 
@@ -908,9 +917,9 @@
             *
             */
             captionFocus: function(event) {
-                var caption = $(event.target),
-                    container = caption.parent(),
-                    captionIndex = parseInt(caption.attr('data-index'), 10);
+                var $caption = $(event.target),
+                    container = $caption.parent(),
+                    captionIndex = parseInt($caption.attr('data-index'), 10);
                 // If the focus comes from a mouse click, hide the outline, turn on
                 // automatic scrolling and set currentCaptionIndex to point outside of
                 // caption list (ie -1) to disable mouseenter, mouseleave behavior.
@@ -918,10 +927,10 @@
                     this.autoScrolling = true;
                     container.removeClass('focused');
                     this.currentCaptionIndex = -1;
-                }
-                // If the focus comes from tabbing, show the outline and turn off
-                // automatic scrolling.
-                else {
+                } else {
+                    // If the focus comes from tabbing, show the outline and turn off
+                    // automatic scrolling.
+
                     this.currentCaptionIndex = captionIndex;
                     container.addClass('focused');
                     // The second and second to last elements turn automatic scrolling
@@ -942,9 +951,9 @@
             *
             */
             captionBlur: function(event) {
-                var caption = $(event.target),
-                    container = caption.parent(),
-                    captionIndex = parseInt(caption.attr('data-index'), 10);
+                var $caption = $(event.target),
+                    container = $caption.parent(),
+                    captionIndex = parseInt($caption.attr('data-index'), 10);
 
                 container.removeClass('focused');
                 // If we are on first or last index, we have to turn automatic scroll
@@ -1030,7 +1039,7 @@
             */
             updatePlayTime: function(time) {
                 var state = this.state,
-                    params, newIndex;
+                    params, newIndex, times;
 
                 if (this.loaded) {
                     if (state.isFlashMode()) {
@@ -1038,7 +1047,7 @@
                     }
 
                     time = Math.round(time * 1000 + 100);
-                    var times = this.getStartEndTimes();
+                    times = this.getStartEndTimes();
                     // if start and end times are defined, limit search.
                     // else, use the entire list of video captions
                     params = [time].concat(times);
@@ -1084,8 +1093,8 @@
                 state.trigger(
                     'videoPlayer.onCaptionSeek',
                     {
-                        'type': 'onCaptionSeek',
-                        'time': time / 1000
+                        type: 'onCaptionSeek',
+                        time: time / 1000
                     }
                 );
 
@@ -1135,11 +1144,12 @@
             */
             toggle: function(event) {
                 event.preventDefault();
-
                 if (this.state.el.hasClass('closed')) {
                     this.hideCaptions(false, true, true);
+                    this.updateTranscriptCookie(true);
                 } else {
                     this.hideCaptions(true, true, true);
+                    this.updateTranscriptCookie(false);
                 }
             },
 
@@ -1173,6 +1183,7 @@
             },
 
             showClosedCaptions: function() {
+                var text = gettext('Hide closed captions');
                 this.state.el.addClass('has-captions');
 
                 this.captionDisplayEl
@@ -1182,7 +1193,8 @@
 
                 this.captionControlEl
                     .addClass('is-active')
-                    .attr('title', gettext('Hide closed captions'));
+                    .attr('title', text)
+                    .attr('aria-label', text);
 
                 if (this.subtitlesEl.find('.current').text()) {
                     this.captionDisplayEl
@@ -1196,6 +1208,7 @@
             },
 
             hideClosedCaptions: function() {
+                var text = gettext('Turn on closed captioning');
                 this.state.el.removeClass('has-captions');
 
                 this.captionDisplayEl
@@ -1204,7 +1217,8 @@
 
                 this.captionControlEl
                     .removeClass('is-active')
-                    .attr('title', gettext('Turn on closed captioning'));
+                    .attr('title', text)
+                    .attr('aria-label', text);
 
                 this.state.el.trigger('captions:hide');
             },
@@ -1221,13 +1235,37 @@
                     });
                 }
             },
+            handleTranscriptCookie: function() {
+                if ($.cookie('show_transcript') === null) {
+                    return;
+                }
+                if ($.cookie('show_transcript') !== 'false') {
+                    this.state.hideCaptions = false;
+                    // keep it going until turned off or in case of null initially change to true
+                    this.updateTranscriptCookie(true);
+                } else {
+                    this.state.hideCaptions = true;
+                }
+                this.hideCaptions(this.state.hideCaptions, true, true);
+            },
+            updateTranscriptCookie: function(showTranscript) {
+                if (showTranscript) {
+                    $.cookie('show_transcript', 'true', {
+                        expires: 3650,
+                        path: '/'
+                    });
+                } else {
+                    $.cookie('show_transcript', 'false', {
+                        path: '/'
+                    });
+                }
+            },
 
             listenForDragDrop: function() {
-                var captions = document.querySelector('.closed-captions'),
-                    draggable;
+                var captions = this.captionDisplayEl['0'];
 
                 if (typeof Draggabilly === 'function') {
-                    draggable = new Draggabilly(captions, {containment: true});
+                    new Draggabilly(captions, {containment: true});
                 } else {
                     console.log('Closed captioning available but not draggable');
                 }
@@ -1236,42 +1274,45 @@
             /**
             * @desc Shows/Hides captions and updates the cookie.
             *
-            * @param {boolean} hide_captions if `true` hides the caption,
+            * @param {boolean} hideCaptions if `true` hides the caption,
             *     otherwise - show.
-            * @param {boolean} update_cookie Flag to update or not the cookie.
+            * @param {boolean} updateCookie Flag to update or not the cookie.
             *
             */
-            hideCaptions: function(hide_captions, update_cookie, trigger_event) {
+            hideCaptions: function(hideCaptions, updateCookie, triggerEvent) {
                 var transcriptControlEl = this.transcriptControlEl,
-                    state = this.state, text;
+                    state = this.state,
+                    text;
 
-                if (typeof update_cookie === 'undefined') {
-                    update_cookie = true;
+                if (typeof updateCookie === 'undefined') {
+                    updateCookie = true;
                 }
 
-                if (hide_captions) {
+                if (hideCaptions) {
                     state.captionsHidden = true;
                     state.el.addClass('closed');
                     text = gettext('Turn on transcripts');
-                    if (trigger_event) {
+                    if (triggerEvent) {
                         this.state.el.trigger('transcript:hide');
                     }
 
                     transcriptControlEl
                         .removeClass('is-active')
-                        .attr('title', gettext(text));
+                        .attr('title', gettext(text))
+                        .attr('aria-label', text);
                 } else {
                     state.captionsHidden = false;
                     state.el.removeClass('closed');
                     this.scrollCaption();
                     text = gettext('Turn off transcripts');
-                    if (trigger_event) {
+                    if (triggerEvent) {
                         this.state.el.trigger('transcript:show');
                     }
 
                     transcriptControlEl
                         .addClass('is-active')
-                        .attr('title', gettext(text));
+                        .attr('title', gettext(text))
+                        .attr('aria-label', text);
                 }
 
                 if (state.resizer) {
@@ -1283,8 +1324,8 @@
                 }
 
                 this.setSubtitlesHeight();
-                if (update_cookie) {
-                    $.cookie('hide_captions', hide_captions, {
+                if (updateCookie) {
+                    $.cookie('hideCaptions', hideCaptions, {
                         expires: 3650,
                         path: '/'
                     });
@@ -1314,7 +1355,7 @@
                 var height = 0,
                     state = this.state;
                 // on page load captionHidden = undefined
-                if ((state.captionsHidden === undefined && state.hide_captions) ||
+                if ((state.captionsHidden === undefined && state.hideCaptions) ||
                     state.captionsHidden === true
                 ) {
                     // In case of html5 autoshowing subtitles, we adjust height of

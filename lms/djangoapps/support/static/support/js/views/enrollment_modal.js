@@ -21,6 +21,7 @@
             },
 
             render: function() {
+                // xss-lint: disable=javascript-jquery-html
                 this.$el.html(_.template(this.template)({
                     enrollment: this.enrollment,
                     modes: this.modes,
@@ -49,8 +50,7 @@
                 event.preventDefault();
                 if (!reason) {
                     this.showErrors(gettext('Please specify a reason.'));
-                }
-                else {
+                } else {
                     this.enrollment.updateEnrollment(new_mode, reason).then(
                         // Success callback
                         _.bind(function() {

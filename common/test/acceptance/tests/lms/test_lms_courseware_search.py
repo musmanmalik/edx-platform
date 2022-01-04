@@ -1,10 +1,9 @@
 """
 Test courseware search
 """
-import json
 
-from flaky import flaky
-from nose.plugins.attrib import attr
+
+import json
 
 from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
 from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
@@ -18,7 +17,6 @@ from common.test.acceptance.pages.studio.utils import add_html_component, type_i
 from common.test.acceptance.tests.helpers import UniqueCourseTest, remove_file
 
 
-@attr(shard=5)
 class CoursewareSearchTest(UniqueCourseTest):
     """
     Test courseware search.
@@ -42,6 +40,7 @@ class CoursewareSearchTest(UniqueCourseTest):
     EDITED_SEARCH_STRING = "edited"
 
     TEST_INDEX_FILENAME = "test_root/index_file.dat"
+    shard = 5
 
     def setUp(self):
         """
@@ -198,32 +197,3 @@ class CoursewareSearchTest(UniqueCourseTest):
 
         # Do the search again in the legacy sidebar, this time we expect results.
         self.assertTrue(self._search_for_content_in_sidebar(self.SEARCH_STRING, False))
-
-    @flaky  # TNL-5771
-    def test_reindex(self):
-        """
-        Make sure new content gets reindexed on button press.
-        """
-
-        # Create content in studio without publishing.
-        self._studio_add_content(1)
-
-        # Do a search, there should be no results shown.
-        self.assertFalse(self._search_for_content(self.EDITED_SEARCH_STRING))
-
-        # Publish in studio to trigger indexing, and edit chapter name afterwards.
-        self._studio_publish_content(1)
-
-        # Do a ReIndex from studio to ensure that our stuff is updated before the next stage of the test
-        self._studio_reindex()
-
-        # Search after publish, there should still be no results shown.
-        self.assertFalse(self._search_for_content(self.EDITED_SEARCH_STRING))
-
-        self._studio_edit_chapter_name(1)
-
-        # Do a ReIndex from studio to ensure that our stuff is updated before the next stage of the test
-        self._studio_reindex()
-
-        # Do the search again, this time we expect results.
-        self.assertTrue(self._search_for_content(self.EDITED_SEARCH_STRING))

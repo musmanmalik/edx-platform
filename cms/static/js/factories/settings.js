@@ -2,7 +2,7 @@ define([
     'jquery', 'js/models/settings/course_details', 'js/views/settings/main'
 ], function($, CourseDetailsModel, MainView) {
     'use strict';
-    return function(detailsUrl, showMinGradeWarning) {
+    return function(detailsUrl, showMinGradeWarning, showCertificateAvailableDate, upgradeDeadline) {
         var model;
         // highlighting labels when fields are focused in
         $('form :input')
@@ -15,6 +15,8 @@ define([
 
         model = new CourseDetailsModel();
         model.urlRoot = detailsUrl;
+        model.showCertificateAvailableDate = showCertificateAvailableDate;
+        model.set('upgrade_deadline', upgradeDeadline);
         model.fetch({
             success: function(model) {
                 var editor = new MainView({

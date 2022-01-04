@@ -3,15 +3,14 @@
 """
 Acceptance tests for Video.
 """
+
+
 import os
-from unittest import skip, skipIf
+from unittest import skipIf
 
 from ddt import data, ddt, unpack
-from flaky import flaky
 from mock import patch
-from nose.plugins.attrib import attr
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.by import By
+from six.moves import range
 
 from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
 from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
@@ -25,21 +24,23 @@ from common.test.acceptance.tests.helpers import (
     is_youtube_available,
     skip_if_browser
 )
+from openedx.core.lib.tests import attr
 
 VIDEO_SOURCE_PORT = 8777
+VIDEO_HOSTNAME = os.environ.get('BOK_CHOY_HOSTNAME', 'localhost')
 
 HTML5_SOURCES = [
-    'http://localhost:{0}/gizmo.mp4'.format(VIDEO_SOURCE_PORT),
-    'http://localhost:{0}/gizmo.webm'.format(VIDEO_SOURCE_PORT),
-    'http://localhost:{0}/gizmo.ogv'.format(VIDEO_SOURCE_PORT),
+    'http://{}:{}/gizmo.mp4'.format(VIDEO_HOSTNAME, VIDEO_SOURCE_PORT),
+    'http://{}:{}/gizmo.webm'.format(VIDEO_HOSTNAME, VIDEO_SOURCE_PORT),
+    'http://{}:{}/gizmo.ogv'.format(VIDEO_HOSTNAME, VIDEO_SOURCE_PORT),
 ]
 
 HTML5_SOURCES_INCORRECT = [
-    'http://localhost:{0}/gizmo.mp99'.format(VIDEO_SOURCE_PORT),
+    'http://{}:{}/gizmo.mp99'.format(VIDEO_HOSTNAME, VIDEO_SOURCE_PORT),
 ]
 
 HLS_SOURCES = [
-    'http://localhost:{0}/hls/history.m3u8'.format(VIDEO_SOURCE_PORT),
+    'http://{}:{}/hls/history.m3u8'.format(VIDEO_HOSTNAME, VIDEO_SOURCE_PORT),
 ]
 
 
@@ -55,7 +56,7 @@ class VideoBaseTest(UniqueCourseTest):
         Initialization of pages and course fixture for video tests
         """
         super(VideoBaseTest, self).setUp()
-        self.longMessage = True  # pylint: disable=invalid-name
+        self.longMessage = True
 
         self.video = VideoPage(self.browser)
         self.tab_nav = TabNavPage(self.browser)
@@ -130,7 +131,7 @@ class VideoBaseTest(UniqueCourseTest):
         :param vertical_index: index for the vertical display name
         :return: XBlockFixtureDesc
         """
-        xblock_course_vertical = XBlockFixtureDesc('vertical', 'Test Vertical-{0}'.format(vertical_index))
+        xblock_course_vertical = XBlockFixtureDesc('vertical', u'Test Vertical-{0}'.format(vertical_index))
 
         for video in vertical_contents:
             xblock_course_vertical.add_children(
@@ -216,7 +217,7 @@ class VideoBaseTest(UniqueCourseTest):
         self.video.wait_for_video_player_render()
 
 
-@attr(shard=4)
+@attr(shard=13)
 @ddt
 class YouTubeVideoTest(VideoBaseTest):
     """ Test YouTube Video Player """
@@ -247,7 +248,7 @@ class YouTubeVideoTest(VideoBaseTest):
         self.video.show_captions()
 
         # Verify that we see "好 各位同学" text in the transcript
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertIn(unicode_text, self.video.captions_text)
 
     def test_cc_button(self):
@@ -301,21 +302,6 @@ class YouTubeVideoTest(VideoBaseTest):
         self.navigate_to_video()
         self.assertFalse(self.video.is_button_shown('transcript_button'))
 
-    def test_fullscreen_video_alignment_with_transcript_hidden(self):
-        """
-        Scenario: Video is aligned with transcript hidden in fullscreen mode
-        Given the course has a Video component in "Youtube" mode
-        When I view the video at fullscreen
-        Then the video with the transcript hidden is aligned correctly
-        """
-        self.navigate_to_video()
-
-        # click video button "fullscreen"
-        self.video.click_player_button('fullscreen')
-
-        # check if video aligned correctly without enabled transcript
-        self.assertTrue(self.video.is_aligned(False))
-
     def test_download_button_wo_english_transcript(self):
         """
         Scenario: Download button works correctly w/o english transcript in YouTube mode
@@ -332,7 +318,7 @@ class YouTubeVideoTest(VideoBaseTest):
         self.navigate_to_video()
 
         # check if we can download transcript in "srt" format that has text "好 各位同学"
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertTrue(self.video.downloaded_transcript_contains_text('srt', unicode_text))
 
     def test_download_button_two_transcript_languages(self):
@@ -363,44 +349,12 @@ class YouTubeVideoTest(VideoBaseTest):
         self.assertTrue(self.video.select_language('zh'))
 
         # check if we see "好 各位同学" text in the captions
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertIn(unicode_text, self.video.captions_text)
 
         # check if we can download transcript in "srt" format that has text "好 各位同学"
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertTrue(self.video.downloaded_transcript_contains_text('srt', unicode_text))
-
-    def test_fullscreen_video_alignment_on_transcript_toggle(self):
-        """
-        Scenario: Video is aligned correctly on transcript toggle in fullscreen mode
-        Given the course has a Video component in "Youtube" mode
-        And I have uploaded a .srt.sjson file to assets
-        And I have defined subtitles for the video
-        When I view the video at fullscreen
-        Then the video with the transcript enabled is aligned correctly
-        And the video with the transcript hidden is aligned correctly
-        """
-        self.assets.append('subs_3_yD_cEKoCk.srt.sjson')
-        data = {'sub': '3_yD_cEKoCk'}
-        self.metadata = self.metadata_for_mode('youtube', additional_data=data)
-
-        # go to video
-        self.navigate_to_video()
-
-        # make sure captions are opened
-        self.video.show_captions()
-
-        # click video button "fullscreen"
-        self.video.click_player_button('fullscreen')
-
-        # check if video aligned correctly with enabled transcript
-        self.assertTrue(self.video.is_aligned(True))
-
-        # click video button "transcript"
-        self.video.click_player_button('transcript_button')
-
-        # check if video aligned correctly without enabled transcript
-        self.assertTrue(self.video.is_aligned(False))
 
     def test_video_rendering_with_default_response_time(self):
         """
@@ -566,38 +520,6 @@ class YouTubeVideoTest(VideoBaseTest):
             timeout=5
         )
 
-    def test_video_language_menu_working(self):
-        """
-        Scenario: Language menu works correctly in Video component
-        Given the course has a Video component in "Youtube" mode
-        And I have defined multiple language transcripts for the videos
-        And I make sure captions are closed
-        And I see video menu "language" with correct items
-        And I select language with code "zh"
-        Then I see "好 各位同学" text in the captions
-        And I select language with code "en"
-        Then I see "Welcome to edX." text in the captions
-        """
-        self.assets.extend(['chinese_transcripts.srt', 'subs_3_yD_cEKoCk.srt.sjson'])
-        data = {'transcripts': {"zh": "chinese_transcripts.srt"}, 'sub': '3_yD_cEKoCk'}
-        self.metadata = self.metadata_for_mode('youtube', additional_data=data)
-
-        # go to video
-        self.navigate_to_video()
-
-        self.video.hide_captions()
-
-        correct_languages = {'en': 'English', 'zh': 'Chinese'}
-        self.assertEqual(self.video.caption_languages, correct_languages)
-
-        self.video.select_language('zh')
-
-        unicode_text = "好 各位同学".decode('utf-8')
-        self._verify_caption_text(unicode_text)
-
-        self.video.select_language('en')
-        self._verify_caption_text('Welcome to edX.')
-
     def test_video_language_menu_working_closed_captions(self):
         """
         Scenario: Language menu works correctly in Video component, checks closed captions
@@ -631,48 +553,9 @@ class YouTubeVideoTest(VideoBaseTest):
         self._verify_closed_caption_text('Welcome to edX.')
 
         self.video.select_language('zh')
-        unicode_text = "我们今天要讲的题目是".decode('utf-8')
+        unicode_text = u"我们今天要讲的题目是"
         self.video.click_transcript_line(line_no=1)
         self._verify_closed_caption_text(unicode_text)
-
-    def test_multiple_videos_in_sequentials_load_and_work(self):
-        """
-        Scenario: Multiple videos in sequentials all load and work, switching between sequentials
-        Given it has videos "A,B" in "Youtube" mode in position "1" of sequential
-        And videos "C,D" in "Youtube" mode in position "2" of sequential
-        """
-        self.contents_of_verticals = [
-            [{'display_name': 'A'}, {'display_name': 'B'}],
-            [{'display_name': 'C'}, {'display_name': 'D'}]
-        ]
-
-        tab1_video_names = ['A', 'B']
-        tab2_video_names = ['C', 'D']
-
-        def execute_video_steps(video_names):
-            """
-            Execute video steps
-            """
-            for video_name in video_names:
-                self.video.use_video(video_name)
-                self.video.click_player_button('play')
-                self.assertIn(self.video.state, ['playing', 'buffering'])
-                self.video.click_player_button('pause')
-
-        # go to video
-        self.navigate_to_video()
-        execute_video_steps(tab1_video_names)
-
-        # go to second sequential position
-        # import ipdb; ipdb.set_trace()
-        self.go_to_sequential_position(2)
-        execute_video_steps(tab2_video_names)
-
-        # go back to first sequential position
-        # we are again playing tab 1 videos to ensure that switching didn't broke some video functionality.
-        # import ipdb; ipdb.set_trace()
-        self.go_to_sequential_position(1)
-        execute_video_steps(tab1_video_names)
 
     def test_video_component_stores_speed_correctly_for_multiple_videos(self):
         """
@@ -801,36 +684,6 @@ class YouTubeVideoTest(VideoBaseTest):
 
         self.assertGreaterEqual(self.video.seconds, 3)
 
-    @skip("Intermittently fails 03 June 2014")
-    def test_video_position_stored_correctly_with_seek(self):
-        """
-        Scenario: Video component stores position correctly when page is reloaded
-        Given the course has a Video component in "Youtube" mode
-        Then the video has rendered in "Youtube" mode
-        And I click video button "play""
-        And I click video button "pause"
-        Then I seek video to "0:10" position
-        And I click video button "play""
-        And I click video button "pause"
-        And I reload the page with video
-        Then video slider should be Equal or Greater than "0:10"
-
-        """
-        self.navigate_to_video()
-
-        self.video.click_player_button('play')
-
-        self.video.seek('0:10')
-
-        self.video.click_player_button('pause')
-
-        self.video.reload_page()
-
-        self.video.click_player_button('play')
-        self.video.click_player_button('pause')
-
-        self.assertGreaterEqual(self.video.seconds, 10)
-
     def test_simplified_and_traditional_chinese_transcripts(self):
         """
         Scenario: Simplified and Traditional Chinese transcripts work as expected in Youtube mode
@@ -852,100 +705,20 @@ class YouTubeVideoTest(VideoBaseTest):
         self.assets.extend(['simplified_chinese.srt', 'traditional_chinese.srt'])
         self.navigate_to_video()
 
-        langs = {'zh_HANS': '在线学习是革', 'zh_HANT': '在線學習是革'}
-        for lang_code, text in langs.items():
+        langs = {'zh_HANS': u'在线学习是革', 'zh_HANT': u'在線學習是革'}
+        for lang_code, unicode_text in langs.items():
+            self.video.scroll_to_button("transcript_button")
             self.assertTrue(self.video.select_language(lang_code))
-            unicode_text = text.decode('utf-8')
             self.assertIn(unicode_text, self.video.captions_text)
             self.assertTrue(self.video.downloaded_transcript_contains_text('srt', unicode_text))
 
         self.assertEqual(self.video.caption_languages, {'zh_HANS': 'Simplified Chinese', 'zh_HANT': 'Traditional Chinese'})
 
-    @skip('Failing on master; To see remove is_youtube_available() form base class')
-    def test_video_bumper_render(self):
-        """
-        Scenario: Multiple videos with bumper in sequentials all load and work, switching between sequentials
-        Given it has videos "A,B" in "Youtube" and "HTML5" modes in position "1" of sequential
-        And video "C" in "Youtube" mode in position "2" of sequential
-        When I open sequential position "1"
-        Then I see video "B" has a poster
-        When I click on it
-        Then I see video bumper is playing
-        When I skip the bumper
-        Then I see the main video
-        When I click on video "A"
-        Then the main video starts playing
-        When I open sequential position "2"
-        And click on the poster
-        Then the main video starts playing
-        Then I see that the main video starts playing once I go back to position "2" of sequential
-        When I reload the page
-        Then I see that the main video starts playing when I click on the poster
-        """
-        additional_data = {
-            u'video_bumper': {
-                u'value': {
-                    "transcripts": {},
-                    "video_id": "video_001"
-                }
-            }
-        }
 
-        self.contents_of_verticals = [
-            [{'display_name': 'A'}, {'display_name': 'B', 'metadata': self.metadata_for_mode('html5')}],
-            [{'display_name': 'C'}]
-        ]
-
-        tab1_video_names = ['A', 'B']
-        tab2_video_names = ['C']
-
-        def execute_video_steps(video_names):
-            """
-            Execute video steps
-            """
-            for video_name in video_names:
-                self.video.use_video(video_name)
-                self.assertTrue(self.video.is_poster_shown)
-                self.video.click_on_poster()
-                self.video.wait_for_video_player_render(autoplay=True)
-                self.assertIn(self.video.state, ['playing', 'buffering', 'finished'])
-
-        self.course_fixture.add_advanced_settings(additional_data)
-        self.navigate_to_video_no_render()
-
-        self.video.use_video('B')
-        self.assertTrue(self.video.is_poster_shown)
-        self.video.click_on_poster()
-        self.video.wait_for_video_bumper_render()
-        self.assertIn(self.video.state, ['playing', 'buffering', 'finished'])
-        self.video.click_player_button('skip_bumper')
-
-        # no autoplay here, maybe video is too small, so pause is not switched
-        self.video.wait_for_video_player_render()
-        self.assertIn(self.video.state, ['playing', 'buffering', 'finished'])
-
-        self.video.use_video('A')
-        execute_video_steps(['A'])
-
-        # go to second sequential position
-        self.courseware_page.go_to_sequential_position(2)
-
-        execute_video_steps(tab2_video_names)
-
-        # go back to first sequential position
-        # we are again playing tab 1 videos to ensure that switching didn't broke some video functionality.
-        self.courseware_page.go_to_sequential_position(1)
-        execute_video_steps(tab1_video_names)
-
-        self.video.browser.refresh()
-        execute_video_steps(tab1_video_names)
-
-
-@attr(shard=4)
+@attr(shard=13)
 class YouTubeHtml5VideoTest(VideoBaseTest):
     """ Test YouTube HTML5 Video Player """
 
-    @flaky  # TODO fix this, see TNL-1642
     def test_youtube_video_rendering_with_unsupported_sources(self):
         """
         Scenario: Video component is rendered in the LMS in Youtube mode
@@ -960,7 +733,7 @@ class YouTubeHtml5VideoTest(VideoBaseTest):
         self.assertTrue(self.video.is_video_rendered('youtube'))
 
 
-@attr(shard=4)
+@attr(shard=19)
 class Html5VideoTest(VideoBaseTest):
     """ Test HTML5 Video Player """
 
@@ -1015,11 +788,11 @@ class Html5VideoTest(VideoBaseTest):
         self.navigate_to_video()
 
         # check if we see "好 各位同学" text in the captions
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertIn(unicode_text, self.video.captions_text)
 
         # check if we can download transcript in "srt" format that has text "好 各位同学"
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertTrue(self.video.downloaded_transcript_contains_text('srt', unicode_text))
 
     def test_download_button_two_transcript_languages(self):
@@ -1052,39 +825,13 @@ class Html5VideoTest(VideoBaseTest):
         self.assertTrue(self.video.select_language('zh'))
 
         # check if we see "好 各位同学" text in the captions
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
 
         self.assertIn(unicode_text, self.video.captions_text)
 
         # Then I can download transcript in "srt" format that has text "好 各位同学"
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertTrue(self.video.downloaded_transcript_contains_text('srt', unicode_text))
-
-    def test_full_screen_video_alignment_with_transcript_visible(self):
-        """
-        Scenario: Video is aligned correctly with transcript enabled in fullscreen mode
-        Given the course has a Video component in "HTML5" mode
-        And I have uploaded a .srt.sjson file to assets
-        And I have defined subtitles for the video
-        When I show the captions
-        And I view the video at fullscreen
-        Then the video with the transcript enabled is aligned correctly
-        """
-        self.assets.append('subs_3_yD_cEKoCk.srt.sjson')
-        data = {'sub': '3_yD_cEKoCk'}
-        self.metadata = self.metadata_for_mode('html5', additional_data=data)
-
-        # go to video
-        self.navigate_to_video()
-
-        # make sure captions are opened
-        self.video.show_captions()
-
-        # click video button "fullscreen"
-        self.video.click_player_button('fullscreen')
-
-        # check if video aligned correctly with enabled transcript
-        self.assertTrue(self.video.is_aligned(True))
 
     def test_cc_button_with_english_transcript(self):
         """
@@ -1126,7 +873,7 @@ class Html5VideoTest(VideoBaseTest):
         self.video.show_captions()
 
         # check if we see "好 各位同学" text in the captions
-        unicode_text = "好 各位同学".decode('utf-8')
+        unicode_text = u"好 各位同学"
         self.assertIn(unicode_text, self.video.captions_text)
 
     def test_video_rendering(self):
@@ -1145,7 +892,7 @@ class Html5VideoTest(VideoBaseTest):
         self.assertTrue(all([source in HTML5_SOURCES for source in self.video.sources]))
 
 
-@attr(shard=4)
+@attr(shard=13)
 class YouTubeQualityTest(VideoBaseTest):
     """ Test YouTube Video Quality Button """
 
@@ -1191,51 +938,8 @@ class YouTubeQualityTest(VideoBaseTest):
         self.video.wait_for(lambda: self.video.is_quality_button_active, 'waiting for quality button activation')
 
 
-@attr(shard=4)
-class DragAndDropTest(VideoBaseTest):
-    """
-    Tests draggability of closed captions within videos.
-    """
-    def test_if_captions_are_draggable(self):
-        """
-        Loads transcripts so that closed-captioning is available.
-        Ensures they are draggable by checking start and dropped location.
-        """
-        self.assets.append('subs_3_yD_cEKoCk.srt.sjson')
-        data = {'sub': '3_yD_cEKoCk'}
-
-        self.metadata = self.metadata_for_mode('html5', additional_data=data)
-        self.navigate_to_video()
-        self.assertTrue(self.video.is_video_rendered('html5'))
-        self.video.show_closed_captions()
-        self.video.wait_for_closed_captions()
-        self.assertTrue(self.video.is_closed_captions_visible)
-
-        action = ActionChains(self.browser)
-        captions = self.browser.find_element(By.CLASS_NAME, 'closed-captions')
-
-        captions_start = captions.location
-        action.drag_and_drop_by_offset(captions, 0, -15).perform()
-
-        captions_end = captions.location
-        # We have to branch here due to unexpected behaviour of chrome.
-        # Chrome sets the y offset of element to 834 instead of 650
-        if self.browser.name == 'chrome':
-            self.assertEqual(
-                captions_end.get('y') - 168,
-                captions_start.get('y'),
-                'Closed captions did not get dragged.'
-            )
-        else:
-            self.assertEqual(
-                captions_end.get('y') + 16,
-                captions_start.get('y'),
-                'Closed captions did not get dragged.'
-            )
-
-
 @attr('a11y')
-class LMSVideoModuleA11yTest(VideoBaseTest):
+class LMSVideoBlockA11yTest(VideoBaseTest):
     """
     LMS Video Accessibility Test Class
     """
@@ -1252,7 +956,7 @@ class LMSVideoModuleA11yTest(VideoBaseTest):
             browser = 'firefox'
 
         with patch.dict(os.environ, {'SELENIUM_BROWSER': browser}):
-            super(LMSVideoModuleA11yTest, self).setUp()
+            super(LMSVideoBlockA11yTest, self).setUp()
 
     def test_video_player_a11y(self):
         # load transcripts so we can test skipping to
@@ -1271,7 +975,7 @@ class LMSVideoModuleA11yTest(VideoBaseTest):
         self.video.a11y_audit.check_for_accessibility_errors()
 
 
-@attr(shard=4)
+@attr(shard=11)
 class VideoPlayOrderTest(VideoBaseTest):
     """
     Test video play order with multiple videos
@@ -1315,7 +1019,7 @@ class VideoPlayOrderTest(VideoBaseTest):
         self.assertTrue(self.video.is_video_rendered('hls'))
 
 
-@attr(shard=4)
+@attr(shard=11)
 class HLSVideoTest(VideoBaseTest):
     """
     Tests related to HLS video
@@ -1333,7 +1037,7 @@ class HLSVideoTest(VideoBaseTest):
         self.navigate_to_video()
 
         self.video.click_player_button('play')
-        self.assertEqual(self.video.state, 'playing')
+        self.assertIn(self.video.state, ['buffering', 'playing'])
         self.video.click_player_button('pause')
         self.assertEqual(self.video.state, 'pause')
 
@@ -1353,27 +1057,6 @@ class HLSVideoTest(VideoBaseTest):
         self.video.click_player_button('pause')
         self.video.seek('0:05')
         self.assertEqual(self.video.position, '0:05')
-
-    def test_video_position_save_state(self):
-        """
-        Scenario: Video position save state functionality is working as expected for hls video
-
-        Given the course has a Video component with only HLS source available.
-        When I view the Video component
-        Then I can see video save state is working as expected
-        """
-        self.metadata = self.metadata_for_mode('hls')
-        self.navigate_to_video()
-
-        self.video.click_player_button('play')
-        self.video.wait_for_position('0:04')
-        self.video.click_player_button('pause')
-        self.assertEqual(self.video.position, '0:04')
-        self.video.reload_page()
-        self.assertEqual(self.video.duration, '0:09')
-        self.assertEqual(self.video.position, '0:04')
-        self.video.click_player_button('play')
-        self.assertGreaterEqual(self.video.seconds, 4)
 
     def test_video_download_link(self):
         """
@@ -1404,22 +1087,6 @@ class HLSVideoTest(VideoBaseTest):
         # Verify that the video download url is not shown
         self.assertEqual(self.video.video_download_url, None)
 
-    def test_hls_video_with_youtube_blocked(self):
-        """
-        Scenario: HLS video is rendered when the YouTube API is blocked
-        Given the YouTube API is blocked
-        And the course has a Video component with Youtube, HTML5 and HLS sources available
-        Then the HLS video is rendered
-        """
-        # configure youtube server
-        self.youtube_configuration.update({
-            'youtube_api_blocked': True,
-        })
-
-        self.metadata = self.metadata_for_mode('html5_and_hls', additional_data={'youtube_id_1_0': 'b7xgknqkQk8'})
-        self.navigate_to_video()
-        self.assertTrue(self.video.is_video_rendered('hls'))
-
     def test_hls_video_with_youtube_delayed_response_time(self):
         """
         Scenario: HLS video is rendered when the YouTube API response time is slow
@@ -1443,6 +1110,7 @@ class HLSVideoTest(VideoBaseTest):
         Given the course has a Video component with "HLS" video only
         And I have defined a transcript for the video
         Then I see the correct text in the captions for transcript
+        Then I play, pause and seek to 0:00
         Then I click on a caption line
         And video position should be updated accordingly
         Then I change video position
@@ -1455,10 +1123,16 @@ class HLSVideoTest(VideoBaseTest):
 
         self.assertIn("Hi, edX welcomes you0.", self.video.captions_text)
 
-        for line_no in range(5):
-            self.video.click_transcript_line(line_no=line_no)
-            self.video.wait_for_position('0:0{}'.format(line_no))
+        # This is required to load the video
+        self.video.click_player_button('play')
+        # Below 2 steps are required to test the caption line click scenario
+        self.video.click_player_button('pause')
+        self.video.seek('0:00')
 
         for line_no in range(5):
-            self.video.seek('0:0{}'.format(line_no))
-            self.assertEqual(self.video.active_caption_text, 'Hi, edX welcomes you{}.'.format(line_no))
+            self.video.click_transcript_line(line_no=line_no)
+            self.video.wait_for_position(u'0:0{}'.format(line_no))
+
+        for line_no in range(5):
+            self.video.seek(u'0:0{}'.format(line_no))
+            self.assertEqual(self.video.active_caption_text, u'Hi, edX welcomes you{}.'.format(line_no))

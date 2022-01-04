@@ -1,47 +1,49 @@
 """
 Tests for the API functions in the credit app.
 """
+
+
 import datetime
 import json
 
 import ddt
-from django.contrib.auth.models import User
-from django.core import mail
-from django.test.utils import override_settings
-from django.db import connection
-from nose.plugins.attrib import attr
 import httpretty
-from lms.djangoapps.commerce.tests import TEST_API_URL
 import mock
 import pytz
+import six
+from django.contrib.auth.models import User
+from django.core import mail
+from django.db import connection
+from django.test.utils import override_settings
 from opaque_keys.edx.keys import CourseKey
+
+from course_modes.models import CourseMode
+from lms.djangoapps.commerce.tests import TEST_API_URL
 from openedx.core.djangoapps.credit import api
-from openedx.core.djangoapps.credit.email_utils import get_credit_provider_display_names, make_providers_strings
+from openedx.core.djangoapps.credit.email_utils import get_credit_provider_attribute_values, make_providers_strings
 from openedx.core.djangoapps.credit.exceptions import (
-    InvalidCreditRequirements,
-    InvalidCreditCourse,
-    RequestAlreadyCompleted,
-    UserIsNotEligible,
-    InvalidCreditStatus,
     CreditRequestNotFound,
+    InvalidCreditCourse,
+    InvalidCreditRequirements,
+    InvalidCreditStatus,
+    RequestAlreadyCompleted,
+    UserIsNotEligible
 )
 from openedx.core.djangoapps.credit.models import (
     CreditConfig,
     CreditCourse,
-    CreditProvider,
-    CreditRequirement,
-    CreditRequirementStatus,
     CreditEligibility,
-    CreditRequest
+    CreditProvider,
+    CreditRequest,
+    CreditRequirement,
+    CreditRequirementStatus
 )
 from openedx.core.djangolib.testing.utils import skip_unless_lms
-from course_modes.models import CourseMode
 from student.models import CourseEnrollment
 from student.tests.factories import UserFactory
 from util.date_utils import from_timestamp
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-
 
 TEST_CREDIT_PROVIDER_SECRET_KEY = "931433d583c84ca7ba41784bad3232e6"
 TEST_ECOMMERCE_WORKER = 'test_worker'
@@ -156,9 +158,10 @@ class CreditApiTestBase(ModuleStoreTestCase):
         ]
     }
 
-    def setUp(self, **kwargs):
+    def setUp(self):
         super(CreditApiTestBase, self).setUp()
-        self.course_key = CourseKey.from_string("edX/DemoX/Demo_Course")
+        self.course = CourseFactory.create(org="edx", course="DemoX", run="Demo_Course")
+        self.course_key = self.course.id
 
     def add_credit_course(self, course_key=None, enabled=True):
         """Mark the course as a credit """
@@ -195,13 +198,12 @@ class CreditApiTestBase(ModuleStoreTestCase):
         """ Mock GET requests to the ecommerce course API endpoint. """
         httpretty.reset()
         httpretty.register_uri(
-            httpretty.GET, '{}/courses/{}/?include_products=1'.format(TEST_API_URL, unicode(course_key)),
+            httpretty.GET, '{}/courses/{}/?include_products=1'.format(TEST_API_URL, six.text_type(course_key)),
             status=status,
             body=json.dumps(body), content_type='application/json',
         )
 
 
-@attr(shard=2)
 @skip_unless_lms
 @ddt.ddt
 class CreditRequirementApiTests(CreditApiTestBase):
@@ -428,15 +430,14 @@ class CreditRequirementApiTests(CreditApiTestBase):
         eligibilities = api.get_eligibilities_for_user("staff")
         self.assertEqual(eligibilities, [])
 
-    def assert_grade_requirement_status(self, expected_status, expected_order):
+    def assert_grade_requirement_status(self, expected_status, expected_sort_value):
         """ Assert the status and order of the grade requirement. """
         req_status = api.get_credit_requirement_status(self.course_key, self.user, namespace="grade", name="grade")
         self.assertEqual(req_status[0]["status"], expected_status)
-        self.assertEqual(req_status[0]["order"], expected_order)
+        self.assertEqual(req_status[0]["order"], expected_sort_value)
         return req_status
 
     def _set_credit_course_requirements(self):
-
         """
         Sets requirements for the credit course.
 
@@ -631,8 +632,6 @@ class CreditRequirementApiTests(CreditApiTestBase):
         # Configure a course with two credit requirements
         self.add_credit_course()
         user = self.create_and_enroll_user(username=self.USER_INFO['username'], password=self.USER_INFO['password'])
-        CourseFactory.create(org='edX', number='DemoX', display_name='Demo_Course')
-
         requirements = [
             {
                 "namespace": "grade",
@@ -652,7 +651,7 @@ class CreditRequirementApiTests(CreditApiTestBase):
         api.set_credit_requirements(self.course_key, requirements)
 
         # Satisfy one of the requirements, but not the other
-        with self.assertNumQueries(12):
+        with self.assertNumQueries(11):
             api.set_credit_requirement_status(
                 user,
                 self.course_key,
@@ -664,7 +663,7 @@ class CreditRequirementApiTests(CreditApiTestBase):
         self.assertFalse(api.is_user_eligible_for_credit(user.username, self.course_key))
 
         # Satisfy the other requirement
-        with self.assertNumQueries(24):
+        with self.assertNumQueries(22):
             api.set_credit_requirement_status(
                 user,
                 self.course_key,
@@ -718,7 +717,7 @@ class CreditRequirementApiTests(CreditApiTestBase):
         # Delete the eligibility entries and satisfy the user's eligibility
         # requirement again to trigger eligibility notification
         CreditEligibility.objects.all().delete()
-        with self.assertNumQueries(16):
+        with self.assertNumQueries(15):
             api.set_credit_requirement_status(
                 user,
                 self.course_key,
@@ -822,7 +821,6 @@ class CreditRequirementApiTests(CreditApiTestBase):
         # Configure a course with two credit requirements
         self.add_credit_course()
         user = self.create_and_enroll_user(username=self.USER_INFO['username'], password=self.USER_INFO['password'])
-        CourseFactory.create(org='edX', number='DemoX', display_name='Demo_Course')
         requirements = [
             {
                 "namespace": "grade",
@@ -849,7 +847,9 @@ class CreditRequirementApiTests(CreditApiTestBase):
             requirements[0]["name"]
         )
         # Satisfy the other requirement. And mocked the api to return different kind of data.
-        with mock.patch('openedx.core.djangoapps.credit.email_utils.get_credit_provider_display_names') as mock_method:
+        with mock.patch(
+            'openedx.core.djangoapps.credit.email_utils.get_credit_provider_attribute_values'
+        ) as mock_method:
             mock_method.return_value = providers_list
             api.set_credit_requirement_status(
                 user,
@@ -876,7 +876,6 @@ class CreditRequirementApiTests(CreditApiTestBase):
         self.assertIn(providers_email_message, text_content_first)
 
 
-@attr(shard=2)
 @ddt.ddt
 class CreditProviderIntegrationApiTests(CreditApiTestBase):
     """
@@ -980,7 +979,7 @@ class CreditProviderIntegrationApiTests(CreditApiTestBase):
         self.assertEqual(parameters['course_org'], self.course_key.org)
         self.assertEqual(parameters['course_num'], self.course_key.course)
         self.assertEqual(parameters['course_run'], self.course_key.run)
-        self.assertEqual(parameters['final_grade'], unicode(self.FINAL_GRADE))
+        self.assertEqual(parameters['final_grade'], six.text_type(self.FINAL_GRADE))
 
         # Validate user information
         for key in self.USER_INFO.keys():
@@ -1050,15 +1049,13 @@ class CreditProviderIntegrationApiTests(CreditApiTestBase):
         # - 1 query: Look up the user's enrollment date in the course.
         # - 2 query: Look up the user's completion date in the course.
         # - 1 query: Update the request.
-        # - 2 queries: Update the history table for the request.
         # - 4 Django savepoints
-        with self.assertNumQueries(16):
+        with self.assertNumQueries(14):
             request = api.create_credit_request(self.course_key, self.PROVIDER_ID, self.USER_INFO['username'])
 
         # - 2 queries: Retrieve and update the request
-        # - 1 query: Update the history table for the request.
         uuid = request["parameters"]["request_uuid"]
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             api.update_credit_request_status(uuid, self.PROVIDER_ID, "approved")
 
         with self.assertNumQueries(1):
@@ -1132,7 +1129,7 @@ class CreditProviderIntegrationApiTests(CreditApiTestBase):
         # Simulate users who registered accounts before the country field was introduced.
         # We need to manipulate the database directly because the country Django field
         # coerces None values to empty strings.
-        query = "UPDATE auth_userprofile SET country = NULL WHERE id = %s"
+        query = u"UPDATE auth_userprofile SET country = NULL WHERE id = %s"
         connection.cursor().execute(query, [str(self.user.profile.id)])
 
         # Request should include an empty country field
@@ -1205,7 +1202,6 @@ class CreditProviderIntegrationApiTests(CreditApiTestBase):
         self.assertEqual(statuses[0]["status"], expected_status)
 
 
-@attr(shard=2)
 @skip_unless_lms
 @override_settings(
     ECOMMERCE_API_URL=TEST_API_URL,
@@ -1214,6 +1210,7 @@ class CreditProviderIntegrationApiTests(CreditApiTestBase):
 @ddt.ddt
 class CourseApiTests(CreditApiTestBase):
     """Test Python API for course product information."""
+
     def setUp(self):
         super(CourseApiTests, self).setUp()
         self.worker_user = User.objects.create_user(username=TEST_ECOMMERCE_WORKER)
@@ -1238,7 +1235,7 @@ class CourseApiTests(CreditApiTestBase):
     def test_get_credit_provider_display_names_method(self):
         """Verify that parsed providers list is returns after getting course production information."""
         self._mock_ecommerce_courses_api(self.course_key, self.COURSE_API_RESPONSE)
-        response_providers = get_credit_provider_display_names(self.course_key)
+        response_providers = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertListEqual(self.PROVIDERS_LIST, response_providers)
 
     @httpretty.activate
@@ -1246,7 +1243,7 @@ class CourseApiTests(CreditApiTestBase):
     def test_get_credit_provider_display_names_method_with_exception(self, mock_init):
         """Verify that in case of any exception it logs the error and return."""
         mock_init.side_effect = Exception
-        response = get_credit_provider_display_names(self.course_key)
+        response = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertTrue(mock_init.called)
         self.assertEqual(response, None)
 
@@ -1257,11 +1254,11 @@ class CourseApiTests(CreditApiTestBase):
         self._mock_ecommerce_courses_api(self.course_key, self.COURSE_API_RESPONSE)
 
         # Warm up the cache.
-        response_providers = get_credit_provider_display_names(self.course_key)
+        response_providers = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertListEqual(self.PROVIDERS_LIST, response_providers)
 
         # Hit the cache.
-        response_providers = get_credit_provider_display_names(self.course_key)
+        response_providers = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertListEqual(self.PROVIDERS_LIST, response_providers)
 
         # Verify only one request was made.
@@ -1276,10 +1273,10 @@ class CourseApiTests(CreditApiTestBase):
 
         self._mock_ecommerce_courses_api(self.course_key, self.COURSE_API_RESPONSE)
 
-        response_providers = get_credit_provider_display_names(self.course_key)
+        response_providers = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertListEqual(self.PROVIDERS_LIST, response_providers)
 
-        response_providers = get_credit_provider_display_names(self.course_key)
+        response_providers = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertListEqual(self.PROVIDERS_LIST, response_providers)
 
         self.assertEqual(len(httpretty.httpretty.latest_requests), 2)
@@ -1316,7 +1313,7 @@ class CourseApiTests(CreditApiTestBase):
     @ddt.unpack
     def test_get_provider_api_with_multiple_data(self, data, expected_data):
         self._mock_ecommerce_courses_api(self.course_key, data)
-        response_providers = get_credit_provider_display_names(self.course_key)
+        response_providers = get_credit_provider_attribute_values(self.course_key, 'display_name')
         self.assertEqual(expected_data, response_providers)
 
     @httpretty.activate
@@ -1324,7 +1321,7 @@ class CourseApiTests(CreditApiTestBase):
         """Verify that if all providers are in-active than method return empty list."""
         self._mock_ecommerce_courses_api(self.course_key, self.COURSE_API_RESPONSE)
         CreditProvider.objects.all().update(active=False)
-        self.assertEqual(get_credit_provider_display_names(self.course_key), [])
+        self.assertEqual(get_credit_provider_attribute_values(self.course_key, 'display_name'), [])
 
     @ddt.data(None, ['asu'], ['asu', 'co'], ['asu', 'co', 'mit'])
     def test_make_providers_strings(self, providers):

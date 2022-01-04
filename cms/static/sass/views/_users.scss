@@ -4,8 +4,9 @@
 .view-team {
 
   // LAYOUT: page
-  .content-primary, .content-supplementary {
-    @include box-sizing(border-box);
+  .content-primary,
+  .content-supplementary {
+    box-sizing: border-box;
   }
 
   .content-primary {
@@ -18,9 +19,9 @@
 
   // ELEM: content
   .content {
-
     .introduction {
       @extend %t-copy-sub1;
+
       margin: 0 0 ($baseline*2) 0;
     }
   }
@@ -32,8 +33,8 @@
 
     // CASE: notice has actions {
     &.has-actions {
-
-      .msg, .list-actions {
+      .msg,
+      .list-actions {
         display: inline-block;
         vertical-align: middle;
       }
@@ -48,12 +49,9 @@
         text-align: right;
         margin-top: 0;
 
-        .action-item {
-
-        }
-
         .action-primary {
           @extend %btn-primary-green;
+
           padding: ($baseline/2) $baseline;
         }
       }
@@ -63,22 +61,25 @@
 
   // ELEM: new user form
   .wrapper-create-user {
-
     &.is-shown {
       height: ($baseline*15);
     }
   }
 
   // ELEM: listing of users
-  .user-list, .user-item, .item-metadata, .item-actions {
-    @include box-sizing(border-box);
+  .user-list,
+  .user-item,
+  .item-metadata,
+  .item-actions {
+    box-sizing: border-box;
   }
 
   .user-list {
-
     .user-item {
       @extend %ui-window;
+
       @include clearfix();
+
       position: relative;
       width: flex-grid(9, 9);
       margin: 0 0 ($baseline/2) 0;
@@ -88,7 +89,8 @@
         margin-bottom: 0;
       }
 
-      .item-metadata, .item-actions {
+      .item-metadata,
+      .item-actions {
         display: inline-block;
         vertical-align: middle;
       }
@@ -96,16 +98,18 @@
       // ELEM: item - flag
       .flag-role {
         @extend %ui-badge;
+
         color: $white;
 
         .msg-you {
           @extend %t-strong;
+
           margin-left: ($baseline/5);
           text-transform: none;
           color: $pink-l3;
         }
 
-        &:after {
+        &::after {
           border-bottom-color: $pink-d4;
         }
 
@@ -127,19 +131,24 @@
 
       // ELEM: item - metadata
       .item-metadata {
-        width: flex-grid(5, 9);
+        width: flex-grid(4, 9);
+
         @include margin-right(flex-gutter());
 
-        .user-username, .user-email {
+        .user-username,
+        .user-email {
           display: inline-block;
           vertical-align: middle;
         }
 
         .user-username {
           @include transition(color $tmg-f2 ease-in-out 0s);
+
           @extend %t-title4;
           @extend %t-strong;
+
           @include margin(0, ($baseline/2), ($baseline/10), 0);
+
           color: $gray-d4;
         }
 
@@ -165,23 +174,29 @@
 
           .add-admin-role {
             @include blue-button;
-            @include transition(all .15s);
+            @include transition(all 0.15s);
+
             @extend %t-action2;
             @extend %t-strong;
+
             display: inline-block;
             padding: ($baseline/5) $baseline;
           }
 
           .remove-admin-role {
             @include grey-button;
-            @include transition(all .15s);
+            @include transition(all 0.15s);
+
             @extend %t-action2;
             @extend %t-strong;
+
             display: inline-block;
             padding: ($baseline/5) $baseline;
           }
+
           .notoggleforyou {
             @extend %t-copy-sub1;
+
             color: $gray-l2;
           }
         }
@@ -191,7 +206,7 @@
 
           // STATE: disabled
           &.is-disabled {
-            opacity: 0.0;
+            opacity: 0;
             visibility: hidden;
             pointer-events: none;
           }
@@ -206,21 +221,6 @@
           margin-right: 0;
           float: none;
           color: inherit;
-        }
-      }
-
-      // STATE: hover
-      &:hover {
-
-        .user-username {
-        }
-
-        .user-email {
-
-        }
-
-        .item-actions {
-
         }
       }
     }

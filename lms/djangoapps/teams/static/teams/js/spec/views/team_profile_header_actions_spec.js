@@ -21,37 +21,52 @@ define([
                 id: teamId,
                 name: teamName,
                 membership: membership,
-                url: createTeamsUrl(teamId)
+                url: createTeamsUrl(teamId),
+                topic_id: 'topic-id'
             };
         };
 
-        createHeaderActionsView = function(requests, maxTeamSize, currentUsername, teamModelData, showEditButton) {
-            var model = new TeamModel(teamModelData, {parse: true}),
-                context = TeamSpecHelpers.createMockContext({
-                    maxTeamSize: maxTeamSize,
-                    userInfo: TeamSpecHelpers.createMockUserInfo({
-                        username: currentUsername
-                    })
-                });
+        createHeaderActionsView =
+            function(
+                requests,
+                courseMaxTeamSize,
+                currentUsername,
+                teamModelData,
+                showEditButton,
+                isInstructorManagedTopic,
+                topicMaxTeamSize
+            ) {
+                var model = new TeamModel(teamModelData, {parse: true}),
+                    context = TeamSpecHelpers.createMockContext({
+                        courseMaxTeamSize: courseMaxTeamSize,
+                        userInfo: TeamSpecHelpers.createMockUserInfo({
+                            username: currentUsername
+                        })
+                    }),
+                    topicOptions = typeof topicMaxTeamSize !== 'undefined' ?
+                        {max_team_size: topicMaxTeamSize} : {},
+                    topic = isInstructorManagedTopic ?
+                        TeamSpecHelpers.createMockInstructorManagedTopic(topicOptions) :
+                        TeamSpecHelpers.createMockTopic(topicOptions);
 
-            return new TeamProfileHeaderActionsView(
-                {
-                    courseID: TeamSpecHelpers.testCourseID,
-                    teamEvents: TeamSpecHelpers.teamEvents,
-                    context: context,
-                    model: model,
-                    topic: TeamSpecHelpers.createMockTopic(),
-                    showEditButton: showEditButton
-                }
-            ).render();
-        };
+                return new TeamProfileHeaderActionsView(
+                    {
+                        courseID: TeamSpecHelpers.testCourseID,
+                        teamEvents: TeamSpecHelpers.teamEvents,
+                        context: context,
+                        model: model,
+                        topic: topic,
+                        showEditButton: showEditButton
+                    }
+                ).render();
+            };
 
         createMembershipData = function(username) {
             return [
                 {
-                    'user': {
-                        'username': username,
-                        'url': ACCOUNTS_API_URL + username
+                    user: {
+                        username: username,
+                        url: ACCOUNTS_API_URL + username
                     }
                 }
             ];
@@ -60,7 +75,12 @@ define([
         describe('JoinButton', function() {
             beforeEach(function() {
                 setFixtures(
-                    '<div class="teams-content"><div class="msg-content"><div class="copy"></div></div><div class="header-action-view"></div></div>'
+                    '<div class="teams-content">\n' +
+                        '<div class="msg-content">\n' +
+                            '<div class="copy"></div>\n' +
+                        '</div>\n' +
+                        '<div class="header-action-view"></div>\n' +
+                    '</div>'
                 );
             });
 
@@ -68,7 +88,7 @@ define([
                 var view = createHeaderActionsView(requests, 1, 'ma', createTeamModelData('teamA', 'teamAlpha', []));
                 if (joinTeam) {
                     // if we want the error to return when user try to join team, respond with no membership
-                    AjaxHelpers.respondWithJson(requests, {'count': 0});
+                    AjaxHelpers.respondWithJson(requests, {count: 0});
                     view.$('.action.action-primary').click();
                 }
                 AjaxHelpers.respondWithTextError(requests, 400, errorMessage);
@@ -97,12 +117,14 @@ define([
                     requests,
                     'GET',
                     TeamSpecHelpers.testContext.teamMembershipsUrl + '?' + $.param({
-                        'username': currentUsername, 'course_id': TeamSpecHelpers.testCourseID
+                        username: currentUsername,
+                        course_id: TeamSpecHelpers.testCourseID,
+                        teamset_id: 'topic-id'
                     })
                 );
 
                 // current user is not a member of any team so we should see the Join Team button
-                AjaxHelpers.respondWithJson(requests, {'count': 0});
+                AjaxHelpers.respondWithJson(requests, {count: 0});
                 expect(view.$('.action.action-primary').length).toEqual(1);
 
                 // a post request will be sent to add current user to current team
@@ -111,7 +133,7 @@ define([
                     requests,
                     'POST',
                     TeamSpecHelpers.testContext.teamMembershipsUrl,
-                    $.param({'username': currentUsername, 'team_id': teamId})
+                    $.param({username: currentUsername, team_id: teamId})
                 );
                 AjaxHelpers.respondWithJson(requests, {});
 
@@ -134,7 +156,9 @@ define([
             it('shows already member message', function() {
                 var requests = AjaxHelpers.requests(this);
                 var currentUsername = 'ma1';
-                var view = createHeaderActionsView(requests, 1, currentUsername, createTeamModelData('teamA', 'teamAlpha', []));
+                var view =
+                    createHeaderActionsView(
+                        requests, 1, currentUsername, createTeamModelData('teamA', 'teamAlpha', []));
 
                 // a get request will be sent to get user membership info
                 // because current user is not member of current team
@@ -142,14 +166,16 @@ define([
                     requests,
                     'GET',
                     TeamSpecHelpers.testContext.teamMembershipsUrl + '?' + $.param({
-                        'username': currentUsername, 'course_id': TeamSpecHelpers.testCourseID
+                        username: currentUsername,
+                        course_id: TeamSpecHelpers.testCourseID,
+                        teamset_id: 'topic-id'
                     })
                 );
 
                 // current user is a member of another team so we should see the correct message
-                AjaxHelpers.respondWithJson(requests, {'count': 1});
+                AjaxHelpers.respondWithJson(requests, {count: 1});
                 expect(view.$('.action.action-primary').length).toEqual(0);
-                expect(view.$('.join-team-message').text().trim()).toBe(view.alreadyMemberMessage);
+                expect(view.$('.join-team-message').text().trim()).toBe(view.alreadyTeamsetMemberMessage);
             });
 
             it('shows team full message', function() {
@@ -170,13 +196,111 @@ define([
                 AjaxHelpers.expectNoRequests(requests);
             });
 
+            it('correctly resolves teamset-level max_size and course-level max_size', function() {
+                var requests = AjaxHelpers.requests(this);
+                var currentUsername = 'ma1';
+                // Teamset maxSize = 2, Course maxSize = 1
+                var view = createHeaderActionsView(
+                    requests,
+                    1,
+                    'ma1',
+                    createTeamModelData('teamA', 'teamAlpha', createMembershipData('ma')),
+                    false,
+                    false,
+                    2
+                );
+
+                // Team should not be considered full with one member
+                AjaxHelpers.expectRequest(
+                    requests,
+                    'GET',
+                    TeamSpecHelpers.testContext.teamMembershipsUrl + '?' + $.param({
+                        username: currentUsername,
+                        course_id: TeamSpecHelpers.testCourseID,
+                        teamset_id: 'topic-id'
+                    })
+                );
+
+                // User is not a member of any teams
+                AjaxHelpers.respondWithJson(requests, {count: 0});
+
+                // Course-level size is 1, but Teamset size is 2, so that should take precedence
+                // and we should see the Join Team Button
+                expect(view.$('.action.action-primary').length).toEqual(1);
+            });
+
+            it('behaves correctly if the teamset max size is set to 0', function() {
+                var requests = AjaxHelpers.requests(this);
+                var currentUsername = 'ma1';
+                // Teamset = 0, Course = 2
+                var view = createHeaderActionsView(
+                    requests,
+                    2,
+                    'ma1',
+                    createTeamModelData('teamA', 'teamAlpha', createMembershipData('ma')),
+                    false,
+                    false,
+                    0
+                );
+
+                // Team should not be considered full
+                AjaxHelpers.expectRequest(
+                    requests,
+                    'GET',
+                    TeamSpecHelpers.testContext.teamMembershipsUrl + '?' + $.param({
+                        username: currentUsername,
+                        course_id: TeamSpecHelpers.testCourseID,
+                        teamset_id: 'topic-id'
+                    })
+                );
+
+                // User is not a member of any teams
+                AjaxHelpers.respondWithJson(requests, {count: 0});
+
+                // Course-level size is 1 and Teamset size is 0, so course-level value should be used
+                // and we should see the Join Team Button
+                expect(view.$('.action.action-primary').length).toEqual(1);
+            });
+
+            it('shows not join instructor managed team message', function() {
+                var requests = AjaxHelpers.requests(this);
+                var currentUsername = 'ma1';
+                var view = createHeaderActionsView(
+                    requests,
+                    1,
+                    currentUsername,
+                    createTeamModelData('teamA', 'teamAlpha', []),
+                    false,
+                    true);
+
+                // a get request will be sent to get user membership info
+                // because current user is not member of current team
+                AjaxHelpers.expectRequest(
+                    requests,
+                    'GET',
+                    TeamSpecHelpers.testContext.teamMembershipsUrl + '?' + $.param({
+                        username: currentUsername,
+                        course_id: TeamSpecHelpers.testCourseID,
+                        teamset_id: 'topic-id'
+                    })
+                );
+
+                // Mock the response so that current user is not a member of any team
+                AjaxHelpers.respondWithJson(requests, {count: 0});
+
+                // current user is a student and current team belogs to an instructor managed topic
+                // so the Join Team button is hidden and we should see the correct message
+                expect(view.$('.action.action-primary').length).toEqual(0);
+                expect(view.$('.join-team-message').text().trim()).toBe(view.notJoinInstructorManagedTeam);
+            });
+
             it('shows correct error message if user fails to join team', function() {
                 var requests = AjaxHelpers.requests(this);
 
                 // verify user_message
                 verifyErrorMessage(
                     requests,
-                    JSON.stringify({'user_message': "Can't be made member"}),
+                    JSON.stringify({user_message: "Can't be made member"}),
                     "Can't be made member",
                     true
                 );
@@ -192,7 +316,7 @@ define([
                 // verify error message when json parsing succeeded but error message format is incorrect
                 verifyErrorMessage(
                     requests,
-                    JSON.stringify({'blah': "Can't be made member"}),
+                    JSON.stringify({blah: "Can't be made member"}),
                     'An error occurred. Try again.',
                     true
                 );
@@ -204,7 +328,7 @@ define([
                 // verify user_message
                 verifyErrorMessage(
                     requests,
-                    JSON.stringify({'user_message': "Can't return user memberships"}),
+                    JSON.stringify({user_message: "Can't return user memberships"}),
                     "Can't return user memberships",
                     false
                 );
@@ -241,10 +365,11 @@ define([
             });
 
             it('can navigate to correct url', function() {
-                var requests = AjaxHelpers.requests(this);
+                var requests = AjaxHelpers.requests(this),
+                    editButton;
                 spyOn(Backbone.history, 'navigate');
                 createAndAssertView(requests, true);
-                var editButton = view.$('.action-edit-team');
+                editButton = view.$('.action-edit-team');
 
                 expect(editButton.length).toEqual(1);
                 $(editButton).click();

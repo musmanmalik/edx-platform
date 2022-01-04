@@ -4,7 +4,9 @@
 .discussion, .discussion-body, .discussion-module, .discussion-course {
   .post-label {
     @include margin($baseline/4, $baseline/2, 0, 0);
+
     @extend %t-light;
+
     font-size: $forum-small-font-size;
     display: inline;
     white-space: nowrap;
@@ -48,7 +50,6 @@
     font-size: $forum-small-font-size;
     white-space: nowrap;
   }
-
 }
 
 // Make post labels tighter when shown inside the left nav

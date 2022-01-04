@@ -1,33 +1,32 @@
 """
 Views related to the Custom Courses feature.
 """
+
+
 import csv
 import datetime
 import functools
 import json
 import logging
 from copy import deepcopy
-from cStringIO import StringIO
+from six import StringIO
 
 import pytz
+import six
 from ccx_keys.locator import CCXLocator
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import ensure_csrf_cookie
 from opaque_keys.edx.keys import CourseKey
 
-from courseware.access import has_access
-from courseware.courses import get_course_by_id
-from courseware.field_overrides import disable_overrides
-from django_comment_common.models import FORUM_ROLE_ADMINISTRATOR, assign_role
-from django_comment_common.utils import seed_permissions_roles
+from lms.djangoapps.courseware.courses import get_course_by_id
 from edxmako.shortcuts import render_to_response
 from lms.djangoapps.ccx.models import CustomCourseForEdX
 from lms.djangoapps.ccx.overrides import (
@@ -36,6 +35,7 @@ from lms.djangoapps.ccx.overrides import (
     get_override_for_ccx,
     override_field_for_ccx
 )
+from lms.djangoapps.ccx.permissions import VIEW_CCX_COACH_DASHBOARD
 from lms.djangoapps.ccx.utils import (
     add_master_course_staff_to_ccx,
     assign_staff_role_to_ccx,
@@ -45,13 +45,15 @@ from lms.djangoapps.ccx.utils import (
     get_ccx_creation_dict,
     get_ccx_for_coach,
     get_date,
-    parse_date,
-    prep_course_for_grading
+    get_enrollment_action_and_identifiers,
+    parse_date
 )
-from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.courseware.field_overrides import disable_overrides
+from lms.djangoapps.grades.api import CourseGradeFactory
 from lms.djangoapps.instructor.enrollment import enroll_email, get_email_params
-from lms.djangoapps.instructor.views.api import _split_input_list
 from lms.djangoapps.instructor.views.gradebook_api import get_grade_book_page
+from openedx.core.djangoapps.django_comment_common.models import FORUM_ROLE_ADMINISTRATOR, assign_role
+from openedx.core.djangoapps.django_comment_common.utils import seed_permissions_roles
 from student.models import CourseEnrollment
 from student.roles import CourseCcxCoachRole
 from xmodule.modulestore.django import SignalHandler
@@ -88,10 +90,7 @@ def coach_dashboard(view):
         if not course.enable_ccx:
             raise Http404
         else:
-            is_staff = has_access(request.user, 'staff', course)
-            is_instructor = has_access(request.user, 'instructor', course)
-
-            if is_staff or is_instructor:
+            if bool(request.user.has_perm(VIEW_CCX_COACH_DASHBOARD, course)):
                 # if user is staff or instructor then he can view ccx coach dashboard.
                 return view(request, course, ccx)
             else:
@@ -124,7 +123,7 @@ def dashboard(request, course, ccx=None):
         if ccx:
             url = reverse(
                 'ccx_coach_dashboard',
-                kwargs={'course_id': CCXLocator.from_course_locator(course.id, unicode(ccx.id))}
+                kwargs={'course_id': CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))}
             )
             return redirect(url)
 
@@ -135,7 +134,7 @@ def dashboard(request, course, ccx=None):
     context.update(get_ccx_creation_dict(course))
 
     if ccx:
-        ccx_locator = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+        ccx_locator = CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
         # At this point we are done with verification that current user is ccx coach.
         assign_staff_role_to_ccx(ccx_locator, request.user, course.id)
         schedule = get_ccx_schedule(course, ccx)
@@ -200,6 +199,8 @@ def create_ccx(request, course, ccx=None):
 
     # Enforce a static limit for the maximum amount of students that can be enrolled
     override_field_for_ccx(ccx, course, 'max_student_enrollments_allowed', settings.CCX_MAX_STUDENTS_ALLOWED)
+    # Save display name explicitly
+    override_field_for_ccx(ccx, course, 'display_name', name)
 
     # Hide anything that can show up in the schedule
     hidden = 'visible_to_staff_only'
@@ -210,7 +211,7 @@ def create_ccx(request, course, ccx=None):
             for vertical in sequential.get_children():
                 override_field_for_ccx(ccx, vertical, hidden, True)
 
-    ccx_id = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+    ccx_id = CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
 
     # Create forum roles
     seed_permissions_roles(ccx_id)
@@ -235,10 +236,10 @@ def create_ccx(request, course, ccx=None):
     # using CCX object as sender here.
     responses = SignalHandler.course_published.send(
         sender=ccx,
-        course_key=CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+        course_key=CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
     )
     for rec, response in responses:
-        log.info('Signal fired when course is published. Receiver: %s. Response: %s', rec, response)
+        log.info(u'Signal fired when course is published. Receiver: %s. Response: %s', rec, response)
 
     return redirect(url)
 
@@ -311,7 +312,7 @@ def save_ccx(request, course, ccx=None):
         return earliest, ccx_ids_to_delete
 
     graded = {}
-    earliest, ccx_ids_to_delete = override_fields(course, json.loads(request.body), graded, [])
+    earliest, ccx_ids_to_delete = override_fields(course, json.loads(request.body.decode('utf8')), graded, [])
     bulk_delete_ccx_override_fields(ccx, ccx_ids_to_delete)
     if earliest:
         override_field_for_ccx(ccx, course, 'start', earliest)
@@ -334,10 +335,10 @@ def save_ccx(request, course, ccx=None):
     # using CCX object as sender here.
     responses = SignalHandler.course_published.send(
         sender=ccx,
-        course_key=CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+        course_key=CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
     )
     for rec, response in responses:
-        log.info('Signal fired when course is published. Receiver: %s. Response: %s', rec, response)
+        log.info(u'Signal fired when course is published. Receiver: %s. Response: %s', rec, response)
 
     return HttpResponse(
         json.dumps({
@@ -363,14 +364,14 @@ def set_grading_policy(request, course, ccx=None):
     # using CCX object as sender here.
     responses = SignalHandler.course_published.send(
         sender=ccx,
-        course_key=CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+        course_key=CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
     )
     for rec, response in responses:
-        log.info('Signal fired when course is published. Receiver: %s. Response: %s', rec, response)
+        log.info(u'Signal fired when course is published. Receiver: %s. Response: %s', rec, response)
 
     url = reverse(
         'ccx_coach_dashboard',
-        kwargs={'course_id': CCXLocator.from_course_locator(course.id, unicode(ccx.id))}
+        kwargs={'course_id': CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))}
     )
     return redirect(url)
 
@@ -445,7 +446,7 @@ def get_ccx_schedule(course, ccx):
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def ccx_schedule(request, course, ccx=None):  # pylint: disable=unused-argument
+def ccx_schedule(request, course, ccx=None):
     """
     get json representation of ccx schedule
     """
@@ -460,41 +461,16 @@ def ccx_schedule(request, course, ccx=None):  # pylint: disable=unused-argument
 @ensure_csrf_cookie
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 @coach_dashboard
-def ccx_invite(request, course, ccx=None):
+def ccx_students_management(request, course, ccx=None):
     """
-    Invite users to new ccx
-    """
-    if not ccx:
-        raise Http404
-
-    action = request.POST.get('enrollment-button')
-    identifiers_raw = request.POST.get('student-ids')
-    identifiers = _split_input_list(identifiers_raw)
-    email_students = 'email-students' in request.POST
-    course_key = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
-    email_params = get_email_params(course, auto_enroll=True, course_key=course_key, display_name=ccx.display_name)
-
-    ccx_students_enrolling_center(action, identifiers, email_students, course_key, email_params, ccx.coach)
-
-    url = reverse('ccx_coach_dashboard', kwargs={'course_id': course_key})
-    return redirect(url)
-
-
-@ensure_csrf_cookie
-@cache_control(no_cache=True, no_store=True, must_revalidate=True)
-@coach_dashboard
-def ccx_student_management(request, course, ccx=None):
-    """
-    Manage the enrollment of individual students in a CCX
+    Manage the enrollment of the students in a CCX
     """
     if not ccx:
         raise Http404
 
-    action = request.POST.get('student-action', None)
-    student_id = request.POST.get('student-id', '')
+    action, identifiers = get_enrollment_action_and_identifiers(request)
     email_students = 'email-students' in request.POST
-    identifiers = [student_id]
-    course_key = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+    course_key = CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
     email_params = get_email_params(course, auto_enroll=True, course_key=course_key, display_name=ccx.display_name)
 
     errors = ccx_students_enrolling_center(action, identifiers, email_students, course_key, email_params, ccx.coach)
@@ -517,9 +493,8 @@ def ccx_gradebook(request, course, ccx=None):
     if not ccx:
         raise Http404
 
-    ccx_key = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+    ccx_key = CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
     with ccx_course(ccx_key) as course:
-        prep_course_for_grading(course, request)
         student_info, page = get_grade_book_page(request, course, course_key=ccx_key)
 
         return render_to_response('courseware/gradebook.html', {
@@ -530,7 +505,7 @@ def ccx_gradebook(request, course, ccx=None):
             'course_id': course.id,
             'staff_access': request.user.is_staff,
             'ordered_grades': sorted(
-                course.grade_cutoffs.items(), key=lambda i: i[1], reverse=True),
+                list(course.grade_cutoffs.items()), key=lambda i: i[1], reverse=True),
         })
 
 
@@ -545,9 +520,8 @@ def ccx_grades_csv(request, course, ccx=None):
     if not ccx:
         raise Http404
 
-    ccx_key = CCXLocator.from_course_locator(course.id, unicode(ccx.id))
+    ccx_key = CCXLocator.from_course_locator(course.id, six.text_type(ccx.id))
     with ccx_course(ccx_key) as course:
-        prep_course_for_grading(course, request)
 
         enrolled_students = User.objects.filter(
             courseenrollment__course_id=ccx_key,
@@ -564,7 +538,7 @@ def ccx_grades_csv(request, course, ccx=None):
                 if not header:
                     # Encode the header row in utf-8 encoding in case there are
                     # unicode characters
-                    header = [section['label'].encode('utf-8')
+                    header = [section['label'].encode('utf-8') if six.PY2 else section['label']
                               for section in course_grade.summary[u'section_breakdown']]
                     rows.append(["id", "email", "username", "grade"] + header)
 
@@ -575,7 +549,8 @@ def ccx_grades_csv(request, course, ccx=None):
                 }
 
                 row_percents = [percents.get(label, 0.0) for label in header]
-                rows.append([student.id, student.email, student.username,
+                rows.append([student.id, student.email.encode('utf-8'),
+                             student.username.encode('utf-8'),
                              course_grade.percent] + row_percents)
 
         buf = StringIO()

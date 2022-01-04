@@ -1,4 +1,10 @@
+"""
+Utility methods for instructor tasks
+"""
+
+
 from eventtracking import tracker
+
 from lms.djangoapps.instructor_task.models import ReportStore
 from util.file import course_filename_prefix_generator
 
@@ -13,9 +19,31 @@ UPDATE_STATUS_FAILED = 'failed'
 UPDATE_STATUS_SKIPPED = 'skipped'
 
 
+def get_report_info(csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD'):
+    """
+    Returns ReportStore and Report Name.
+
+    Arguments:
+        csv_name: Name of the resulting CSV
+        course_id: ID of the course
+
+    Returns:
+        report_stroe: ReportStore - Instance of report store
+        report_name: string - Name of the generated report
+    """
+    report_store = ReportStore.from_config(config_name)
+    report_name = u"{course_prefix}_{csv_name}_{timestamp_str}.csv".format(
+        course_prefix=course_filename_prefix_generator(course_id),
+        csv_name=csv_name,
+        timestamp_str=timestamp.strftime("%Y-%m-%d-%H%M")
+    )
+    return report_store, report_name
+
+
 def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name='GRADES_DOWNLOAD'):
     """
     Upload data as a CSV using ReportStore.
+
     Arguments:
         rows: CSV data in the following format (first column may be a
             header):
@@ -25,15 +53,11 @@ def upload_csv_to_report_store(rows, csv_name, course_id, timestamp, config_name
             ]
         csv_name: Name of the resulting CSV
         course_id: ID of the course
+
     Returns:
         report_name: string - Name of the generated report
     """
-    report_store = ReportStore.from_config(config_name)
-    report_name = u"{course_prefix}_{csv_name}_{timestamp_str}.csv".format(
-        course_prefix=course_filename_prefix_generator(course_id),
-        csv_name=csv_name,
-        timestamp_str=timestamp.strftime("%Y-%m-%d-%H%M")
-    )
+    report_store, report_name = get_report_info(csv_name, course_id, timestamp, config_name)
 
     report_store.store_rows(course_id, report_name, rows)
     tracker_emit(csv_name)

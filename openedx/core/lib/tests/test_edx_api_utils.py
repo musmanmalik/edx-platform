@@ -1,20 +1,15 @@
 """Tests covering edX API utilities."""
 # pylint: disable=missing-docstring
+
 import json
 
 import httpretty
 import mock
-import waffle
 from django.core.cache import cache
-from django.test.utils import override_settings
-from edx_oauth2_provider.tests.factories import ClientFactory
-from nose.plugins.attrib import attr
-from provider.constants import CONFIDENTIAL
 
 from openedx.core.djangoapps.catalog.models import CatalogIntegration
 from openedx.core.djangoapps.catalog.tests.mixins import CatalogIntegrationMixin
 from openedx.core.djangoapps.catalog.utils import create_catalog_api_client
-from openedx.core.djangoapps.credentials.models import CredentialsApiConfig
 from openedx.core.djangoapps.credentials.tests.mixins import CredentialsApiConfigMixin
 from openedx.core.djangolib.testing.utils import CacheIsolationTestCase, skip_unless_lms
 from openedx.core.lib.edx_api_utils import get_edx_api_data
@@ -25,7 +20,6 @@ TEST_API_URL = 'http://www-internal.example.com/api'
 
 
 @skip_unless_lms
-@attr(shard=2)
 @httpretty.activate
 class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, CacheIsolationTestCase):
     """Tests for edX API data retrieval utility."""
@@ -36,6 +30,7 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
 
         self.user = UserFactory()
 
+        httpretty.httpretty.reset()
         cache.clear()
 
     def _mock_catalog_api(self, responses, url=None):
@@ -64,7 +59,7 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
             [httpretty.Response(body=json.dumps(data), content_type='application/json')]
         )
 
-        with mock.patch('openedx.core.lib.edx_api_utils.EdxRestApiClient.__init__') as mock_init:
+        with mock.patch('edx_rest_api_client.client.EdxRestApiClient.__init__') as mock_init:
             actual_collection = get_edx_api_data(catalog_integration, 'programs', api=api)
 
             # Verify that the helper function didn't initialize its own client.
@@ -74,7 +69,6 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
         # Verify the API was actually hit (not the cache)
         self._assert_num_requests(1)
 
-    @waffle.testutils.override_switch("populate-multitenant-programs", True)
     def test_get_paginated_data(self):
         """Verify that paginated data can be retrieved."""
         catalog_integration = self.create_catalog_integration()
@@ -102,7 +96,6 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
 
         self._assert_num_requests(len(expected_collection))
 
-    @waffle.testutils.override_switch("populate-multitenant-programs", True)
     def test_get_paginated_data_do_not_traverse_pagination(self):
         """
         Verify that pagination is not traversed if traverse_pagination=False is passed as argument.
@@ -131,7 +124,6 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
         self.assertEqual(actual_collection, expected_response)
         self._assert_num_requests(1)
 
-    @waffle.testutils.override_switch("populate-multitenant-programs", True)
     def test_get_specific_resource(self):
         """Verify that a specific resource can be retrieved."""
         catalog_integration = self.create_catalog_integration()
@@ -155,7 +147,6 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
 
         self._assert_num_requests(1)
 
-    @waffle.testutils.override_switch("populate-multitenant-programs", True)
     def test_get_specific_resource_with_falsey_id(self):
         """
         Verify that a specific resource can be retrieved, and pagination parsing is
@@ -185,7 +176,46 @@ class TestGetEdxApiData(CatalogIntegrationMixin, CredentialsApiConfigMixin, Cach
 
         self._assert_num_requests(1)
 
-    @waffle.testutils.override_switch("populate-multitenant-programs", True)
+    def test_get_specific_fields_from_cache_response(self):
+        """Verify that resource response is cached and get required fields from cached response"""
+        catalog_integration = self.create_catalog_integration(cache_ttl=5)
+        api = create_catalog_api_client(self.user)
+
+        response = {'lang': 'en', 'weeks_to_complete': '5'}
+
+        resource_id = 'course-v1:testX+testABC+1T2019'
+        url = '{api_root}/course_runs/{resource_id}/'.format(
+            api_root=CatalogIntegration.current().get_internal_api_url().strip('/'),
+            resource_id=resource_id,
+        )
+
+        expected_resource_for_lang = {'lang': 'en'}
+        expected_resource_for_weeks_to_complete = {'weeks_to_complete': '5'}
+
+        self._mock_catalog_api(
+            [httpretty.Response(body=json.dumps(response), content_type='application/json')],
+            url=url
+        )
+
+        cache_key = CatalogIntegration.current().CACHE_KEY
+
+        # get response and set the cache.
+        actual_resource_for_lang = get_edx_api_data(
+            catalog_integration, 'course_runs', resource_id=resource_id, api=api, cache_key=cache_key, fields=['lang']
+        )
+        self.assertEqual(actual_resource_for_lang, expected_resource_for_lang)
+
+        # Hit the cache
+        actual_resource = get_edx_api_data(
+            catalog_integration, 'course_runs', api=api, resource_id=resource_id, cache_key=cache_key,
+            fields=['weeks_to_complete']
+        )
+
+        self.assertEqual(actual_resource, expected_resource_for_weeks_to_complete)
+
+        # Verify that only one requests were made, not three.
+        self._assert_num_requests(1)
+
     def test_cache_utilization(self):
         """Verify that when enabled, the cache is used."""
         catalog_integration = self.create_catalog_integration(cache_ttl=5)

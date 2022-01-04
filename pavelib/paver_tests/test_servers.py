@@ -1,15 +1,12 @@
 """Unit tests for the Paver server tasks."""
 
+
 import ddt
 from paver.easy import call_task
 
 from ..utils.envs import Env
 from .utils import PaverTestCase
 
-EXPECTED_COFFEE_COMMAND = (
-    u"node_modules/.bin/coffee --compile `find {platform_root}/lms "
-    u"{platform_root}/cms {platform_root}/common -type f -name \"*.coffee\"`"
-)
 EXPECTED_SASS_COMMAND = (
     u"libsass {sass_directory}"
 )
@@ -30,10 +27,15 @@ EXPECTED_CMS_SASS_COMMAND = [
     u"python manage.py cms --settings={asset_settings} compile_sass cms ",
 ]
 EXPECTED_COLLECT_STATIC_COMMAND = (
-    u"python manage.py {system} --settings={asset_settings} collectstatic --noinput {log_string}"
+    u'python manage.py {system} --settings={asset_settings} collectstatic '
+    u'--ignore "fixtures" --ignore "karma_*.js" --ignore "spec" '
+    u'--ignore "spec_helpers" --ignore "spec-helpers" --ignore "xmodule_js" '
+    u'--ignore "geoip" --ignore "sass" '
+    u'--noinput {log_string}'
 )
 EXPECTED_CELERY_COMMAND = (
-    u"python manage.py lms --settings={settings} celery worker --beat --loglevel=INFO --pythonpath=."
+    u"DJANGO_SETTINGS_MODULE=lms.envs.{settings} celery worker "
+    u"--app=lms.celery:APP --beat --loglevel=INFO --pythonpath=."
 )
 EXPECTED_RUN_SERVER_COMMAND = (
     u"python manage.py {system} --settings={settings} runserver --traceback --pythonpath=. 0.0.0.0:{port}"
@@ -42,11 +44,13 @@ EXPECTED_INDEX_COURSE_COMMAND = (
     u"python manage.py {system} --settings={settings} reindex_course --setup"
 )
 EXPECTED_PRINT_SETTINGS_COMMAND = [
-    u"python manage.py lms --settings={settings} print_settings STATIC_ROOT --format=value 2>/dev/null",
-    u"python manage.py cms --settings={settings} print_settings STATIC_ROOT --format=value 2>/dev/null"
+    u"python manage.py lms --settings={settings} print_setting STATIC_ROOT 2>{log_file}",
+    u"python manage.py cms --settings={settings} print_setting STATIC_ROOT 2>{log_file}",
+    u"python manage.py lms --settings={settings} print_setting WEBPACK_CONFIG_PATH 2>{log_file}"
 ]
 EXPECTED_WEBPACK_COMMAND = (
-    u"NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} $(npm bin)/webpack"
+    u"NODE_ENV={node_env} STATIC_ROOT_LMS={static_root_lms} STATIC_ROOT_CMS={static_root_cms} "
+    u"$(npm bin)/webpack --config={webpack_config_path}"
 )
 
 
@@ -151,7 +155,7 @@ class TestPaverServerTasks(PaverTestCase):
         """
         settings = options.get("settings", "devstack_with_worker")
         call_task("pavelib.servers.celery", options=options)
-        self.assertEquals(self.task_messages, [EXPECTED_CELERY_COMMAND.format(settings=settings)])
+        self.assertEqual(self.task_messages, [EXPECTED_CELERY_COMMAND.format(settings=settings)])
 
     @ddt.data(
         [{}],
@@ -165,8 +169,8 @@ class TestPaverServerTasks(PaverTestCase):
         settings = options.get("settings", Env.DEVSTACK_SETTINGS)
         call_task("pavelib.servers.update_db", options=options)
         # pylint: disable=line-too-long
-        db_command = "NO_EDXAPP_SUDO=1 EDX_PLATFORM_SETTINGS_OVERRIDE={settings} /edx/bin/edxapp-migrate-{server} --traceback --pythonpath=. "
-        self.assertEquals(
+        db_command = u"NO_EDXAPP_SUDO=1 EDX_PLATFORM_SETTINGS_OVERRIDE={settings} /edx/bin/edxapp-migrate-{server} --traceback --pythonpath=. "
+        self.assertEqual(
             self.task_messages,
             [
                 db_command.format(server="lms", settings=settings),
@@ -187,11 +191,11 @@ class TestPaverServerTasks(PaverTestCase):
         """
         settings = options.get("settings", Env.DEVSTACK_SETTINGS)
         call_task("pavelib.servers.check_settings", args=[system, settings])
-        self.assertEquals(
+        self.assertEqual(
             self.task_messages,
             [
-                "echo 'import {system}.envs.{settings}' "
-                "| python manage.py {system} --settings={settings} shell --plain --pythonpath=.".format(
+                u"echo 'import {system}.envs.{settings}' "
+                u"| python manage.py {system} --settings={settings} shell --plain --pythonpath=.".format(
                     system=system, settings=settings
                 ),
             ]
@@ -240,12 +244,15 @@ class TestPaverServerTasks(PaverTestCase):
         if not is_fast:
             expected_messages.append(u"xmodule_assets common/static/xmodule")
             expected_messages.append(u"install npm_assets")
-            expected_messages.append(EXPECTED_COFFEE_COMMAND.format(platform_root=self.platform_root))
-            expected_messages.extend([c.format(settings=expected_asset_settings) for c in EXPECTED_PRINT_SETTINGS_COMMAND])
+            expected_messages.extend(
+                [c.format(settings=expected_asset_settings,
+                          log_file=Env.PRINT_SETTINGS_LOG_FILE) for c in EXPECTED_PRINT_SETTINGS_COMMAND]
+            )
             expected_messages.append(EXPECTED_WEBPACK_COMMAND.format(
-                node_env="production" if expected_asset_settings != Env.DEVSTACK_SETTINGS else "development",
+                node_env="production",
                 static_root_lms=None,
-                static_root_cms=None
+                static_root_cms=None,
+                webpack_config_path=None
             ))
             expected_messages.extend(self.expected_sass_commands(system=system, asset_settings=expected_asset_settings))
         if expected_collect_static:
@@ -260,7 +267,7 @@ class TestPaverServerTasks(PaverTestCase):
         if not no_contracts:
             expected_run_server_command += " --contracts"
         expected_messages.append(expected_run_server_command)
-        self.assertEquals(self.task_messages, expected_messages)
+        self.assertEqual(self.task_messages, expected_messages)
 
     def verify_run_all_servers_task(self, options):
         """
@@ -283,12 +290,15 @@ class TestPaverServerTasks(PaverTestCase):
         if not is_fast:
             expected_messages.append(u"xmodule_assets common/static/xmodule")
             expected_messages.append(u"install npm_assets")
-            expected_messages.append(EXPECTED_COFFEE_COMMAND.format(platform_root=self.platform_root))
-            expected_messages.extend([c.format(settings=expected_asset_settings) for c in EXPECTED_PRINT_SETTINGS_COMMAND])
+            expected_messages.extend(
+                [c.format(settings=expected_asset_settings,
+                          log_file=Env.PRINT_SETTINGS_LOG_FILE) for c in EXPECTED_PRINT_SETTINGS_COMMAND]
+            )
             expected_messages.append(EXPECTED_WEBPACK_COMMAND.format(
-                node_env="production" if expected_asset_settings != Env.DEVSTACK_SETTINGS else "development",
+                node_env="production",
                 static_root_lms=None,
-                static_root_cms=None
+                static_root_cms=None,
+                webpack_config_path=None
             ))
             expected_messages.extend(self.expected_sass_commands(asset_settings=expected_asset_settings))
         if expected_collect_static:
@@ -313,7 +323,7 @@ class TestPaverServerTasks(PaverTestCase):
             )
         )
         expected_messages.append(EXPECTED_CELERY_COMMAND.format(settings="devstack_with_worker"))
-        self.assertEquals(self.task_messages, expected_messages)
+        self.assertEqual(self.task_messages, expected_messages)
 
     def expected_sass_commands(self, system=None, asset_settings=u"test_static_optimized"):
         """

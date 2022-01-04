@@ -1,16 +1,16 @@
 """
 Receivers of signals sent from django-user-tasks
 """
-from __future__ import absolute_import, print_function, unicode_literals
+
 
 import logging
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.dispatch import receiver
 from user_tasks.models import UserTaskArtifact
 from user_tasks.signals import user_task_stopped
 
-from six.moves.urllib.parse import urljoin  # pylint: disable=import-error
+from six.moves.urllib.parse import urljoin
 
 from .tasks import send_task_complete_email
 

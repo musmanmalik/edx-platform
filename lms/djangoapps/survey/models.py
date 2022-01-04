@@ -2,32 +2,41 @@
 Models to support Course Surveys feature
 """
 
+
 import logging
 from collections import OrderedDict
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 from lxml import etree
 from model_utils.models import TimeStampedModel
+from opaque_keys.edx.django.models import CourseKeyField
 
-from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
+from openedx.core.djangolib.markup import HTML
 from student.models import User
 from survey.exceptions import SurveyFormNameAlreadyExists, SurveyFormNotFound
 
 log = logging.getLogger("edx.survey")
 
 
+@python_2_unicode_compatible
 class SurveyForm(TimeStampedModel):
     """
     Model to define a Survey Form that contains the HTML form data
     that is presented to the end user. A SurveyForm is not tied to
     a particular run of a course, to allow for sharing of Surveys
     across courses
+
+    .. no_pii:
     """
     name = models.CharField(max_length=255, db_index=True, unique=True)
     form = models.TextField()
 
-    def __unicode__(self):
+    class Meta(object):
+        app_label = 'survey'
+
+    def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
@@ -49,8 +58,8 @@ class SurveyForm(TimeStampedModel):
         try:
             fields = cls.get_field_names_from_html(html)
         except Exception as ex:
-            log.exception("Cannot parse SurveyForm html: {}".format(ex))
-            raise ValidationError("Cannot parse SurveyForm as HTML: {}".format(ex))
+            log.exception(u"Cannot parse SurveyForm html: {}".format(ex))
+            raise ValidationError(u"Cannot parse SurveyForm as HTML: {}".format(ex))
 
         if not len(fields):
             raise ValidationError("SurveyForms must contain at least one form input field")
@@ -143,7 +152,7 @@ class SurveyForm(TimeStampedModel):
         # make sure the form is wrap in some outer single element
         # otherwise lxml can't parse it
         # NOTE: This wrapping doesn't change the ability to query it
-        tree = etree.fromstring(u'<div>{}</div>'.format(html))
+        tree = etree.fromstring(HTML(u'<div>{}</div>').format(HTML(html)))
 
         input_fields = (
             tree.findall('.//input') + tree.findall('.//select') +
@@ -151,7 +160,7 @@ class SurveyForm(TimeStampedModel):
         )
 
         for input_field in input_fields:
-            if 'name' in input_field.keys() and input_field.attrib['name'] not in names:
+            if 'name' in list(input_field.keys()) and input_field.attrib['name'] not in names:
                 names.append(input_field.attrib['name'])
 
         return names
@@ -160,9 +169,13 @@ class SurveyForm(TimeStampedModel):
 class SurveyAnswer(TimeStampedModel):
     """
     Model for the answers that a user gives for a particular form in a course
+
+    .. pii: These are free-form questions asked by course authors. Types below are current as of Feb 2019, new ones could be added. "other" PII currently includes "company", "job title", and "work experience".
+    .. pii_types: name, location, other
+    .. pii_retirement: retained
     """
-    user = models.ForeignKey(User, db_index=True)
-    form = models.ForeignKey(SurveyForm, db_index=True)
+    user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
+    form = models.ForeignKey(SurveyForm, db_index=True, on_delete=models.CASCADE)
     field_name = models.CharField(max_length=255, db_index=True)
     field_value = models.CharField(max_length=1024)
 
@@ -170,13 +183,16 @@ class SurveyAnswer(TimeStampedModel):
     # since it didn't exist in the beginning, it is nullable
     course_key = CourseKeyField(max_length=255, db_index=True, null=True)
 
+    class Meta(object):
+        app_label = 'survey'
+
     @classmethod
     def do_survey_answers_exist(cls, form, user):
         """
         Returns whether a user has any answers for a given SurveyForm for a course
         This can be used to determine if a user has taken a CourseSurvey.
         """
-        if user.is_anonymous():
+        if user.is_anonymous:
             return False
         return SurveyAnswer.objects.filter(form=form, user=user).exists()
 
@@ -233,8 +249,6 @@ class SurveyAnswer(TimeStampedModel):
         supplied to this method is presumed to be previously validated
         """
         for name in answers.keys():
-            value = answers[name]
-
             # See if there is an answer stored for this user, form, field_name pair or not
             # this will allow for update cases. This does include an additional lookup,
             # but write operations will be relatively infrequent
@@ -255,3 +269,19 @@ class SurveyAnswer(TimeStampedModel):
                 answer.field_value = value
                 answer.course_key = course_key
                 answer.save()
+
+    @classmethod
+    def retire_user(cls, user_id):
+        """
+        With the parameter user_id, blank out the survey answer values for all survey questions
+        This is to fulfill our GDPR obligations
+
+        Return True if there are data to be blanked
+        Return False if there are no matching data
+        """
+        answers = cls.objects.filter(user=user_id)
+        if not answers:
+            return False
+
+        answers.update(field_value='')
+        return True

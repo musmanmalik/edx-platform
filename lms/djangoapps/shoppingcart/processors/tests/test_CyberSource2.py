@@ -2,6 +2,8 @@
 """
 Tests for the newer CyberSource API implementation.
 """
+
+
 import ddt
 from django.conf import settings
 from django.test import TestCase
@@ -79,7 +81,7 @@ class CyberSource2Test(TestCase):
         # Parameters determined by the order model
         self.assertEqual(params['amount'], '10.00')
         self.assertEqual(params['currency'], 'usd')
-        self.assertEqual(params['orderNumber'], 'OrderId: {order_id}'.format(order_id=self.order.id))
+        self.assertEqual(params['orderNumber'], u'OrderId: {order_id}'.format(order_id=self.order.id))
         self.assertEqual(params['reference_number'], self.order.id)
 
         # Parameters determined by the Django (test) settings
@@ -148,7 +150,7 @@ class CyberSource2Test(TestCase):
         # Expect that we processed the payment successfully
         self.assertTrue(
             result['success'],
-            msg="Payment was not successful: {error}".format(error=result.get('error_html'))
+            msg=u"Payment was not successful: {error}".format(error=result.get('error_html'))
         )
         self.assertEqual(result['error_html'], '')
 
@@ -231,7 +233,7 @@ class CyberSource2Test(TestCase):
         # Expect that we processed the payment successfully
         self.assertTrue(
             result['success'],
-            msg="Payment was not successful: {error}".format(error=result.get('error_html'))
+            msg=u"Payment was not successful: {error}".format(error=result.get('error_html'))
         )
         self.assertEqual(result['error_html'], '')
         self.assert_dump_recorded(result['order'])

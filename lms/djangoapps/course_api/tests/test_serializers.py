@@ -2,15 +2,15 @@
 Test data created by CourseSerializer and CourseDetailSerializer
 """
 
-from __future__ import unicode_literals
 
 from datetime import datetime
+from unittest import TestCase
 
 import ddt
-from nose.plugins.attrib import attr
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from xblock.core import XBlock
+from opaque_keys.edx.locator import CourseLocator
 
 from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from openedx.core.djangoapps.models.course_details import CourseDetails
@@ -18,11 +18,10 @@ from xmodule.course_module import DEFAULT_START_DATE
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import check_mongo_calls
 
-from ..serializers import CourseDetailSerializer, CourseSerializer
+from ..serializers import CourseDetailSerializer, CourseKeySerializer, CourseSerializer
 from .mixins import CourseApiFactoryMixin
 
 
-@attr(shard=3)
 @ddt.ddt
 class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
     """
@@ -67,10 +66,10 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
             'end': u'2015-09-19T18:00:00Z',
             'enrollment_start': u'2015-06-15T00:00:00Z',
             'enrollment_end': u'2015-07-15T00:00:00Z',
-            'blocks_url': u'http://testserver/api/courses/v1/blocks/?course_id=edX%2Ftoy%2F2012_Fall',
+            'blocks_url': u'http://testserver/api/courses/v2/blocks/?course_id=edX%2Ftoy%2F2012_Fall',
             'effort': u'6 hours',
             'pacing': 'instructor',
-            'mobile_available': False,
+            'mobile_available': True,
             'hidden': False,
             'invitation_only': False,
 
@@ -97,7 +96,7 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
 
     def test_basic(self):
         course = self.create_course()
-        CourseDetails.update_about_video(course, 'test_youtube_id', self.staff_user.id)  # pylint: disable=no-member
+        CourseDetails.update_about_video(course, 'test_youtube_id', self.staff_user.id)
         with check_mongo_calls(self.expected_mongo_calls):
             result = self._get_result(course)
         self.assertDictEqual(result, self.expected_data)
@@ -140,7 +139,7 @@ class TestCourseSerializer(CourseApiFactoryMixin, ModuleStoreTestCase):
         self.assertEqual(result['pacing'], expected_pacing)
 
 
-class TestCourseDetailSerializer(TestCourseSerializer):  # pylint: disable=test-inherits-tests
+class TestCourseDetailSerializer(TestCourseSerializer):
     """
     Test CourseDetailSerializer by rerunning all the tests
     in TestCourseSerializer, but with the
@@ -158,3 +157,11 @@ class TestCourseDetailSerializer(TestCourseSerializer):  # pylint: disable=test-
         about_descriptor = XBlock.load_class('about')
         overview_template = about_descriptor.get_template('overview.yaml')
         self.expected_data['overview'] = overview_template.get('data')
+
+
+class TestCourseKeySerializer(TestCase):
+
+    def test_course_key_serializer(self):
+        course_key = CourseLocator(org='org', course='course', run='2020_Q3')
+        serializer = CourseKeySerializer(course_key)
+        self.assertEqual(serializer.data, str(course_key))

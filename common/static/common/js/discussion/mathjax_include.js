@@ -15,6 +15,7 @@ if (typeof MathJax === 'undefined') {
             setMathJaxDisplayDivSettings;
         MathJax.Hub.Config({
             tex2jax: {
+                ignoreClass: "djdt-hidden",// don't parse Django Debug Toolbar for Math Equations.
                 inlineMath: [
                     ['\\(', '\\)'],
                     ['[mathjaxinline]', '[/mathjaxinline]']
@@ -23,6 +24,9 @@ if (typeof MathJax === 'undefined') {
                     ['\\[', '\\]'],
                     ['[mathjax]', '[/mathjax]']
                 ]
+            },
+            asciimath2jax: {
+               ignoreClass: "djdt-hidden",  // don't parse Django Debug Toolbar for Math Equations.
             }
         });
         if (disableFastPreview) {
@@ -42,6 +46,14 @@ if (typeof MathJax === 'undefined') {
             });
         };
     };
-    vendorScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_SVG';
+    // Automatic loading of Mathjax accessibility files
+    window.MathJax = {
+        menuSettings: {
+            collapsible: true,
+            autocollapse: false,
+            explorer: true
+        }
+    };
+    vendorScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@2.7.5/MathJax.js?config=TeX-MML-AM_HTMLorMML';
     document.body.appendChild(vendorScript);
 }

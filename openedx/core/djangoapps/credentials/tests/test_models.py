@@ -1,7 +1,7 @@
 """Tests for models supporting Credentials-related functionality."""
 
+
 from django.test import TestCase, override_settings
-from nose.plugins.attrib import attr
 
 from openedx.core.djangoapps.credentials.models import API_VERSION
 from openedx.core.djangoapps.credentials.tests.mixins import CredentialsApiConfigMixin
@@ -12,7 +12,6 @@ CREDENTIALS_PUBLIC_SERVICE_URL = 'https://credentials.example.com'
 
 
 @skip_unless_lms
-@attr(shard=2)
 class TestCredentialsApiConfig(CredentialsApiConfigMixin, TestCase):
     """Tests covering the CredentialsApiConfig model."""
 
@@ -25,7 +24,13 @@ class TestCredentialsApiConfig(CredentialsApiConfigMixin, TestCase):
         credentials_config = self.create_credentials_config()
 
         expected = '{root}/api/{version}/'.format(root=CREDENTIALS_INTERNAL_SERVICE_URL.strip('/'), version=API_VERSION)
+        self.assertEqual(credentials_config.get_internal_api_url_for_org('nope'), expected)
+
+        expected = '{root}/api/{version}/'.format(root=CREDENTIALS_INTERNAL_SERVICE_URL.strip('/'), version=API_VERSION)
         self.assertEqual(credentials_config.internal_api_url, expected)
+
+        expected = '{root}/api/{version}/'.format(root=CREDENTIALS_INTERNAL_SERVICE_URL.strip('/'), version=API_VERSION)
+        self.assertEqual(credentials_config.get_internal_api_url_for_org('nope'), expected)
 
         expected = '{root}/api/{version}/'.format(root=CREDENTIALS_PUBLIC_SERVICE_URL.strip('/'), version=API_VERSION)
         self.assertEqual(credentials_config.public_api_url, expected)

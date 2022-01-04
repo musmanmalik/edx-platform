@@ -40,8 +40,7 @@ function($, Backbone, _, Utils, FileUploader, gettext) {
             this.fileUploader = new FileUploader({
                 el: this.$el,
                 messenger: this,
-                component_locator: this.component_locator,
-                videoListObject: this.options.parent
+                component_locator: this.component_locator
             });
         },
 
@@ -75,16 +74,15 @@ function($, Backbone, _, Utils, FileUploader, gettext) {
                 return this;
             }
 
-            template = _.template(tplHtml);
+            template = edx.HtmlUtils.template(tplHtml);
 
-            this.$el.find('.transcripts-status')
-                .removeClass('is-invisible')
-                .find(this.elClass).html(template({
-                    component_locator: encodeURIComponent(this.component_locator),
-                    html5_list: html5List,
-                    grouped_list: groupedList,
-                    subs_id: (params) ? params.subs : ''
-                }));
+            edx.HtmlUtils.setHtml(
+            this.$el.find('.transcripts-status').removeClass('is-invisible').find(this.elClass), template({
+                component_locator: encodeURIComponent(this.component_locator),
+                html5_list: html5List,
+                grouped_list: groupedList,
+                subs_id: (params) ? params.subs : ''
+            }));
 
             this.fileUploader.render();
 
@@ -107,11 +105,7 @@ function($, Backbone, _, Utils, FileUploader, gettext) {
             if (err) {
                 // Hide any other error messages.
                 this.hideError();
-
-                $error
-                    .html(gettext(err))
-                    .removeClass(this.invisibleClass);
-
+                edx.HtmlUtils.setHtml($error, gettext(err)).removeClass(this.invisibleClass);
                 if (hideButtons) {
                     this.$el.find('.wrapper-transcripts-buttons')
                         .addClass(this.invisibleClass);
@@ -218,10 +212,10 @@ function($, Backbone, _, Utils, FileUploader, gettext) {
 
             xhr = Utils.command(action, component_locator, videoList, extraParam)
                 .done(function(resp) {
-                    var sub = resp.subs;
+                    var edxVideoID = resp.edx_video_id;
 
                     self.render('found', resp);
-                    Utils.Storage.set('sub', sub);
+                    Backbone.trigger('transcripts:basicTabUpdateEdxVideoId', edxVideoID);
                 })
                 .fail(function(resp) {
                     var message = resp.status || errorMessage;

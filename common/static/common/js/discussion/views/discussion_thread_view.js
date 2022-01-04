@@ -64,7 +64,10 @@
                 'click .discussion-submit-post': 'submitComment',
                 'click .add-response-btn': 'scrollToAddResponse',
                 'click .forum-thread-expand': 'expand',
-                'click .forum-thread-collapse': 'collapse'
+                'click .forum-thread-collapse': 'collapse',
+                'keydown .wmd-button': function(event) {
+                    return DiscussionUtil.handleKeypressInToolbar(event);
+                }
             };
 
             DiscussionThreadView.prototype.$ = function(selector) {
@@ -120,16 +123,17 @@
             };
 
             DiscussionThreadView.prototype.renderTemplate = function() {
-                var container, templateData;
+                var $container,
+                    templateData;
                 this.template = _.template($('#thread-template').html());
-                container = $('#discussion-container');
-                if (!container.length) {
-                    container = $('.discussion-module');
+                $container = $('#discussion-container');
+                if (!$container.length) {
+                    $container = $('.discussion-module');
                 }
                 templateData = _.extend(this.model.toJSON(), {
                     readOnly: this.readOnly,
                     startHeader: this.startHeader + 1, // this is a child so headers should be increased
-                    can_create_comment: container.data('user-create-comment')
+                    can_create_comment: $container.data('user-create-comment')
                 });
                 return this.template(templateData);
             };
@@ -224,7 +228,7 @@
                     ),
                     data: {
                         resp_skip: this.responses.size(),
-                        resp_limit: responseLimit ? responseLimit : void 0
+                        resp_limit: responseLimit || void 0
                     },
                     $elem: $elem,
                     $loading: $elem,
@@ -278,7 +282,8 @@
 
             DiscussionThreadView.prototype.renderResponseCountAndPagination = function(responseTotal) {
                 var buttonText, $loadMoreButton, responseCountFormat, responseLimit, responsePagination,
-                    responsesRemaining, showingResponsesText, self = this;
+                    responsesRemaining, showingResponsesText,
+                    self = this;
                 if (this.isQuestion() && this.markedAnswers.length !== 0) {
                     responseCountFormat = ngettext(
                         '{numResponses} other response', '{numResponses} other responses', responseTotal
@@ -301,8 +306,7 @@
                     responsesRemaining = responseTotal - this.responses.size();
                     if (responsesRemaining === 0) {
                         showingResponsesText = gettext('Showing all responses');
-                    }
-                    else {
+                    } else {
                         showingResponsesText = edx.StringUtils.interpolate(
                             ngettext(
                                 'Showing first response', 'Showing first {numResponses} responses',
@@ -354,6 +358,9 @@
                 if (options.focusAddedResponse) {
                     this.focusToTheAddedResponse(view.el);
                 }
+                // Typeset the response when initially loaded for any forum
+                DiscussionUtil.typesetMathJax(view.$el);
+                return view;
             };
 
             DiscussionThreadView.prototype.renderAddResponseButton = function() {
@@ -381,7 +388,7 @@
             };
 
             DiscussionThreadView.prototype.submitComment = function(event) {
-                var body, comment, url;
+                var body, comment, url, view;
                 event.preventDefault();
                 url = this.model.urlFor('reply');
                 body = this.getWmdContent('reply-body');
@@ -393,6 +400,8 @@
                     body: body,
                     created_at: (new Date()).toISOString(),
                     username: window.user.get('username'),
+                    first_name: window.user.get('first_name'),
+                    last_name: window.user.get('last_name'),
                     votes: {
                         up_count: 0
                     },
@@ -401,7 +410,7 @@
                     user_id: window.user.get('id')
                 });
                 comment.set('thread', this.model.get('thread'));
-                this.renderResponseToList(comment, '.js-response-list', {
+                view = this.renderResponseToList(comment, '.js-response-list', {
                     focusAddedResponse: true
                 });
                 this.model.addComment();
@@ -416,7 +425,8 @@
                     },
                     success: function(data) {
                         comment.updateInfo(data.annotated_content_info);
-                        return comment.set(data.content);
+                        comment.set(data.content);
+                        DiscussionUtil.typesetMathJax(view.$el.find('.response-body'));
                     }
                 });
             };
@@ -502,6 +512,6 @@
             };
 
             return DiscussionThreadView;
-        })(DiscussionContentView);
+        }(DiscussionContentView));
     }
 }).call(window);

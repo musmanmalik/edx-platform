@@ -1,31 +1,33 @@
 """
 Tests for course_metadata_utils.
 """
+
+
 from collections import namedtuple
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 from pytz import utc
+
 from xmodule.block_metadata_utils import (
-    url_name_for_block,
     display_name_with_default,
     display_name_with_default_escaped,
+    url_name_for_block
 )
 from xmodule.course_metadata_utils import (
-    clean_course_key,
-    number_for_course_location,
-    has_course_started,
-    has_course_ended,
     DEFAULT_START_DATE,
+    clean_course_key,
     course_start_date_is_default,
+    has_course_ended,
+    has_course_started,
     may_certify_for_course,
+    number_for_course_location
 )
 from xmodule.modulestore.tests.utils import (
+    MixedModulestoreBuilder,
     MongoModulestoreBuilder,
-    VersioningModulestoreBuilder,
-    MixedModulestoreBuilder
+    VersioningModulestoreBuilder
 )
-
 
 _TODAY = datetime.now(utc)
 _LAST_MONTH = _TODAY - timedelta(days=30)
@@ -110,8 +112,8 @@ class CourseMetadataUtilsTestCase(TestCase):
         test_datetime = datetime(1945, 2, 6, 4, 20, 00, tzinfo=utc)
         advertised_start_parsable = "2038-01-19 03:14:07"
 
-        FunctionTest = namedtuple('FunctionTest', 'function scenarios')  # pylint: disable=invalid-name
-        TestScenario = namedtuple('TestScenario', 'arguments expected_return')  # pylint: disable=invalid-name
+        FunctionTest = namedtuple('FunctionTest', 'function scenarios')
+        TestScenario = namedtuple('TestScenario', 'arguments expected_return')
 
         function_tests = [
             FunctionTest(clean_course_key, [
@@ -127,8 +129,8 @@ class CourseMetadataUtilsTestCase(TestCase):
                 ),
             ]),
             FunctionTest(url_name_for_block, [
-                TestScenario((self.demo_course,), self.demo_course.location.name),
-                TestScenario((self.html_course,), self.html_course.location.name),
+                TestScenario((self.demo_course,), self.demo_course.location.block_id),
+                TestScenario((self.html_course,), self.html_course.location.block_id),
             ]),
             FunctionTest(display_name_with_default_escaped, [
                 # Test course with no display name.
@@ -161,11 +163,16 @@ class CourseMetadataUtilsTestCase(TestCase):
                 TestScenario((DEFAULT_START_DATE, None), True),
             ]),
             FunctionTest(may_certify_for_course, [
-                TestScenario(('early_with_info', True, True), True),
-                TestScenario(('early_no_info', False, False), True),
-                TestScenario(('end', True, False), True),
-                TestScenario(('end', False, True), True),
-                TestScenario(('end', False, False), False),
+                TestScenario(('early_with_info', True, True, test_datetime, False), True),
+                TestScenario(('early_no_info', False, False, test_datetime, False), True),
+                TestScenario(('end', True, False, test_datetime, False), True),
+                TestScenario(('end', False, True, test_datetime, False), True),
+                TestScenario(('end', False, False, _NEXT_WEEK, False), False),
+                TestScenario(('end', False, False, _LAST_WEEK, False), True),
+                TestScenario(('end', False, False, None, False), False),
+                TestScenario(('early_with_info', False, False, None, False), True),
+                TestScenario(('end', False, False, _NEXT_WEEK, False), False),
+                TestScenario(('end', False, False, _NEXT_WEEK, True), True),
             ]),
         ]
 

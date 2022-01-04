@@ -33,5 +33,80 @@ export class CourseOutline {  // eslint-disable-line import/prefer-default-expor
         );
       }),
     );
+
+    function expandSection(sectionToggleButton) {
+      const $toggleButtonChevron = $(sectionToggleButton).children('.fa-chevron-right');
+      const $contentPanel = $(document.getElementById(sectionToggleButton.getAttribute('aria-controls')));
+
+      $contentPanel.slideDown();
+      $contentPanel.removeClass('is-hidden');
+      $toggleButtonChevron.addClass('fa-rotate-90');
+      sectionToggleButton.setAttribute('aria-expanded', 'true');
+    }
+
+    function collapseSection(sectionToggleButton) {
+      const $toggleButtonChevron = $(sectionToggleButton).children('.fa-chevron-right');
+      const $contentPanel = $(document.getElementById(sectionToggleButton.getAttribute('aria-controls')));
+
+      $contentPanel.slideUp();
+      $contentPanel.addClass('is-hidden');
+      $toggleButtonChevron.removeClass('fa-rotate-90');
+      sectionToggleButton.setAttribute('aria-expanded', 'false');
+    }
+
+    [...document.querySelectorAll(('.accordion'))]
+      .forEach((accordion) => {
+        const sections = Array.prototype.slice.call(accordion.querySelectorAll('.accordion-trigger'));
+
+        sections.forEach(section => section.addEventListener('click', (event) => {
+          const sectionToggleButton = event.currentTarget;
+          if (sectionToggleButton.classList.contains('accordion-trigger')) {
+            const isExpanded = sectionToggleButton.getAttribute('aria-expanded') === 'true';
+            if (!isExpanded) {
+              expandSection(sectionToggleButton);
+            } else if (isExpanded) {
+              collapseSection(sectionToggleButton);
+            }
+            event.stopImmediatePropagation();
+          }
+        }));
+      });
+
+    const toggleAllButton = document.querySelector('#expand-collapse-outline-all-button');
+    const toggleAllSpan = document.querySelector('#expand-collapse-outline-all-span');
+    const extraPaddingClass = 'expand-collapse-outline-all-extra-padding';
+    toggleAllButton.addEventListener('click', (event) => {
+      const toggleAllExpanded = toggleAllButton.getAttribute('aria-expanded') === 'true';
+      let sectionAction;
+      /* globals gettext */
+      if (toggleAllExpanded) {
+        toggleAllButton.setAttribute('aria-expanded', 'false');
+        sectionAction = collapseSection;
+        toggleAllSpan.classList.add(extraPaddingClass);
+        toggleAllSpan.innerText = gettext('Expand All');
+      } else {
+        toggleAllButton.setAttribute('aria-expanded', 'true');
+        sectionAction = expandSection;
+        toggleAllSpan.classList.remove(extraPaddingClass);
+        toggleAllSpan.innerText = gettext('Collapse All');
+      }
+      const sections = Array.prototype.slice.call(document.querySelectorAll('.accordion-trigger'));
+      sections.forEach((sectionToggleButton) => {
+        sectionAction(sectionToggleButton);
+      });
+      event.stopImmediatePropagation();
+    });
+
+    const urlHash = window.location.hash;
+
+    if (urlHash !== '') {
+      const button = document.getElementById(urlHash.substr(1, urlHash.length));
+      if (button.classList.contains('subsection-text')) {
+        const parentLi = button.closest('.section');
+        const parentButton = parentLi.querySelector('.section-name');
+        expandSection(parentButton);
+      }
+      expandSection(button);
+    }
   }
 }

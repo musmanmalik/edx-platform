@@ -8,26 +8,29 @@ a student's score or the course grading policy changes. As they are
 persisted, course grades are also immune to changes in course content.
 """
 
+
 import json
 import logging
 from base64 import b64encode
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from hashlib import sha1
 
+import six
+from django.apps import apps
+from django.contrib.auth.models import User
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.timezone import now
 from lazy import lazy
 from model_utils.models import TimeStampedModel
+from opaque_keys.edx.django.models import CourseKeyField, UsageKeyField
 from opaque_keys.edx.keys import CourseKey, UsageKey
+from simple_history.models import HistoricalRecords
+from six.moves import map
 
-from coursewarehistoryextended.fields import UnsignedBigIntAutoField
-from eventtracking import tracker
-from openedx.core.djangoapps.xmodule_django.models import CourseKeyField, UsageKeyField
-from request_cache import get_cache
-from track import contexts
-from track.event_transaction_utils import get_event_transaction_id, get_event_transaction_type
-
-from .config import waffle
+from lms.djangoapps.courseware.fields import UnsignedBigIntAutoField
+from lms.djangoapps.grades import constants, events
+from openedx.core.lib.cache_utils import get_cache
 
 log = logging.getLogger(__name__)
 
@@ -39,54 +42,19 @@ BLOCK_RECORD_LIST_VERSION = 1
 BlockRecord = namedtuple('BlockRecord', ['locator', 'weight', 'raw_possible', 'graded'])
 
 
-class DeleteGradesMixin(object):
-    """
-    A Mixin class that provides functionality to delete grades.
-    """
-
-    @classmethod
-    def query_grades(cls, course_ids=None, modified_start=None, modified_end=None):
-        """
-        Queries all the grades in the table, filtered by the provided arguments.
-        """
-        kwargs = {}
-
-        if course_ids:
-            kwargs['course_id__in'] = [course_id for course_id in course_ids]
-
-        if modified_start:
-            if modified_end:
-                kwargs['modified__range'] = (modified_start, modified_end)
-            else:
-                kwargs['modified__gt'] = modified_start
-
-        return cls.objects.filter(**kwargs)
-
-    @classmethod
-    def delete_grades(cls, *args, **kwargs):
-        """
-        Deletes all the grades in the table, filtered by the provided arguments.
-        """
-        query = cls.query_grades(*args, **kwargs)
-        query.delete()
-
-
-class BlockRecordList(tuple):
+class BlockRecordList(object):
     """
     An immutable ordered list of BlockRecord objects.
     """
 
-    def __new__(cls, blocks, course_key, version=None):  # pylint: disable=unused-argument
-        return super(BlockRecordList, cls).__new__(cls, blocks)
-
     def __init__(self, blocks, course_key, version=None):
-        super(BlockRecordList, self).__init__(blocks)
+        self.blocks = tuple(blocks)
         self.course_key = course_key
         self.version = version or BLOCK_RECORD_LIST_VERSION
 
     def __eq__(self, other):
         assert isinstance(other, BlockRecordList)
-        return hash(self) == hash(other)
+        return self.json_value == other.json_value
 
     def __hash__(self):
         """
@@ -94,6 +62,12 @@ class BlockRecordList(tuple):
         list of block records, as required by python.
         """
         return hash(self.hash_value)
+
+    def __iter__(self):
+        return iter(self.blocks)
+
+    def __len__(self):
+        return len(self.blocks)
 
     @lazy
     def hash_value(self):
@@ -105,7 +79,7 @@ class BlockRecordList(tuple):
         supported by adding a label indicated which algorithm was used, e.g.,
         "sha256$j0NDRmSPa5bfid2pAcUXaxCm2Dlh3TwayItZstwyeqQ=".
         """
-        return b64encode(sha1(self.json_value).digest())
+        return b64encode(sha1(self.json_value.encode('utf-8')).digest()).decode('utf-8')
 
     @lazy
     def json_value(self):
@@ -113,12 +87,12 @@ class BlockRecordList(tuple):
         Return a JSON-serialized version of the list of block records, using a
         stable ordering.
         """
-        list_of_block_dicts = [block._asdict() for block in self]
+        list_of_block_dicts = [block._asdict() for block in self.blocks]
         for block_dict in list_of_block_dicts:
-            block_dict['locator'] = unicode(block_dict['locator'])  # BlockUsageLocator is not json-serializable
+            block_dict['locator'] = six.text_type(block_dict['locator'])  # BlockUsageLocator is not json-serializable
         data = {
             u'blocks': list_of_block_dicts,
-            u'course_key': unicode(self.course_key),
+            u'course_key': six.text_type(self.course_key),
             u'version': self.version,
         }
         return json.dumps(
@@ -154,24 +128,7 @@ class BlockRecordList(tuple):
         return cls(blocks, course_key)
 
 
-class VisibleBlocksQuerySet(models.QuerySet):
-    """
-    A custom QuerySet representing VisibleBlocks.
-    """
-
-    def create_from_blockrecords(self, blocks):
-        """
-        Creates a new VisibleBlocks model object.
-
-        Argument 'blocks' should be a BlockRecordList.
-        """
-        model, _ = self.get_or_create(
-            hashed=blocks.hash_value,
-            defaults={u'blocks_json': blocks.json_value, u'course_id': blocks.course_key},
-        )
-        return model
-
-
+@python_2_unicode_compatible
 class VisibleBlocks(models.Model):
     """
     A django model used to track the state of a set of visible blocks under a
@@ -180,18 +137,19 @@ class VisibleBlocks(models.Model):
     This state is represented using an array of BlockRecord, stored
     in the blocks_json field. A hash of this json array is used for lookup
     purposes.
+
+    .. no_pii:
     """
-    CACHE_NAMESPACE = u"grades.models.VisibleBlocks"
     blocks_json = models.TextField()
     hashed = models.CharField(max_length=100, unique=True)
     course_id = CourseKeyField(blank=False, max_length=255, db_index=True)
 
-    objects = VisibleBlocksQuerySet.as_manager()
+    _CACHE_NAMESPACE = u"grades.models.VisibleBlocks"
 
     class Meta(object):
         app_label = "grades"
 
-    def __unicode__(self):
+    def __str__(self):
         """
         String representation of this model.
         """
@@ -206,23 +164,48 @@ class VisibleBlocks(models.Model):
         return BlockRecordList.from_json(self.blocks_json)
 
     @classmethod
-    def bulk_read(cls, course_key):
+    def bulk_read(cls, user_id, course_key):
         """
-        Reads and returns all visible block records for the given course from
-        the cache.  The cache is initialize with the visible blocks for this
-        course if no entry currently exists.has no entry for this course,
-        the cache is updated.
+        Reads and returns all visible block records for the given user and course from
+        the cache.  The cache is initialized with the visible blocks for this user and
+        course if no entry currently exists.
 
         Arguments:
             course_key: The course identifier for the desired records
         """
-        prefetched = get_cache(cls.CACHE_NAMESPACE).get(cls._cache_key(course_key))
-        if not prefetched:
-            prefetched = cls._initialize_cache(course_key)
+        prefetched = get_cache(cls._CACHE_NAMESPACE).get(cls._cache_key(user_id, course_key), None)
+        if prefetched is None:
+            prefetched = cls._initialize_cache(user_id, course_key)
         return prefetched
 
     @classmethod
-    def bulk_create(cls, course_key, block_record_lists):
+    def cached_get_or_create(cls, user_id, blocks):
+        """
+        Given a ``user_id`` and a ``BlockRecordList`` object, attempts to
+        fetch the related VisibleBlocks model from the request cache.  This
+        will create and save a new ``VisibleBlocks`` record if no record
+        exists corresponding to the hash_value of ``blocks``.
+        """
+        prefetched = get_cache(cls._CACHE_NAMESPACE).get(cls._cache_key(user_id, blocks.course_key))
+        if prefetched is not None:
+            model = prefetched.get(blocks.hash_value)
+            if not model:
+                # We still have to do a get_or_create, because
+                # another user may have had this block hash created,
+                # even if the user we checked the cache for hasn't yet.
+                model, _ = cls.objects.get_or_create(
+                    hashed=blocks.hash_value, blocks_json=blocks.json_value, course_id=blocks.course_key,
+                )
+                cls._update_cache(user_id, blocks.course_key, [model])
+        else:
+            model, _ = cls.objects.get_or_create(
+                hashed=blocks.hash_value,
+                defaults={u'blocks_json': blocks.json_value, u'course_id': blocks.course_key},
+            )
+        return model
+
+    @classmethod
+    def bulk_create(cls, user_id, course_key, block_record_lists):
         """
         Bulk creates VisibleBlocks for the given iterator of
         BlockRecordList objects and updates the VisibleBlocks cache
@@ -237,57 +220,56 @@ class VisibleBlocks(models.Model):
             )
             for brl in block_record_lists
         ])
-        cls._update_cache(course_key, created)
+        cls._update_cache(user_id, course_key, created)
         return created
 
     @classmethod
-    def bulk_get_or_create(cls, block_record_lists, course_key):
+    def bulk_get_or_create(cls, user_id, course_key, block_record_lists):
         """
         Bulk creates VisibleBlocks for the given iterator of
-        BlockRecordList objects for the given course_key, but
+        BlockRecordList objects for the given user and course_key, but
         only for those that aren't already created.
         """
-        existent_records = cls.bulk_read(course_key)
-        non_existent_brls = {brl for brl in block_record_lists if brl.hash_value not in existent_records}
-        cls.bulk_create(course_key, non_existent_brls)
+        cached_records = cls.bulk_read(user_id, course_key)
+        non_existent_brls = {brl for brl in block_record_lists if brl.hash_value not in cached_records}
+        cls.bulk_create(user_id, course_key, non_existent_brls)
 
     @classmethod
-    def _initialize_cache(cls, course_key):
+    def _initialize_cache(cls, user_id, course_key):
         """
-        Prefetches visible blocks for the given course and stores in the cache.
+        Prefetches visible blocks for the given user and course and stores in the cache.
         Returns a dictionary mapping hashes of these block records to the
         block record objects.
         """
-        prefetched = {record.hashed: record for record in cls.objects.filter(course_id=course_key)}
-        get_cache(cls.CACHE_NAMESPACE)[cls._cache_key(course_key)] = prefetched
+        grades_with_blocks = PersistentSubsectionGrade.objects.select_related('visible_blocks').filter(
+            user_id=user_id,
+            course_id=course_key,
+        )
+        prefetched = {grade.visible_blocks.hashed: grade.visible_blocks for grade in grades_with_blocks}
+        get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(user_id, course_key)] = prefetched
         return prefetched
 
     @classmethod
-    def _update_cache(cls, course_key, visible_blocks):
+    def _update_cache(cls, user_id, course_key, visible_blocks):
         """
         Adds a specific set of visible blocks to the request cache.
         This assumes that prefetch has already been called.
         """
-        get_cache(cls.CACHE_NAMESPACE)[cls._cache_key(course_key)].update(
+        get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(user_id, course_key)].update(
             {visible_block.hashed: visible_block for visible_block in visible_blocks}
         )
 
     @classmethod
-    def clear_cache(cls, course_key):
-        """
-        Clears the cache of all contents for a given course.
-        """
-        cache = get_cache(cls.CACHE_NAMESPACE)
-        cache.pop(cls._cache_key(course_key), None)
-
-    @classmethod
-    def _cache_key(cls, course_key):
-        return u"visible_blocks_cache.{}".format(course_key)
+    def _cache_key(cls, user_id, course_key):
+        return u"visible_blocks_cache.{}.{}".format(course_key, user_id)
 
 
-class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
+@python_2_unicode_compatible
+class PersistentSubsectionGrade(TimeStampedModel):
     """
     A django model tracking persistent grades at the subsection level.
+
+    .. no_pii:
     """
 
     class Meta(object):
@@ -338,19 +320,23 @@ class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
     first_attempted = models.DateTimeField(null=True, blank=True)
 
     # track which blocks were visible at the time of grade calculation
-    visible_blocks = models.ForeignKey(VisibleBlocks, db_column='visible_blocks_hash', to_field='hashed')
+    visible_blocks = models.ForeignKey(VisibleBlocks, db_column='visible_blocks_hash', to_field='hashed',
+                                       on_delete=models.CASCADE)
+
+    _CACHE_NAMESPACE = u'grades.models.PersistentSubsectionGrade'
 
     @property
     def full_usage_key(self):
         """
         Returns the "correct" usage key value with the run filled in.
         """
-        if self.usage_key.run is None:  # pylint: disable=no-member
+        if self.usage_key.run is None:
+            # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
             return self.usage_key.replace(course_key=self.course_id)
         else:
             return self.usage_key
 
-    def __unicode__(self):
+    def __str__(self):
         """
         Returns a string representation of this model.
         """
@@ -370,6 +356,28 @@ class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
         )
 
     @classmethod
+    def prefetch(cls, course_key, users):
+        """
+        Prefetches grades for the given users in the given course.
+        """
+        cache_key = cls._cache_key(course_key)
+        get_cache(cls._CACHE_NAMESPACE)[cache_key] = defaultdict(list)
+        cached_grades = get_cache(cls._CACHE_NAMESPACE)[cache_key]
+        queryset = cls.objects.select_related('visible_blocks', 'override').filter(
+            user_id__in=[user.id for user in users],
+            course_id=course_key,
+        )
+        for record in queryset:
+            cached_grades[record.user_id].append(record)
+
+    @classmethod
+    def clear_prefetched_data(cls, course_key):
+        """
+        Clears prefetched grades for this course from the RequestCache.
+        """
+        get_cache(cls._CACHE_NAMESPACE).pop(cls._cache_key(course_key), None)
+
+    @classmethod
     def read_grade(cls, user_id, usage_key):
         """
         Reads a grade from database
@@ -380,7 +388,7 @@ class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
 
         Raises PersistentSubsectionGrade.DoesNotExist if applicable
         """
-        return cls.objects.select_related('visible_blocks').get(
+        return cls.objects.select_related('visible_blocks', 'override').get(
             user_id=user_id,
             course_id=usage_key.course_key,  # course_id is included to take advantage of db indexes
             usage_key=usage_key,
@@ -395,18 +403,31 @@ class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
             user_id: The user associated with the desired grades
             course_key: The course identifier for the desired grades
         """
-        return cls.objects.select_related('visible_blocks').filter(
-            user_id=user_id,
-            course_id=course_key,
-        )
+        try:
+            prefetched_grades = get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(course_key)]
+            try:
+                return prefetched_grades[user_id]
+            except KeyError:
+                # The user's grade is not in the cached dict of subsection grades,
+                # so return an empty list.
+                return []
+        except KeyError:
+            # subsection grades were not prefetched for the course, so get them from the DB
+            return cls.objects.select_related('visible_blocks', 'override').filter(
+                user_id=user_id,
+                course_id=course_key,
+            )
 
     @classmethod
     def update_or_create_grade(cls, **params):
         """
         Wrapper for objects.update_or_create.
         """
-        cls._prepare_params_and_visible_blocks(params)
+        cls._prepare_params(params)
+        VisibleBlocks.cached_get_or_create(params['user_id'], params['visible_blocks'])
+        cls._prepare_params_visible_blocks_id(params)
 
+        # TODO: do we NEED to pop these?
         first_attempted = params.pop('first_attempted')
         user_id = params.pop('user_id')
         usage_key = params.pop('usage_key')
@@ -417,63 +438,42 @@ class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
             usage_key=usage_key,
             defaults=params,
         )
+
+        # TODO: Remove as part of EDUCATOR-4602.
+        if str(usage_key.course_key) == 'course-v1:UQx+BUSLEAD5x+2T2019':
+            log.info(u'Created/updated grade ***{}*** for user ***{}*** in course ***{}***'
+                     u'for subsection ***{}*** with default params ***{}***'
+                     .format(grade, user_id, usage_key.course_key, usage_key, params))
+
+        grade.override = PersistentSubsectionGradeOverride.get_override(user_id, usage_key)
         if first_attempted is not None and grade.first_attempted is None:
-            if waffle.waffle().is_enabled(waffle.ESTIMATE_FIRST_ATTEMPTED):
-                grade.first_attempted = first_attempted
-            else:
-                grade.first_attempted = now()
+            grade.first_attempted = first_attempted
             grade.save()
 
         cls._emit_grade_calculated_event(grade)
         return grade
 
     @classmethod
-    def _prepare_first_attempted_for_create(cls, params):
-        """
-        Update the value of 'first_attempted' to now() if we aren't
-        using score-based estimates.
-        """
-        if params['first_attempted'] is not None and not waffle.waffle().is_enabled(waffle.ESTIMATE_FIRST_ATTEMPTED):
-            params['first_attempted'] = now()
-
-    @classmethod
-    def create_grade(cls, **params):
-        """
-        Wrapper for objects.create.
-        """
-        cls._prepare_params_and_visible_blocks(params)
-        cls._prepare_first_attempted_for_create(params)
-
-        grade = cls.objects.create(**params)
-        cls._emit_grade_calculated_event(grade)
-        return grade
-
-    @classmethod
-    def bulk_create_grades(cls, grade_params_iter, course_key):
+    def bulk_create_grades(cls, grade_params_iter, user_id, course_key):
         """
         Bulk creation of grades.
         """
         if not grade_params_iter:
             return
 
-        map(cls._prepare_params, grade_params_iter)
-        VisibleBlocks.bulk_get_or_create([params['visible_blocks'] for params in grade_params_iter], course_key)
-        map(cls._prepare_params_visible_blocks_id, grade_params_iter)
-        map(cls._prepare_first_attempted_for_create, grade_params_iter)
+        PersistentSubsectionGradeOverride.prefetch(user_id, course_key)
+
+        list(map(cls._prepare_params, grade_params_iter))
+        VisibleBlocks.bulk_get_or_create(
+            user_id, course_key, [params['visible_blocks'] for params in grade_params_iter]
+        )
+        list(map(cls._prepare_params_visible_blocks_id, grade_params_iter))
+
         grades = [PersistentSubsectionGrade(**params) for params in grade_params_iter]
         grades = cls.objects.bulk_create(grades)
         for grade in grades:
             cls._emit_grade_calculated_event(grade)
         return grades
-
-    @classmethod
-    def _prepare_params_and_visible_blocks(cls, params):
-        """
-        Prepares the fields for the grade record, while
-        creating the related VisibleBlocks, if needed.
-        """
-        cls._prepare_params(params)
-        params['visible_blocks'] = VisibleBlocks.objects.create_from_blockrecords(params['visible_blocks'])
 
     @classmethod
     def _prepare_params(cls, params):
@@ -500,37 +500,19 @@ class PersistentSubsectionGrade(DeleteGradesMixin, TimeStampedModel):
 
     @staticmethod
     def _emit_grade_calculated_event(grade):
-        """
-        Emits an edx.grades.subsection.grade_calculated event
-        with data from the passed grade.
-        """
-        # TODO: remove this context manager after completion of AN-6134
-        event_name = u'edx.grades.subsection.grade_calculated'
-        context = contexts.course_context_from_course_id(grade.course_id)
-        with tracker.get_tracker().context(event_name, context):
-            tracker.emit(
-                event_name,
-                {
-                    'user_id': unicode(grade.user_id),
-                    'course_id': unicode(grade.course_id),
-                    'block_id': unicode(grade.usage_key),
-                    'course_version': unicode(grade.course_version),
-                    'weighted_total_earned': grade.earned_all,
-                    'weighted_total_possible': grade.possible_all,
-                    'weighted_graded_earned': grade.earned_graded,
-                    'weighted_graded_possible': grade.possible_graded,
-                    'first_attempted': unicode(grade.first_attempted),
-                    'subtree_edited_timestamp': unicode(grade.subtree_edited_timestamp),
-                    'event_transaction_id': unicode(get_event_transaction_id()),
-                    'event_transaction_type': unicode(get_event_transaction_type()),
-                    'visible_blocks_hash': unicode(grade.visible_blocks_id),
-                }
-            )
+        events.subsection_grade_calculated(grade)
+
+    @classmethod
+    def _cache_key(cls, course_id):
+        return u"subsection_grades_cache.{}".format(course_id)
 
 
-class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
+@python_2_unicode_compatible
+class PersistentCourseGrade(TimeStampedModel):
     """
     A django model tracking persistent course grades.
+
+    .. no_pii:
     """
 
     class Meta(object):
@@ -567,9 +549,9 @@ class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
     # Information related to course completion
     passed_timestamp = models.DateTimeField(u'Date learner earned a passing grade', blank=True, null=True)
 
-    CACHE_NAMESPACE = u"grades.models.PersistentCourseGrade"
+    _CACHE_NAMESPACE = u"grades.models.PersistentCourseGrade"
 
-    def __unicode__(self):
+    def __str__(self):
         """
         Returns a string representation of this model.
         """
@@ -583,19 +565,22 @@ class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
         ])
 
     @classmethod
-    def _cache_key(cls, course_id):
-        return u"grades_cache.{}".format(course_id)
-
-    @classmethod
     def prefetch(cls, course_id, users):
         """
         Prefetches grades for the given users for the given course.
         """
-        get_cache(cls.CACHE_NAMESPACE)[cls._cache_key(course_id)] = {
+        get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(course_id)] = {
             grade.user_id: grade
             for grade in
             cls.objects.filter(user_id__in=[user.id for user in users], course_id=course_id)
         }
+
+    @classmethod
+    def clear_prefetched_data(cls, course_key):
+        """
+        Clears prefetched grades for this course from the RequestCache.
+        """
+        get_cache(cls._CACHE_NAMESPACE).pop(cls._cache_key(course_key), None)
 
     @classmethod
     def read(cls, user_id, course_id):
@@ -609,11 +594,11 @@ class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
         Raises PersistentCourseGrade.DoesNotExist if applicable
         """
         try:
-            prefetched_grades = get_cache(cls.CACHE_NAMESPACE)[cls._cache_key(course_id)]
+            prefetched_grades = get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(course_id)]
             try:
                 return prefetched_grades[user_id]
             except KeyError:
-                # user's grade is not in the prefetched list, so
+                # user's grade is not in the prefetched dict, so
                 # assume they have no grade
                 raise cls.DoesNotExist
         except KeyError:
@@ -639,30 +624,149 @@ class PersistentCourseGrade(DeleteGradesMixin, TimeStampedModel):
         if passed and not grade.passed_timestamp:
             grade.passed_timestamp = now()
             grade.save()
+
         cls._emit_grade_calculated_event(grade)
+        cls._update_cache(course_id, user_id, grade)
         return grade
+
+    @classmethod
+    def _update_cache(cls, course_id, user_id, grade):
+        course_cache = get_cache(cls._CACHE_NAMESPACE).get(cls._cache_key(course_id))
+        if course_cache is not None:
+            course_cache[user_id] = grade
+
+    @classmethod
+    def _cache_key(cls, course_id):
+        return u"grades_cache.{}".format(course_id)
 
     @staticmethod
     def _emit_grade_calculated_event(grade):
-        """
-        Emits an edx.grades.course.grade_calculated event
-        with data from the passed grade.
-        """
-        # TODO: remove this context manager after completion of AN-6134
-        event_name = u'edx.grades.course.grade_calculated'
-        context = contexts.course_context_from_course_id(grade.course_id)
-        with tracker.get_tracker().context(event_name, context):
-            tracker.emit(
-                event_name,
-                {
-                    'user_id': unicode(grade.user_id),
-                    'course_id': unicode(grade.course_id),
-                    'course_version': unicode(grade.course_version),
-                    'percent_grade': grade.percent_grade,
-                    'letter_grade': unicode(grade.letter_grade),
-                    'course_edited_timestamp': unicode(grade.course_edited_timestamp),
-                    'event_transaction_id': unicode(get_event_transaction_id()),
-                    'event_transaction_type': unicode(get_event_transaction_type()),
-                    'grading_policy_hash': unicode(grade.grading_policy_hash),
-                }
+        events.course_grade_calculated(grade)
+
+
+@python_2_unicode_compatible
+class PersistentSubsectionGradeOverride(models.Model):
+    """
+    A django model tracking persistent grades overrides at the subsection level.
+
+    .. no_pii:
+    """
+    class Meta(object):
+        app_label = "grades"
+
+    grade = models.OneToOneField(PersistentSubsectionGrade, related_name='override', on_delete=models.CASCADE)
+
+    # Created/modified timestamps prevent race-conditions when using with async rescoring tasks
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    modified = models.DateTimeField(auto_now=True, db_index=True)
+
+    # earned/possible refers to the number of points achieved and available to achieve.
+    # graded refers to the subset of all problems that are marked as being graded.
+    earned_all_override = models.FloatField(null=True, blank=True)
+    possible_all_override = models.FloatField(null=True, blank=True)
+    earned_graded_override = models.FloatField(null=True, blank=True)
+    possible_graded_override = models.FloatField(null=True, blank=True)
+    # store the source of the system that caused the override
+    system = models.CharField(max_length=100, blank=True, null=True)
+    # store the reason for the override
+    override_reason = models.CharField(max_length=300, blank=True, null=True)
+
+    _CACHE_NAMESPACE = u"grades.models.PersistentSubsectionGradeOverride"
+
+    # This is necessary because CMS does not install the grades app, but it
+    # imports this models code. Simple History will attempt to connect to the installed
+    # model in the grades app, which will fail.
+    if 'grades' in apps.app_configs:
+        history = HistoricalRecords()
+        _history_user = None
+
+    def __str__(self):
+        return u', '.join([
+            u"{}".format(type(self).__name__),
+            u"earned_all_override: {}".format(self.earned_all_override),
+            u"possible_all_override: {}".format(self.possible_all_override),
+            u"earned_graded_override: {}".format(self.earned_graded_override),
+            u"possible_graded_override: {}".format(self.possible_graded_override),
+        ])
+
+    def get_history(self):
+        return self.history.all()  # pylint: disable=no-member
+
+    @classmethod
+    def prefetch(cls, user_id, course_key):
+        get_cache(cls._CACHE_NAMESPACE)[(user_id, str(course_key))] = {
+            override.grade.usage_key: override
+            for override in
+            cls.objects.filter(grade__user_id=user_id, grade__course_id=course_key)
+        }
+
+    @classmethod
+    def get_override(cls, user_id, usage_key):
+        prefetch_values = get_cache(cls._CACHE_NAMESPACE).get((user_id, str(usage_key.course_key)), None)
+        if prefetch_values is not None:
+            return prefetch_values.get(usage_key)
+        try:
+            return cls.objects.get(
+                grade__user_id=user_id,
+                grade__course_id=usage_key.course_key,
+                grade__usage_key=usage_key,
             )
+        except PersistentSubsectionGradeOverride.DoesNotExist:
+            pass
+
+    @classmethod
+    def update_or_create_override(
+        cls, requesting_user, subsection_grade_model, feature=None, action=None, **override_data
+    ):
+        """
+        Creates or updates an override object for the given PersistentSubsectionGrade.
+        Args:
+            requesting_user: The user that is creating the override.
+            subsection_grade_model: The PersistentSubsectionGrade object associated with this override.
+            override_data: The parameters of score values used to create the override record.
+        """
+        grade_defaults = cls._prepare_override_params(subsection_grade_model, override_data)
+        grade_defaults['override_reason'] = override_data['comment'] if 'comment' in override_data else None
+        grade_defaults['system'] = override_data['system'] if 'system' in override_data else None
+
+        # TODO: Remove as part of EDUCATOR-4602.
+        if str(subsection_grade_model.course_id) == 'course-v1:UQx+BUSLEAD5x+2T2019':
+            log.info(u'Creating override for user ***{}*** for PersistentSubsectionGrade'
+                     u'***{}*** with override data ***{}*** and derived grade_defaults ***{}***.'
+                     .format(requesting_user, subsection_grade_model, override_data, grade_defaults))
+        try:
+            override = PersistentSubsectionGradeOverride.objects.get(grade=subsection_grade_model)
+            for key, value in six.iteritems(grade_defaults):
+                setattr(override, key, value)
+        except PersistentSubsectionGradeOverride.DoesNotExist:
+            override = PersistentSubsectionGradeOverride(grade=subsection_grade_model, **grade_defaults)
+        if requesting_user:
+            # setting this on a non-field attribute which simple
+            # history reads from to determine which user to attach to
+            # the history row
+            override._history_user = requesting_user  # pylint: disable=protected-access
+        override.save()
+
+        return override
+
+    @staticmethod
+    def _prepare_override_params(subsection_grade_model, override_data):
+        """
+        Helper method to strip any grade override field names that won't work
+        as defaults when calling PersistentSubsectionGradeOverride.update_or_create(),
+        and to use default values from the associated PersistentSubsectionGrade
+        for any override fields that are not specified.
+        """
+        allowed_fields_and_defaults = {
+            'earned_all_override': 'earned_all',
+            'possible_all_override': 'possible_all',
+            'earned_graded_override': 'earned_graded',
+            'possible_graded_override': 'possible_graded',
+        }
+        cleaned_data = {}
+        for override_field_name, field_name in allowed_fields_and_defaults.items():
+            cleaned_data[override_field_name] = override_data.get(
+                override_field_name,
+                getattr(subsection_grade_model, field_name)
+            )
+        return cleaned_data

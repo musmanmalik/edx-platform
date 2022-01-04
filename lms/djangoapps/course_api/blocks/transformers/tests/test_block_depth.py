@@ -4,6 +4,7 @@ Tests for BlockDepthTransformer.
 
 # pylint: disable=protected-access
 
+
 from unittest import TestCase
 
 import ddt
@@ -19,6 +20,7 @@ class BlockDepthTransformerTestCase(TestCase, ChildrenMapTestMixin):
     """
     Test behavior of BlockDepthTransformer
     """
+
     @ddt.data(
         (0, [], [], []),
         (0, ChildrenMapTestMixin.SIMPLE_CHILDREN_MAP, [[], [], [], [], []], [1, 2, 3, 4]),

@@ -2,14 +2,11 @@
 Branding API endpoint urls.
 """
 
-from django.conf.urls import patterns, url
 
-urlpatterns = patterns(
-    "",
+from django.conf.urls import url
 
-    url(
-        r"^footer$",
-        "branding.views.footer",
-        name="branding_footer",
-    ),
-)
+from branding.views import footer
+
+urlpatterns = [
+    url(r"^footer$", footer, name="branding_footer"),
+]

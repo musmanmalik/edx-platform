@@ -3,7 +3,7 @@ Views related to content libraries.
 A content library is a structure containing XBlocks which can be re-used in the
 multiple courses.
 """
-from __future__ import absolute_import
+
 
 import logging
 
@@ -17,10 +17,11 @@ from django.views.decorators.http import require_http_methods
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import LibraryLocator, LibraryUsageLocator
+from six import text_type
 
 from contentstore.utils import add_instructor, reverse_library_url
 from contentstore.views.item import create_xblock_info
-from course_creators.views import get_course_creator_status
+from cms.djangoapps.course_creators.views import get_course_creator_status
 from edxmako.shortcuts import render_to_response
 from student.auth import (
     STUDIO_EDIT_ROLES,
@@ -58,7 +59,13 @@ def get_library_creator_status(user):
     elif settings.FEATURES.get('ENABLE_CREATOR_GROUP', False):
         return get_course_creator_status(user) == 'granted'
     else:
-        return True
+        # EDUCATOR-1924: DISABLE_LIBRARY_CREATION overrides DISABLE_COURSE_CREATION, if present.
+        disable_library_creation = settings.FEATURES.get('DISABLE_LIBRARY_CREATION', None)
+        disable_course_creation = settings.FEATURES.get('DISABLE_COURSE_CREATION', False)
+        if disable_library_creation is not None:
+            return not disable_library_creation
+        else:
+            return not disable_course_creation
 
 
 @login_required
@@ -72,21 +79,20 @@ def library_handler(request, library_key_string=None):
         log.exception("Attempted to use the content library API when the libraries feature is disabled.")
         raise Http404  # Should never happen because we test the feature in urls.py also
 
-    if not get_library_creator_status(request.user):
-        if not request.user.is_staff:
+    if request.method == 'POST':
+        if not get_library_creator_status(request.user):
             return HttpResponseForbidden()
 
-    if library_key_string is not None and request.method == 'POST':
-        return HttpResponseNotAllowed(("POST",))
+        if library_key_string is not None:
+            return HttpResponseNotAllowed(("POST",))
 
-    if request.method == 'POST':
         return _create_library(request)
 
-    # request method is get, since only GET and POST are allowed by @require_http_methods(('GET', 'POST'))
-    if library_key_string:
-        return _display_library(library_key_string, request)
+    else:
+        if library_key_string:
+            return _display_library(library_key_string, request)
 
-    return _list_libraries(request)
+        return _list_libraries(request)
 
 
 def _display_library(library_key_string, request):
@@ -100,13 +106,13 @@ def _display_library(library_key_string, request):
     if not has_studio_read_access(request.user, library_key):
         log.exception(
             u"User %s tried to access library %s without permission",
-            request.user.username, unicode(library_key)
+            request.user.username, text_type(library_key)
         )
         raise PermissionDenied()
 
     library = modulestore().get_library(library_key)
     if library is None:
-        log.exception(u"Library %s not found", unicode(library_key))
+        log.exception(u"Library %s not found", text_type(library_key))
         raise Http404
 
     response_format = 'html'
@@ -126,7 +132,7 @@ def _list_libraries(request):
     lib_info = [
         {
             "display_name": lib.display_name,
-            "library_key": unicode(lib.location.library_key),
+            "library_key": text_type(lib.location.library_key),
         }
         for lib in modulestore().get_libraries()
         if has_studio_read_access(request.user, lib.location.library_key)
@@ -159,12 +165,12 @@ def _create_library(request):
     except KeyError as error:
         log.exception("Unable to create library - missing required JSON key.")
         return JsonResponseBadRequest({
-            "ErrMsg": _("Unable to create library - missing required field '{field}'").format(field=error.message)
+            "ErrMsg": _(u"Unable to create library - missing required field '{field}'").format(field=text_type(error))
         })
     except InvalidKeyError as error:
         log.exception("Unable to create library - invalid key.")
         return JsonResponseBadRequest({
-            "ErrMsg": _("Unable to create library '{name}'.\n\n{err}").format(name=display_name, err=error.message)
+            "ErrMsg": _(u"Unable to create library '{name}'.\n\n{err}").format(name=display_name, err=text_type(error))
         })
     except DuplicateCourseError:
         log.exception("Unable to create library - one already exists with the same key.")
@@ -176,7 +182,7 @@ def _create_library(request):
             )
         })
 
-    lib_key_str = unicode(new_lib.location.library_key)
+    lib_key_str = text_type(new_lib.location.library_key)
     return JsonResponse({
         'url': reverse_library_url('library_handler', lib_key_str),
         'library_key': lib_key_str,
@@ -202,10 +208,10 @@ def library_blocks_view(library, user, response_format):
         prev_version = library.runtime.course_entry.structure['previous_version']
         return JsonResponse({
             "display_name": library.display_name,
-            "library_id": unicode(library.location.library_key),
-            "version": unicode(library.runtime.course_entry.course_key.version),
-            "previous_version": unicode(prev_version) if prev_version else None,
-            "blocks": [unicode(x) for x in children],
+            "library_id": text_type(library.location.library_key),
+            "version": text_type(library.runtime.course_entry.course_key.version_guid),
+            "previous_version": text_type(prev_version) if prev_version else None,
+            "blocks": [text_type(x) for x in children],
         })
 
     can_edit = has_studio_write_access(user, library.location.library_key)
@@ -255,7 +261,7 @@ def manage_library_users(request, library_key_string):
         'context_library': library,
         'users': formatted_users,
         'allow_actions': bool(user_perms & STUDIO_EDIT_ROLES),
-        'library_key': unicode(library_key),
+        'library_key': text_type(library_key),
         'lib_users_url': reverse_library_url('manage_library_users', library_key_string),
         'show_children_previews': library.show_children_previews
     })

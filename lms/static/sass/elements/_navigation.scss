@@ -21,7 +21,9 @@
   @extend %text-sr;
 }
 
-.nav-contents, .nav-skip, .transcript-skip {
+.nav-contents,
+.nav-skip,
+.transcript-skip {
   @extend %nav-skip;
 }
 
@@ -29,19 +31,23 @@
 // --------------------
 .nav-utilities {
   @extend %ui-depth3;
+
   position: fixed;
   right: ($baseline/4);
   bottom: 0;
 
   .wrapper-utility {
     @extend %wipe-last-child;
+
     display: inline-block;
     vertical-align: bottom;
+
     @include margin-right(6px);
   }
 
   .utility-control {
     @include transition(background-color $tmg-f2 ease-in-out 0s, color $tmg-f2 ease-in-out 0s);
+
     position: relative;
     bottom: -($baseline/5);
     display: inline-block;
@@ -51,7 +57,8 @@
     color: $white;
 
     // STATE: hover/active
-    &:hover, &:active {
+    &:hover,
+    &:active {
       background: $gray-d1;
     }
 
@@ -72,7 +79,9 @@
     border-radius: 0;
 
     // STATE: hover/active
-    &:hover, &:active, &:focus {
+    &:hover,
+    &:active,
+    &:focus {
       border: none;
       box-shadow: none;
     }
@@ -93,9 +102,12 @@
   .action-toggle-message {
     @extend %t-title8;
     @extend %t-strong;
+
     position: absolute;
     bottom: 0;
+
     @include right($baseline*2.5);
+
     display: inline-block;
     min-width: ($baseline*5);
     padding: ($baseline/2) ($baseline*0.75);
@@ -113,7 +125,7 @@
   // +case - calculator spacing (needed for overriding calculator positioning)
   // --------------------
   &.has-utility-calculator {
-    @include right($baseline*2.50);
+    @include right($baseline*2.75);
   }
 }
 
@@ -133,8 +145,9 @@
 
   .nav-item {
     @extend %button-reset;
+
     display: inline-block;
-    padding: ($baseline*.75);
+    padding: ($baseline*0.75);
     color: $gray-d2;
 
     &.is-active {
@@ -153,19 +166,10 @@
 
 // +tabs - styles for tabs and tabpanels (teams and learner profile, currently)
 // --------------------
-.page-content-nav {
-
-    .tab {
-        
-    }
-}
-
 .page-content-main {
-
-    .tabs {
-
-        .tabpanel {
-            outline: none;
-        }
+  .tabs {
+    .tabpanel {
+      outline: none;
     }
+  }
 }

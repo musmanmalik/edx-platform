@@ -1,11 +1,14 @@
 """
 Tests of student.roles
 """
-import ddt
-from django.test import TestCase
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
 
-from courseware.tests.factories import InstructorFactory, StaffFactory, UserFactory
+
+import ddt
+import six
+from django.test import TestCase
+from opaque_keys.edx.keys import CourseKey
+
+from lms.djangoapps.courseware.tests.factories import InstructorFactory, StaffFactory, UserFactory
 from student.roles import (
     CourseBetaTesterRole,
     CourseInstructorRole,
@@ -26,7 +29,7 @@ class RolesTestCase(TestCase):
 
     def setUp(self):
         super(RolesTestCase, self).setUp()
-        self.course_key = SlashSeparatedCourseKey('edX', 'toy', '2012_Fall')
+        self.course_key = CourseKey.from_string('edX/toy/2012_Fall')
         self.course_loc = self.course_key.make_usage_key('course', '2012_Fall')
         self.anonymous_user = AnonymousUserFactory()
         self.student = UserFactory()
@@ -43,8 +46,8 @@ class RolesTestCase(TestCase):
     def test_group_name_case_sensitive(self):
         uppercase_course_id = "ORG/COURSE/NAME"
         lowercase_course_id = uppercase_course_id.lower()
-        uppercase_course_key = SlashSeparatedCourseKey.from_deprecated_string(uppercase_course_id)
-        lowercase_course_key = SlashSeparatedCourseKey.from_deprecated_string(lowercase_course_id)
+        uppercase_course_key = CourseKey.from_string(uppercase_course_id)
+        lowercase_course_key = CourseKey.from_string(lowercase_course_id)
 
         role = "role"
 
@@ -69,7 +72,7 @@ class RolesTestCase(TestCase):
         CourseStaffRole(self.course_key).add_users(self.student)
         self.assertTrue(
             CourseStaffRole(self.course_key).has_user(self.student),
-            "Student doesn't have access to {}".format(unicode(self.course_key))
+            "Student doesn't have access to {}".format(six.text_type(self.course_key))
         )
 
         # remove access and confirm
@@ -90,7 +93,7 @@ class RolesTestCase(TestCase):
         OrgStaffRole(self.course_key.org).add_users(self.student)
         self.assertTrue(
             OrgStaffRole(self.course_key.org).has_user(self.student),
-            "Student doesn't have access to {}".format(unicode(self.course_key.org))
+            "Student doesn't have access to {}".format(six.text_type(self.course_key.org))
         )
 
         # remove access and confirm
@@ -110,11 +113,11 @@ class RolesTestCase(TestCase):
         CourseInstructorRole(self.course_key).add_users(self.student)
         self.assertTrue(
             OrgInstructorRole(self.course_key.org).has_user(self.student),
-            "Student doesn't have access to {}".format(unicode(self.course_key.org))
+            "Student doesn't have access to {}".format(six.text_type(self.course_key.org))
         )
         self.assertTrue(
             CourseInstructorRole(self.course_key).has_user(self.student),
-            "Student doesn't have access to {}".format(unicode(self.course_key))
+            "Student doesn't have access to {}".format(six.text_type(self.course_key))
         )
 
         # remove access and confirm
@@ -125,7 +128,7 @@ class RolesTestCase(TestCase):
         )
         self.assertTrue(
             CourseInstructorRole(self.course_key).has_user(self.student),
-            "Student doesn't have access to {}".format(unicode(self.course_key))
+            "Student doesn't have access to {}".format(six.text_type(self.course_key))
         )
 
         # ok now keep org role and get rid of course one
@@ -137,7 +140,7 @@ class RolesTestCase(TestCase):
         )
         self.assertFalse(
             CourseInstructorRole(self.course_key).has_user(self.student),
-            "Student doesn't have access to {}".format(unicode(self.course_key))
+            "Student doesn't have access to {}".format(six.text_type(self.course_key))
         )
 
     def test_get_user_for_role(self):
@@ -165,8 +168,8 @@ class RolesTestCase(TestCase):
 @ddt.ddt
 class RoleCacheTestCase(TestCase):
 
-    IN_KEY = SlashSeparatedCourseKey('edX', 'toy', '2012_Fall')
-    NOT_IN_KEY = SlashSeparatedCourseKey('edX', 'toy', '2013_Fall')
+    IN_KEY = CourseKey.from_string('edX/toy/2012_Fall')
+    NOT_IN_KEY = CourseKey.from_string('edX/toy/2013_Fall')
 
     ROLES = (
         (CourseStaffRole(IN_KEY), ('staff', IN_KEY, 'edX')),

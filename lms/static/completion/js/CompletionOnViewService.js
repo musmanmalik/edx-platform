@@ -2,7 +2,6 @@ import { ViewedEventTracker } from './ViewedEvent';
 
 const completedBlocksKeys = new Set();
 
-// eslint-disable-next-line import/prefer-default-export
 export function markBlocksCompletedOnViewIfNeeded(runtime, containerElement) {
   const blockElements = $(containerElement).find(
     '.xblock-student_view[data-mark-completed-on-view-after-delay]',
@@ -33,7 +32,6 @@ export function markBlocksCompletedOnViewIfNeeded(runtime, containerElement) {
           }).then(
             () => {
               completedBlocksKeys.add(blockKey);
-              // eslint-disable-next-line no-param-reassign
               blockElement.dataset.markCompletedOnViewAfterDelay = 0;
             },
           );

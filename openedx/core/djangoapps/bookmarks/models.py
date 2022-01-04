@@ -1,15 +1,19 @@
 """
 Models for Bookmarks.
 """
+
+
 import logging
 
+import six
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils.encoding import python_2_unicode_compatible
 from jsonfield.fields import JSONField
 from model_utils.models import TimeStampedModel
+from opaque_keys.edx.django.models import CourseKeyField, UsageKeyField
 from opaque_keys.edx.keys import UsageKey
 
-from openedx.core.djangoapps.xmodule_django.models import CourseKeyField, LocationKeyField
 from xmodule.modulestore import search
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import ItemNotFoundError, NoPathToItem
@@ -23,7 +27,7 @@ def prepare_path_for_serialization(path):
     """
     Return the data from a list of PathItems ready for serialization to json.
     """
-    return [(unicode(path_item.usage_key), path_item.display_name) for path_item in path]
+    return [(six.text_type(path_item.usage_key), path_item.display_name) for path_item in path]
 
 
 def parse_path_data(path_data):
@@ -38,16 +42,19 @@ def parse_path_data(path_data):
     return path
 
 
+@python_2_unicode_compatible
 class Bookmark(TimeStampedModel):
     """
     Bookmarks model.
+
+    .. no_pii:
     """
-    user = models.ForeignKey(User, db_index=True)
+    user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
     course_key = CourseKeyField(max_length=255, db_index=True)
-    usage_key = LocationKeyField(max_length=255, db_index=True)
+    usage_key = UsageKeyField(max_length=255, db_index=True)
     _path = JSONField(db_column='path', help_text='Path in course tree to the block')
 
-    xblock_cache = models.ForeignKey('bookmarks.XBlockCache')
+    xblock_cache = models.ForeignKey('bookmarks.XBlockCache', on_delete=models.CASCADE)
 
     class Meta(object):
         """
@@ -55,7 +62,7 @@ class Bookmark(TimeStampedModel):
         """
         unique_together = ('user', 'usage_key')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.resource_id
 
     @classmethod
@@ -89,6 +96,9 @@ class Bookmark(TimeStampedModel):
 
         user = data.pop('user')
 
+        # Sometimes this ends up in data, but newer versions of Django will fail on having unknown keys in defaults
+        data.pop('display_name', None)
+
         bookmark, created = cls.objects.get_or_create(usage_key=usage_key, user=user, defaults=data)
         return bookmark, created
 
@@ -97,7 +107,7 @@ class Bookmark(TimeStampedModel):
         """
         Return the resource id: {username,usage_id}.
         """
-        return u"{0},{1}".format(self.user.username, self.usage_key)  # pylint: disable=no-member
+        return u"{0},{1}".format(self.user.username, self.usage_key)
 
     @property
     def display_name(self):
@@ -171,7 +181,7 @@ class Bookmark(TimeStampedModel):
 
             path_data = []
             for ancestor_usage_key in path:
-                if ancestor_usage_key != usage_key and ancestor_usage_key.block_type != 'course':  # pylint: disable=no-member
+                if ancestor_usage_key != usage_key and ancestor_usage_key.block_type != 'course':
                     try:
                         block = modulestore().get_item(ancestor_usage_key)
                     except ItemNotFoundError:
@@ -183,21 +193,24 @@ class Bookmark(TimeStampedModel):
         return path_data
 
 
+@python_2_unicode_compatible
 class XBlockCache(TimeStampedModel):
     """
     XBlockCache model to store info about xblocks.
+
+    .. no_pii:
     """
 
     course_key = CourseKeyField(max_length=255, db_index=True)
-    usage_key = LocationKeyField(max_length=255, db_index=True, unique=True)
+    usage_key = UsageKeyField(max_length=255, db_index=True, unique=True)
 
     display_name = models.CharField(max_length=255, default='')
     _paths = JSONField(
         db_column='paths', default=[], help_text='All paths in course tree to the corresponding block.'
     )
 
-    def __unicode__(self):
-        return unicode(self.usage_key)
+    def __str__(self):
+        return six.text_type(self.usage_key)
 
     @property
     def paths(self):

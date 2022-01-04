@@ -1,6 +1,8 @@
 """
 Django admin page for grades models
 """
+
+
 from config_models.admin import ConfigurationModelAdmin, KeyedConfigurationModelAdmin
 from django.contrib import admin
 

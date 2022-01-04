@@ -3,19 +3,22 @@
 Unit tests for preference APIs.
 """
 
-import ddt
-import json
-from mock import patch
 
-from django.core.urlresolvers import reverse
+import json
+
+import ddt
+import six
 from django.test.testcases import TransactionTestCase
+from django.urls import reverse
+from mock import patch
 from rest_framework.test import APIClient
-from student.tests.factories import UserFactory, TEST_PASSWORD
 
 from openedx.core.djangolib.testing.utils import skip_unless_lms
+from student.tests.factories import TEST_PASSWORD, UserFactory
+
 from ...accounts.tests.test_views import UserAPITestCase
 from ..api import set_user_preference
-from .test_api import get_expected_validation_developer_message, get_expected_key_error_user_message
+from .test_api import get_expected_key_error_user_message, get_expected_validation_developer_message
 
 TOO_LONG_PREFERENCE_KEY = u"x" * 256
 
@@ -52,7 +55,7 @@ class TestPreferencesAPI(UserAPITestCase):
         Test that a client (logged in) cannot get the preferences information for a different client.
         """
         self.different_client.login(username=self.different_user.username, password=TEST_PASSWORD)
-        self.send_get(self.different_client, expected_status=404)
+        self.send_get(self.different_client, expected_status=403)
 
     @ddt.data(
         ("client", "user"),
@@ -61,11 +64,11 @@ class TestPreferencesAPI(UserAPITestCase):
     @ddt.unpack
     def test_get_unknown_user(self, api_client, username):
         """
-        Test that requesting a user who does not exist returns a 404.
+        Test that requesting a user who does not exist returns a 404 for staff users, but 403 for others.
         """
         client = self.login_client(api_client, username)
         response = client.get(reverse(self.url_endpoint_name, kwargs={'username': "does_not_exist"}))
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(404 if username == "staff_user" else 403, response.status_code)
 
     def test_get_preferences_default(self):
         """
@@ -83,8 +86,7 @@ class TestPreferencesAPI(UserAPITestCase):
     @ddt.unpack
     def test_get_preferences(self, api_client, user):
         """
-        Test that a client (logged in) can get her own preferences information. Also verifies that a "is_staff"
-        user can get the preferences information for other users.
+        Test that a client (logged in) can get her own preferences information.
         """
         # Create some test preferences values.
         set_user_preference(self.user, "dict_pref", {"int_key": 10})
@@ -94,7 +96,7 @@ class TestPreferencesAPI(UserAPITestCase):
         # Log in the client and do the GET.
         client = self.login_client(api_client, user)
         response = self.send_get(client)
-        self.assertEqual({"dict_pref": "{'int_key': 10}", "string_pref": "value", "time_zone": "Asia/Tokyo"},
+        self.assertEqual({"dict_pref": "{'int_key': 10}", "string_pref": "value", "time_zone": "Asia/Tokyo"},  # pylint: disable=unicode-format-string
                          response.data)
 
     @ddt.data(
@@ -104,14 +106,14 @@ class TestPreferencesAPI(UserAPITestCase):
     @ddt.unpack
     def test_patch_unknown_user(self, api_client, user):
         """
-        Test that trying to update preferences for a user who does not exist returns a 404.
+        Test that trying to update preferences for a user who does not exist returns a 403.
         """
         client = self.login_client(api_client, user)
         response = client.patch(
             reverse(self.url_endpoint_name, kwargs={'username': "does_not_exist"}),
             data=json.dumps({"string_pref": "value"}), content_type="application/merge-patch+json"
         )
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(403, response.status_code)
 
     def test_patch_bad_content_type(self):
         """
@@ -150,7 +152,12 @@ class TestPreferencesAPI(UserAPITestCase):
             expected_status=204
         )
         response = self.send_get(self.client)
-        self.assertEqual({u"dict_pref": u"{u'int_key': 10}", u"string_pref": u"value"}, response.data)
+        if six.PY2:
+            pref_dict = {u"dict_pref": u"{u'int_key': 10}", u"string_pref": u"value"}
+        else:
+            # pylint: disable=unicode-format-string
+            pref_dict = {"dict_pref": "{'int_key': 10}", "string_pref": "value"}
+        self.assertEqual(pref_dict, response.data)
 
     @ddt.data(
         ("different_client", "different_user"),
@@ -168,7 +175,7 @@ class TestPreferencesAPI(UserAPITestCase):
                 "dict_pref": {"int_key": 10},
                 "string_pref": "value",
             },
-            expected_status=403 if user == "staff_user" else 404,
+            expected_status=403,
         )
 
     def test_update_preferences(self):
@@ -197,7 +204,7 @@ class TestPreferencesAPI(UserAPITestCase):
         # Verify that GET returns the updated preferences
         response = self.send_get(self.client)
         expected_preferences = {
-            "dict_pref": "{'int_key': 10}",
+            "dict_pref": "{'int_key': 10}",  # pylint: disable=unicode-format-string
             "string_pref": "updated_value",
             "new_pref": "new_value",
             "time_zone": "Europe/London",
@@ -229,7 +236,7 @@ class TestPreferencesAPI(UserAPITestCase):
         )
         self.assertTrue(response.data.get("field_errors", None))
         field_errors = response.data["field_errors"]
-        self.assertEquals(
+        self.assertEqual(
             field_errors,
             {
                 TOO_LONG_PREFERENCE_KEY: {
@@ -255,10 +262,10 @@ class TestPreferencesAPI(UserAPITestCase):
         # Verify that GET returns the original preferences
         response = self.send_get(self.client)
         expected_preferences = {
-            u"dict_pref": u"{'int_key': 10}",
-            u"string_pref": u"value",
-            u"extra_pref": u"extra_value",
-            u"time_zone": u"Pacific/Midway",
+            "dict_pref": u"{'int_key': 10}",
+            "string_pref": u"value",
+            "extra_pref": u"extra_value",
+            "time_zone": u"Pacific/Midway",
         }
         self.assertEqual(expected_preferences, response.data)
 
@@ -311,7 +318,7 @@ class TestPreferencesAPI(UserAPITestCase):
                 "new_pref": "new_value",
                 "extra_pref": None,
             },
-            expected_status=403 if user == "staff_user" else 404
+            expected_status=403
         )
 
 
@@ -405,9 +412,9 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         Test that a client (logged in) cannot manipulate a preference for a different client.
         """
         self.different_client.login(username=self.different_user.username, password=TEST_PASSWORD)
-        self.send_get(self.different_client, expected_status=404)
-        self.send_put(self.different_client, "new_value", expected_status=404)
-        self.send_delete(self.different_client, expected_status=404)
+        self.send_get(self.different_client, expected_status=403)
+        self.send_put(self.different_client, "new_value", expected_status=403)
+        self.send_delete(self.different_client, expected_status=403)
 
     @ddt.data(
         ("client", "user"),
@@ -416,13 +423,13 @@ class TestPreferencesDetailAPI(UserAPITestCase):
     @ddt.unpack
     def test_get_unknown_user(self, api_client, username):
         """
-        Test that requesting a user who does not exist returns a 404.
+        Test that requesting a user who does not exist returns a 404 for staff users, but 403 for others.
         """
         client = self.login_client(api_client, username)
         response = client.get(
             reverse(self.url_endpoint_name, kwargs={'username': "does_not_exist", 'preference_key': self.test_pref_key})
         )
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(404 if username == "staff_user" else 403, response.status_code)
 
     def test_get_preference_does_not_exist(self):
         """
@@ -451,7 +458,7 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         set_user_preference(self.user, "dict_pref", {"int_key": 10})
         self._set_url("dict_pref")
         response = self.send_get(client)
-        self.assertEqual("{'int_key': 10}", response.data)
+        self.assertEqual(u"{'int_key': 10}", response.data)
 
     def test_create_preference(self):
         """
@@ -511,7 +518,7 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         new_value = "new value"
         self._set_url(too_long_preference_key)
         response = self.send_put(self.client, new_value, expected_status=400)
-        self.assertEquals(
+        self.assertEqual(
             response.data,
             {
                 "developer_message": get_expected_validation_developer_message(too_long_preference_key, new_value),
@@ -532,7 +539,7 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         self._set_url("new_key")
         client = self.login_client(api_client, user)
         new_value = "new value"
-        self.send_put(client, new_value, expected_status=403 if user == "staff_user" else 404)
+        self.send_put(client, new_value, expected_status=403)
 
     @ddt.data(
         (u"new value",),
@@ -547,7 +554,7 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         self.client.login(username=self.user.username, password=TEST_PASSWORD)
         self.send_put(self.client, preference_value)
         response = self.send_get(self.client)
-        self.assertEqual(unicode(preference_value), response.data)
+        self.assertEqual(six.text_type(preference_value), response.data)
 
     @ddt.data(
         ("different_client", "different_user"),
@@ -560,7 +567,7 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         """
         client = self.login_client(api_client, user)
         new_value = "new value"
-        self.send_put(client, new_value, expected_status=403 if user == "staff_user" else 404)
+        self.send_put(client, new_value, expected_status=403)
 
     @ddt.data(
         (None,),
@@ -607,4 +614,4 @@ class TestPreferencesDetailAPI(UserAPITestCase):
         Test that a client (logged in) cannot delete a preference for another user.
         """
         client = self.login_client(api_client, user)
-        self.send_delete(client, expected_status=403 if user == "staff_user" else 404)
+        self.send_delete(client, expected_status=403)

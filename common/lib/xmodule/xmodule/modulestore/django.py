@@ -4,11 +4,11 @@ Module that provides a connection to the ModuleStore specified in the django set
 Passes settings.MODULESTORE as kwargs to MongoModuleStore
 """
 
-from __future__ import absolute_import
-
 from importlib import import_module
 import gettext
 import logging
+
+import six
 from pkg_resources import resource_filename
 import re
 
@@ -23,21 +23,12 @@ from django.core.cache import caches, InvalidCacheBackendError
 import django.dispatch
 import django.utils
 from django.utils.translation import get_language, to_locale
+from edx_django_utils.cache import DEFAULT_REQUEST_CACHE
 
-from pymongo import ReadPreference
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.draft_and_published import BranchSettingMixin
 from xmodule.modulestore.mixed import MixedModuleStore
-from xmodule.util.django import get_current_request_hostname
-import xblock.reference.plugins
-
-try:
-    # We may not always have the request_cache module available
-    from request_cache.middleware import RequestCache
-
-    HAS_REQUEST_CACHE = True
-except ImportError:
-    HAS_REQUEST_CACHE = False
+from xmodule.util.xmodule_django import get_current_request_hostname
 
 # We also may not always have the current request user (crum) module available
 try:
@@ -207,6 +198,10 @@ class SignalHandler(object):
             log.info('Sent %s signal to %s with kwargs %s. Response was: %s', signal_name, receiver, kwargs, response)
 
 
+# to allow easy imports
+globals().update({sig.name.upper(): sig for sig in SignalHandler.all_signals()})
+
+
 def load_function(path):
     """
     Load a function by name.
@@ -245,6 +240,9 @@ def create_modulestore_instance(
     """
     This will return a new instance of a modulestore given an engine and options
     """
+    # Import is placed here to avoid model import at project startup.
+    import xblock.reference.plugins
+
     class_ = load_function(engine)
 
     _options = {}
@@ -252,13 +250,10 @@ def create_modulestore_instance(
 
     FUNCTION_KEYS = ['render_template']
     for key in FUNCTION_KEYS:
-        if key in _options and isinstance(_options[key], basestring):
+        if key in _options and isinstance(_options[key], six.string_types):
             _options[key] = load_function(_options[key])
 
-    if HAS_REQUEST_CACHE:
-        request_cache = RequestCache.get_request_cache()
-    else:
-        request_cache = None
+    request_cache = DEFAULT_REQUEST_CACHE
 
     try:
         metadata_inheritance_cache = caches['mongo_metadata_inheritance']
@@ -276,9 +271,6 @@ def create_modulestore_instance(
     else:
         xb_user_service = None
 
-    if 'read_preference' in doc_store_config:
-        doc_store_config['read_preference'] = getattr(ReadPreference, doc_store_config['read_preference'])
-
     xblock_field_data_wrappers = [load_function(path) for path in settings.XBLOCK_FIELD_DATA_WRAPPERS]
 
     def fetch_disabled_xblock_types():
@@ -290,14 +282,9 @@ def create_modulestore_instance(
         if disabled_xblocks is None:
             return []
 
-        if request_cache:
-            if 'disabled_xblock_types' not in request_cache.data:
-                request_cache.data['disabled_xblock_types'] = [block.name for block in disabled_xblocks()]
-            return request_cache.data['disabled_xblock_types']
-        else:
-            disabled_xblock_types = [block.name for block in disabled_xblocks()]
-
-        return disabled_xblock_types
+        if 'disabled_xblock_types' not in request_cache.data:
+            request_cache.data['disabled_xblock_types'] = [block.name for block in disabled_xblocks()]
+        return request_cache.data['disabled_xblock_types']
 
     return class_(
         contentstore=content_store,
@@ -380,7 +367,7 @@ class ModuleI18nService(object):
         if block:
             xblock_class = getattr(block, 'unmixed_class', block.__class__)
             xblock_resource = xblock_class.__module__
-            xblock_locale_dir = '/translations'
+            xblock_locale_dir = 'translations'
             xblock_locale_path = resource_filename(xblock_resource, xblock_locale_dir)
             xblock_domain = 'text'
             selected_language = get_language()
@@ -395,6 +382,7 @@ class ModuleI18nService(object):
                 pass
 
     def __getattr__(self, name):
+        name = 'gettext' if six.PY3 and name == 'ugettext' else name
         return getattr(self.translator, name)
 
     def strftime(self, *args, **kwargs):
@@ -436,7 +424,7 @@ def _get_modulestore_branch_setting():
 
             # compare hostname against the regex expressions set of mappings which will tell us which branch to use
             if mappings:
-                for key in mappings.iterkeys():
+                for key in mappings:
                     if re.match(key, hostname):
                         return mappings[key]
         if branch is None:

@@ -2,6 +2,7 @@
 Tests for the fake software secure response.
 """
 
+
 from django.test import TestCase
 from mock import patch
 
@@ -32,6 +33,7 @@ class SoftwareSecureFakeViewDisabledTest(SoftwareSecureFakeViewTest):
     Test the fake software secure response when feature flag
     'ENABLE_SOFTWARE_SECURE_FAKE' is not enabled.
     """
+
     def setUp(self):
         super(SoftwareSecureFakeViewDisabledTest, self).setUp(enable_software_secure_fake=False)
 
@@ -52,6 +54,7 @@ class SoftwareSecureFakeViewEnabledTest(SoftwareSecureFakeViewTest):
     Test the fake software secure response when feature flag
     'ENABLE_SOFTWARE_SECURE_FAKE' is enabled.
     """
+
     def setUp(self):
         super(SoftwareSecureFakeViewEnabledTest, self).setUp(enable_software_secure_fake=True)
 
@@ -74,6 +77,5 @@ class SoftwareSecureFakeViewEnabledTest(SoftwareSecureFakeViewTest):
             '/verify_student/software-secure-fake-response'
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('EdX-ID', response.content)
-        self.assertIn('results_callback', response.content)
+        self.assertContains(response, 'EdX-ID')
+        self.assertContains(response, 'results_callback')

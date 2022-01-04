@@ -1,6 +1,7 @@
 """
 Django pipeline finder for handling static assets required by XBlocks.
 """
+
 import os
 from datetime import datetime
 
@@ -8,8 +9,11 @@ from django.contrib.staticfiles import utils
 from django.contrib.staticfiles.finders import BaseFinder
 from django.contrib.staticfiles.storage import FileSystemStorage
 from django.core.files.storage import Storage
+from django.utils import timezone
 from pkg_resources import resource_exists, resource_filename, resource_isdir, resource_listdir
 from xblock.core import XBlock
+
+from openedx.core.lib.xblock_utils import xblock_resource_pkg
 
 
 class XBlockPackageStorage(Storage):
@@ -73,23 +77,23 @@ class XBlockPackageStorage(Storage):
         """
         return os.path.getsize(self.path(name))
 
-    def accessed_time(self, name):
+    def get_accessed_time(self, name):
         """
         Returns a URL to the package resource.
         """
-        return datetime.fromtimestamp(os.path.getatime(self.path(name)))
+        return datetime.fromtimestamp(os.path.getatime(self.path(name)), timezone.utc)
 
-    def created_time(self, name):
+    def get_created_time(self, name):
         """
         Returns the created time of the package resource.
         """
-        return datetime.fromtimestamp(os.path.getctime(self.path(name)))
+        return datetime.fromtimestamp(os.path.getctime(self.path(name)), timezone.utc)
 
-    def modified_time(self, name):
+    def get_modified_time(self, name):
         """
         Returns the modified time of the resource.
         """
-        return datetime.fromtimestamp(os.path.getmtime(self.path(name)))
+        return datetime.fromtimestamp(os.path.getmtime(self.path(name)), timezone.utc)
 
     def url(self, name):
         """
@@ -109,13 +113,25 @@ class XBlockPipelineFinder(BaseFinder):
     A static files finder that gets static assets from xblocks.
     """
     def __init__(self, *args, **kwargs):
+        """
+        The XBlockPipelineFinder creates a separate XBlockPackageStorage for
+        every installed XBlock package when its initialized. After that
+        initialization happens, we just proxy all list()/find() requests by
+        iterating through the XBlockPackageStorage objects.
+        """
         super(XBlockPipelineFinder, self).__init__(*args, **kwargs)
-        xblock_classes = set()
-        for __, xblock_class in XBlock.load_classes():
-            xblock_classes.add(xblock_class)
+
+        # xblock_resource_info holds (package_name, resources_dir) tuples. While
+        # it never happens in practice, the XBlock API does allow different
+        # XBlocks installed with the same setup.py to refer to their shared
+        # static assets using different prefixes.
+        xblock_resource_info = {
+            (xblock_resource_pkg(xblock_class), xblock_class.get_resources_dir())
+            for __, xblock_class in XBlock.load_classes()
+        }
         self.package_storages = [
-            XBlockPackageStorage(xblock_class.__module__, xblock_class.get_resources_dir())
-            for xblock_class in xblock_classes
+            XBlockPackageStorage(pkg_name, resources_dir)
+            for pkg_name, resources_dir in xblock_resource_info
         ]
 
     def list(self, ignore_patterns):

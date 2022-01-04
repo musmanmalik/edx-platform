@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 """Word cloud integration tests using mongo modulestore."""
 
+
 import json
 from operator import itemgetter
 
-from nose.plugins.attrib import attr
-
 from xmodule.x_module import STUDENT_VIEW
 
-from . import BaseTestXmodule
+from .helpers import BaseTestXmodule
 
 
-@attr(shard=1)
 class TestWordCloud(BaseTestXmodule):
     """Integration test for word cloud xmodule."""
     CATEGORY = "word_cloud"
@@ -35,7 +33,7 @@ class TestWordCloud(BaseTestXmodule):
 
         for user in self.users:
             response = self.clients[user.username].post(self.get_url('get_state'))
-            users_state[user.username] = json.loads(response.content)
+            users_state[user.username] = json.loads(response.content.decode('utf-8'))
 
         return users_state
 
@@ -52,7 +50,7 @@ class TestWordCloud(BaseTestXmodule):
                 {'student_words[]': words},
                 HTTP_X_REQUESTED_WITH='XMLHttpRequest'
             )
-            users_state[user.username] = json.loads(response.content)
+            users_state[user.username] = json.loads(response.content.decode('utf-8'))
 
         return users_state
 
@@ -106,7 +104,7 @@ class TestWordCloud(BaseTestXmodule):
         }
 
         for _, response_content in users_state.items():
-            self.assertEquals(response_content, correct_initial_data)
+            self.assertEqual(response_content, correct_initial_data)
 
     def test_post_words(self):
         """Students can submit data succesfully.
@@ -227,7 +225,7 @@ class TestWordCloud(BaseTestXmodule):
 
         for user in self.users:
             self.assertListEqual(
-                users_state[user.username]['student_words'].keys(),
+                list(users_state[user.username]['student_words'].keys()),
                 correct_words)
 
     def test_handle_ajax_incorrect_dispatch(self):
@@ -244,7 +242,7 @@ class TestWordCloud(BaseTestXmodule):
 
         for user in self.users:
             self.assertDictEqual(
-                json.loads(responses[user.username].content),
+                json.loads(responses[user.username].content.decode('utf-8')),
                 {
                     'status': 'fail',
                     'error': 'Unknown Command!'
@@ -260,7 +258,7 @@ class TestWordCloud(BaseTestXmodule):
             'ajax_url': self.item_descriptor.xmodule_runtime.ajax_url,
             'display_name': self.item_descriptor.display_name,
             'instructions': self.item_descriptor.instructions,
-            'element_class': self.item_descriptor.location.category,
+            'element_class': self.item_descriptor.location.block_type,
             'element_id': self.item_descriptor.location.html_id(),
             'num_inputs': 5,  # default value
             'submitted': False,  # default value,

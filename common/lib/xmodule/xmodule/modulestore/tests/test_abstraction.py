@@ -1,6 +1,8 @@
 """
 Simple test to ensure that modulestore base classes remain abstract
 """
+
+
 from unittest import TestCase
 
 from xmodule.modulestore import ModuleStoreRead, ModuleStoreWrite

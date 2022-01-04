@@ -2,16 +2,18 @@
 """
 Tests for the dump_to_neo4j management command.
 """
-from __future__ import unicode_literals
+
 
 from datetime import datetime
 
 import ddt
 import mock
+import six
 from django.core.management import call_command
-from django.utils import six
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
+
+from openedx.core.djangolib.testing.utils import skip_unless_lms
 
 from openedx.core.djangoapps.coursegraph.management.commands.dump_to_neo4j import (
     ModuleStoreSerializer
@@ -25,10 +27,12 @@ from openedx.core.djangoapps.coursegraph.tasks import (
     serialize_course,
     coerce_types,
     should_dump_course,
+    strip_branch_and_version,
 )
-from openedx.core.djangoapps.content.course_structures.signals import (
-    listen_for_course_publish
+from openedx.core.djangoapps.content.block_structure.signals import (
+    update_block_structure_on_course_publish
 )
+import openedx.core.djangoapps.content.block_structure.config as block_structure_config
 
 
 class TestDumpToNeo4jCommandBase(SharedModuleStoreTestCase):
@@ -37,7 +41,7 @@ class TestDumpToNeo4jCommandBase(SharedModuleStoreTestCase):
     """
     @classmethod
     def setUpClass(cls):
-        """
+        r"""
         Creates two courses; one that's just a course module, and one that
         looks like:
                         course
@@ -56,15 +60,20 @@ class TestDumpToNeo4jCommandBase(SharedModuleStoreTestCase):
 
         The side-pointing arrows (->) are PRECEDES relationships; the more
         vertical lines are PARENT_OF relationships.
+
+        The vertical in this course and the first video have the same
+        display_name, so that their block_ids are the same. This is to
+        test for a bug where xblocks with the same block_ids (but different
+        locations) pointed to themselves erroneously.
         """
         super(TestDumpToNeo4jCommandBase, cls).setUpClass()
         cls.course = CourseFactory.create()
         cls.chapter = ItemFactory.create(parent=cls.course, category='chapter')
         cls.sequential = ItemFactory.create(parent=cls.chapter, category='sequential')
-        cls.vertical = ItemFactory.create(parent=cls.sequential, category='vertical')
+        cls.vertical = ItemFactory.create(parent=cls.sequential, category='vertical', display_name='subject')
         cls.html = ItemFactory.create(parent=cls.vertical, category='html')
         cls.problem = ItemFactory.create(parent=cls.vertical, category='problem')
-        cls.video = ItemFactory.create(parent=cls.vertical, category='video')
+        cls.video = ItemFactory.create(parent=cls.vertical, category='video', display_name='subject')
         cls.video2 = ItemFactory.create(parent=cls.vertical, category='video')
 
         cls.course2 = CourseFactory.create()
@@ -220,6 +229,13 @@ class TestDumpToNeo4jCommand(TestDumpToNeo4jCommandBase):
         )
 
 
+class SomeThing(object):
+    """Just to test the stringification of an object."""
+    def __str__(self):
+        return "<SomeThing>"
+
+
+@skip_unless_lms
 @ddt.ddt
 class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
     """
@@ -237,16 +253,16 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
         """
         fields, label = serialize_item(self.course)
         self.assertEqual(label, "course")
-        self.assertIn("edited_on", fields.keys())
-        self.assertIn("display_name", fields.keys())
-        self.assertIn("org", fields.keys())
-        self.assertIn("course", fields.keys())
-        self.assertIn("run", fields.keys())
-        self.assertIn("course_key", fields.keys())
-        self.assertIn("location", fields.keys())
-        self.assertIn("block_type", fields.keys())
-        self.assertIn("detached", fields.keys())
-        self.assertNotIn("checklist", fields.keys())
+        self.assertIn("edited_on", list(fields.keys()))
+        self.assertIn("display_name", list(fields.keys()))
+        self.assertIn("org", list(fields.keys()))
+        self.assertIn("course", list(fields.keys()))
+        self.assertIn("run", list(fields.keys()))
+        self.assertIn("course_key", list(fields.keys()))
+        self.assertIn("location", list(fields.keys()))
+        self.assertIn("block_type", list(fields.keys()))
+        self.assertIn("detached", list(fields.keys()))
+        self.assertNotIn("checklist", list(fields.keys()))
 
     def test_serialize_course(self):
         """
@@ -256,6 +272,25 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
         self.assertEqual(len(nodes), 9)
         # the course has 7 "PARENT_OF" relationships and 3 "PRECEDES"
         self.assertEqual(len(relationships), 10)
+
+    def test_strip_version_and_branch(self):
+        """
+        Tests that the _strip_version_and_branch function strips the version
+        and branch from a location
+        """
+        location = self.course.id.make_usage_key(
+            'test_block_type', 'test_block_id'
+        ).for_branch(
+            'test_branch'
+        ).for_version('test_version')
+
+        self.assertIsNotNone(location.branch)
+        self.assertIsNotNone(location.version_guid)
+
+        stripped_location = strip_branch_and_version(location)
+
+        self.assertIsNone(stripped_location.branch)
+        self.assertIsNone(stripped_location.version_guid)
 
     @staticmethod
     def _extract_relationship_pairs(relationships, relationship_type):
@@ -349,7 +384,7 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
 
     @ddt.data(
         (1, 1),
-        (object, "<type 'object'>"),
+        (SomeThing(), "<SomeThing>"),
         (1.5, 1.5),
         ("úñîçø∂é", "úñîçø∂é"),
         (b"plain string", b"plain string"),
@@ -358,7 +393,8 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
         ((1,), "(1,)"),
         # list of elements should be coerced into a list of the
         # string representations of those elements
-        ([object, object], ["<type 'object'>", "<type 'object'>"])
+        ([SomeThing(), SomeThing()], ["<SomeThing>", "<SomeThing>"]),
+        ([1, 2], ["1", "2"]),
     )
     @ddt.unpack
     def test_coerce_types(self, original_value, coerced_expected):
@@ -393,7 +429,7 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
         # 2 nodes and no relationships from the second
 
         self.assertEqual(len(mock_graph.nodes), 11)
-        self.assertItemsEqual(submitted, self.course_strings)
+        six.assertCountEqual(self, submitted, self.course_strings)
 
     @mock.patch('openedx.core.djangoapps.coursegraph.tasks.NodeSelector')
     @mock.patch('openedx.core.djangoapps.coursegraph.tasks.authenticate_and_create_graph')
@@ -416,7 +452,7 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
             number_rollbacks=2,
         )
 
-        self.assertItemsEqual(submitted, self.course_strings)
+        six.assertCountEqual(self, submitted, self.course_strings)
 
     @mock.patch('openedx.core.djangoapps.coursegraph.tasks.NodeSelector')
     @mock.patch('openedx.core.djangoapps.coursegraph.tasks.authenticate_and_create_graph')
@@ -467,7 +503,8 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
         self.assertEqual(len(submitted), len(self.course_strings))
 
         # simulate one of the courses being published
-        listen_for_course_publish(None, self.course.id)
+        with block_structure_config.waffle().override(block_structure_config.STORAGE_BACKING_FOR_CACHE):
+            update_block_structure_on_course_publish(None, self.course.id)
 
         # make sure only the published course was dumped
         submitted, __ = self.mss.dump_courses_to_neo4j(mock_credentials)
@@ -498,7 +535,7 @@ class TestModuleStoreSerializer(TestDumpToNeo4jCommandBase):
         """
         mock_get_command_last_run.return_value = last_command_run
         mock_get_course_last_published.return_value = last_course_published
-        mock_course_key = mock.Mock
+        mock_course_key = mock.Mock()
         mock_graph = mock.Mock()
         self.assertEqual(
             should_dump_course(mock_course_key, mock_graph),

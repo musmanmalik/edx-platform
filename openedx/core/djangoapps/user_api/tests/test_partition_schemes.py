@@ -1,9 +1,14 @@
 """
 Test the user api's partition extensions.
 """
+
+
 from collections import defaultdict
+
+import pytest
+from django.test import TestCase
 from mock import patch
-from unittest import TestCase
+from six.moves import range
 
 from openedx.core.djangoapps.user_api.partition_schemes import RandomUserPartitionScheme, UserPartitionError
 from student.tests.factories import UserFactory
@@ -32,6 +37,7 @@ class MemoryCourseTagAPI(object):
             return False
 
 
+@pytest.mark.django_db
 class TestRandomUserPartitionScheme(PartitionTestCase):
     """
     Test getting a user's group out of a partition
@@ -92,7 +98,7 @@ class TestRandomUserPartitionScheme(PartitionTestCase):
             scheme=RandomUserPartitionScheme
         )
         # get a group assigned to the user
-        with self.assertRaisesRegexp(UserPartitionError, "Cannot assign user to an empty user partition"):
+        with self.assertRaisesRegex(UserPartitionError, "Cannot assign user to an empty user partition"):
             RandomUserPartitionScheme.get_group_for_user(self.MOCK_COURSE_ID, self.user, empty_partition)
 
     def test_user_in_deleted_group(self):
@@ -141,5 +147,5 @@ class TestExtension(TestCase):
 
     def test_get_scheme(self):
         self.assertEqual(UserPartition.get_scheme('random'), RandomUserPartitionScheme)
-        with self.assertRaisesRegexp(UserPartitionError, 'Unrecognized scheme'):
+        with self.assertRaisesRegex(UserPartitionError, 'Unrecognized scheme'):
             UserPartition.get_scheme('other')

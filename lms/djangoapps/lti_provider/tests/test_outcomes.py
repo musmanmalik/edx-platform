@@ -1,10 +1,8 @@
 """
 Tests for the LTI outcome service handlers, both in outcomes.py and in tasks.py
 """
-import unittest
 
-import requests
-import requests_oauthlib
+
 from django.test import TestCase
 from lxml import etree
 from mock import ANY, MagicMock, patch
@@ -187,7 +185,7 @@ class XmlHandlingTest(TestCase):
     methods in outcomes.py
     """
 
-    response_xml = """
+    response_xml = u"""
         <imsx_POXEnvelopeResponse xmlns = "http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0">
           <imsx_POXHeader>
             <imsx_POXResponseHeaderInfo>
@@ -298,6 +296,7 @@ class TestAssignmentsForProblem(ModuleStoreTestCase):
     """
     Test cases for the assignments_for_problem method in outcomes.py
     """
+
     def setUp(self):
         super(TestAssignmentsForProblem, self).setUp()
         self.user = UserFactory.create()

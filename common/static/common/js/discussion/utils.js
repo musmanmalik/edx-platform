@@ -1,4 +1,5 @@
 /* globals _, $$course_id, $$roles, Content, Markdown, MathJax, URI */
+/* globals $$course_id, Content, Markdown, MathJax, URI, _ */
 (function() {
     'use strict';
     this.DiscussionUtil = (function() {
@@ -6,6 +7,9 @@
         }
 
         DiscussionUtil.wmdEditors = {};
+
+        DiscussionUtil.leftKey = 37;
+        DiscussionUtil.rightKey = 39;
 
         DiscussionUtil.getTemplate = function(id) {
             return $('script#' + id).html();
@@ -48,6 +52,16 @@
             }
             ta = _.union(this.roleIds['Community TA']);
             return _.include(ta, parseInt(userId));
+        };
+
+        DiscussionUtil.isGroupTA = function(userId) {
+            var groupTa,
+                localUserId = userId;
+            if (_.isUndefined(userId)) {
+                localUserId = this.user ? this.user.id : void 0;
+            }
+            groupTa = _.union(this.roleIds['Group Moderator']);
+            return _.include(groupTa, parseInt(localUserId, 10));
         };
 
         DiscussionUtil.isPrivilegedUser = function(userId) {
@@ -107,9 +121,9 @@
                 user_profile: '/courses/' + $$course_id + '/discussion/forum/users/' + param,
                 followed_threads: '/courses/' + $$course_id + '/discussion/forum/users/' + param + '/followed',
                 threads: '/courses/' + $$course_id + '/discussion/forum',
-                'enable_notifications': '/notification_prefs/enable/',
-                'disable_notifications': '/notification_prefs/disable/',
-                'notifications_status': '/notification_prefs/status/'
+                enable_notifications: '/notification_prefs/enable/',
+                disable_notifications: '/notification_prefs/disable/',
+                notifications_status: '/notification_prefs/status/'
             }[name];
         };
 
@@ -480,11 +494,10 @@
                 this.postMathJaxProcessor(this.markdownWithHighlight(element.text()))
             );
 
-            this.typesetMathJax(element);
         };
 
         DiscussionUtil.typesetMathJax = function(element) {
-            if (typeof MathJax !== 'undefined' && MathJax !== null) {
+            if (typeof MathJax !== 'undefined' && MathJax !== null && typeof MathJax.Hub !== 'undefined') {
                 MathJax.Hub.Queue(['Typeset', MathJax.Hub, element[0]]);
             }
         };
@@ -541,6 +554,38 @@
                 first: minPage > 1 ? pageInfo(1) : null,
                 last: maxPage < numPages ? pageInfo(numPages) : null
             };
+        };
+
+        DiscussionUtil.handleKeypressInToolbar = function(event) {
+            var $currentButton, $nextButton, $toolbar, $allButtons,
+                keyPressed, nextIndex, currentButtonIndex,
+                validKeyPress, toolbarHasButtons;
+
+            $currentButton = $(event.target);
+            keyPressed = event.which || event.keyCode;
+            $toolbar = $currentButton.parent();
+            $allButtons = $toolbar.children('.wmd-button');
+
+            validKeyPress = keyPressed === this.leftKey || keyPressed === this.rightKey;
+            toolbarHasButtons = $allButtons.length > 0;
+
+            if (validKeyPress && toolbarHasButtons) {
+                currentButtonIndex = $allButtons.index($currentButton);
+                nextIndex = keyPressed === this.leftKey ? currentButtonIndex - 1 : currentButtonIndex + 1;
+                nextIndex = Math.max(Math.min(nextIndex, $allButtons.length - 1), 0);
+
+                $nextButton = $($allButtons[nextIndex]);
+                this.moveSelectionToNextItem($currentButton, $nextButton);
+            }
+        };
+
+        DiscussionUtil.moveSelectionToNextItem = function(prevItem, nextItem) {
+            prevItem.attr('aria-selected', 'false');
+            prevItem.attr('tabindex', '-1');
+
+            nextItem.attr('aria-selected', 'true');
+            nextItem.attr('tabindex', '0');
+            nextItem.focus();
         };
 
         return DiscussionUtil;

@@ -2,13 +2,15 @@
 Helper methods for testing cohorts.
 """
 
+
 import json
 
-from django_comment_common.models import CourseDiscussionSettings
-from django_comment_common.utils import set_course_discussion_settings
 from factory import Sequence, post_generation
 from factory.django import DjangoModelFactory
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from opaque_keys.edx.locator import CourseLocator
+
+from openedx.core.djangoapps.django_comment_common.models import CourseDiscussionSettings
+from openedx.core.djangoapps.django_comment_common.utils import set_course_discussion_settings
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 
@@ -24,7 +26,7 @@ class CohortFactory(DjangoModelFactory):
         model = CourseUserGroup
 
     name = Sequence("cohort{}".format)
-    course_id = SlashSeparatedCourseKey("dummy", "dummy", "dummy")
+    course_id = CourseLocator("dummy", "dummy", "dummy")
     group_type = CourseUserGroup.COHORT
 
     @post_generation
@@ -57,9 +59,8 @@ class CourseCohortSettingsFactory(DjangoModelFactory):
         model = CourseCohortsSettings
 
     is_cohorted = False
-    course_id = SlashSeparatedCourseKey("dummy", "dummy", "dummy")
+    course_id = CourseLocator("dummy", "dummy", "dummy")
     cohorted_discussions = json.dumps([])
-    # pylint: disable=invalid-name
     always_cohort_inline_discussions = False
 
 

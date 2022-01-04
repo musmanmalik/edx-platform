@@ -2,25 +2,30 @@
 Test cases for tabs.
 """
 
-from django.core.urlresolvers import reverse
+
+import six
+from crum import set_current_request
+from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
+from django.urls import reverse
 from milestones.tests.utils import MilestonesTestCaseMixin
 from mock import MagicMock, Mock, patch
-from nose.plugins.attrib import attr
-from waffle.testutils import override_flag
+from six import text_type
+from six.moves import range
 
-from courseware.courses import get_course_by_id
-from courseware.tabs import (
+from lms.djangoapps.courseware.courses import get_course_by_id
+from lms.djangoapps.courseware.tabs import (
     CourseInfoTab,
     CoursewareTab,
+    DatesTab,
     ExternalDiscussionCourseTab,
     ExternalLinkCourseTab,
     ProgressTab,
     get_course_tab_list
 )
-from courseware.tests.factories import InstructorFactory, StaffFactory
-from courseware.tests.helpers import LoginEnrollmentTestCase
-from courseware.views.views import StaticCourseTabView, get_static_tab_fragment
+from lms.djangoapps.courseware.tests.factories import InstructorFactory, StaffFactory
+from lms.djangoapps.courseware.tests.helpers import LoginEnrollmentTestCase
+from lms.djangoapps.courseware.views.views import StaticCourseTabView, get_static_tab_fragment
 from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from openedx.core.djangolib.testing.utils import get_mock_request
 from openedx.features.course_experience import UNIFIED_COURSE_TAB_FLAG
@@ -57,15 +62,12 @@ class TabTestCase(SharedModuleStoreTestCase):
         super(TabTestCase, self).setUp()
         self.reverse = lambda name, args: "name/{0}/args/{1}".format(name, ",".join(str(a) for a in args))
 
-    def create_mock_user(self, is_authenticated=True, is_staff=True, is_enrolled=True):
+    def create_mock_user(self, is_staff=True, is_enrolled=True):
         """
         Creates a mock user with the specified properties.
         """
-        user = UserFactory()
-        user.name = 'mock_user'
-        user.is_staff = is_staff
+        user = UserFactory(is_staff=is_staff)
         user.is_enrolled = is_enrolled
-        user.is_authenticated = lambda: is_authenticated
         return user
 
     def is_tab_enabled(self, tab, course, user):
@@ -135,17 +137,17 @@ class TabTestCase(SharedModuleStoreTestCase):
 
     def check_tab_equality(self, tab, dict_tab):
         """Tests the equality methods on the given tab"""
-        self.assertEquals(tab, dict_tab)  # test __eq__
+        self.assertEqual(tab, dict_tab)  # test __eq__
         ne_dict_tab = dict_tab
         ne_dict_tab['type'] = 'fake_type'
-        self.assertNotEquals(tab, ne_dict_tab)  # test __ne__: incorrect type
-        self.assertNotEquals(tab, {'fake_key': 'fake_value'})  # test __ne__: missing type
+        self.assertNotEqual(tab, ne_dict_tab)  # test __ne__: incorrect type
+        self.assertNotEqual(tab, {'fake_key': 'fake_value'})  # test __ne__: missing type
 
     def check_tab_json_methods(self, tab):
         """Tests the json from and to methods on the given tab"""
         serialized_tab = tab.to_json()
         deserialized_tab = tab.from_json(serialized_tab)
-        self.assertEquals(serialized_tab, deserialized_tab)
+        self.assertEqual(serialized_tab, deserialized_tab)
 
     def check_can_display_results(
             self,
@@ -157,22 +159,23 @@ class TabTestCase(SharedModuleStoreTestCase):
     ):
         """Checks can display results for various users"""
         if for_staff_only:
-            user = self.create_mock_user(is_authenticated=True, is_staff=True, is_enrolled=True)
-            self.assertEquals(expected_value, self.is_tab_enabled(tab, self.course, user))
+            user = self.create_mock_user(is_staff=True, is_enrolled=True)
+            self.assertEqual(expected_value, self.is_tab_enabled(tab, self.course, user))
         if for_authenticated_users_only:
-            user = self.create_mock_user(is_authenticated=True, is_staff=False, is_enrolled=False)
-            self.assertEquals(expected_value, self.is_tab_enabled(tab, self.course, user))
+            user = self.create_mock_user(is_staff=False, is_enrolled=False)
+            self.assertEqual(expected_value, self.is_tab_enabled(tab, self.course, user))
+            assert False
         if not for_staff_only and not for_authenticated_users_only and not for_enrolled_users_only:
-            user = self.create_mock_user(is_authenticated=False, is_staff=False, is_enrolled=False)
-            self.assertEquals(expected_value, self.is_tab_enabled(tab, self.course, user))
+            user = AnonymousUser()
+            self.assertEqual(expected_value, self.is_tab_enabled(tab, self.course, user))
         if for_enrolled_users_only:
-            user = self.create_mock_user(is_authenticated=True, is_staff=False, is_enrolled=True)
-            self.assertEquals(expected_value, self.is_tab_enabled(tab, self.course, user))
+            user = self.create_mock_user(is_staff=False, is_enrolled=True)
+            self.assertEqual(expected_value, self.is_tab_enabled(tab, self.course, user))
 
     def check_get_and_set_methods(self, tab):
         """Test __getitem__ and __setitem__ calls"""
-        self.assertEquals(tab['type'], tab.type)
-        self.assertEquals(tab['tab_id'], tab.tab_id)
+        self.assertEqual(tab['type'], tab.type)
+        self.assertEqual(tab['tab_id'], tab.tab_id)
         with self.assertRaises(KeyError):
             _ = tab['invalid_key']
 
@@ -186,9 +189,9 @@ class TabTestCase(SharedModuleStoreTestCase):
         old_value = tab[key]
         new_value = 'New Value'
         tab[key] = new_value
-        self.assertEquals(tab[key], new_value)
+        self.assertEqual(tab[key], new_value)
         tab[key] = old_value
-        self.assertEquals(tab[key], old_value)
+        self.assertEqual(tab[key], old_value)
 
 
 class TextbooksTestCase(TabTestCase):
@@ -216,22 +219,21 @@ class TextbooksTestCase(TabTestCase):
         type_to_reverse_name = {'textbook': 'book', 'pdftextbook': 'pdf_book', 'htmltextbook': 'html_book'}
 
         num_textbooks_found = 0
-        user = self.create_mock_user(is_authenticated=True, is_staff=False, is_enrolled=True)
+        user = self.create_mock_user(is_staff=False, is_enrolled=True)
         for tab in xmodule_tabs.CourseTabList.iterate_displayable(self.course, user=user):
             # verify all textbook type tabs
             if tab.type == 'single_textbook':
                 book_type, book_index = tab.tab_id.split("/", 1)
                 expected_link = self.reverse(
                     type_to_reverse_name[book_type],
-                    args=[self.course.id.to_deprecated_string(), book_index]
+                    args=[text_type(self.course.id), book_index]
                 )
                 self.assertEqual(tab.link_func(self.course, self.reverse), expected_link)
                 self.assertTrue(tab.name.startswith('Book{0}'.format(book_index)))
                 num_textbooks_found = num_textbooks_found + 1
-        self.assertEquals(num_textbooks_found, self.num_textbooks)
+        self.assertEqual(num_textbooks_found, self.num_textbooks)
 
 
-@attr(shard=1)
 class StaticTabDateTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """Test cases for Static Tab Dates."""
 
@@ -250,19 +252,18 @@ class StaticTabDateTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
 
     def test_logged_in(self):
         self.setup_user()
-        url = reverse('static_tab', args=[self.course.id.to_deprecated_string(), 'new_tab'])
+        url = reverse('static_tab', args=[text_type(self.course.id), 'new_tab'])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn("OOGIE BLOOGIE", resp.content)
+        self.assertContains(resp, "OOGIE BLOOGIE")
 
     def test_anonymous_user(self):
-        url = reverse('static_tab', args=[self.course.id.to_deprecated_string(), 'new_tab'])
+        url = reverse('static_tab', args=[text_type(self.course.id), 'new_tab'])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn("OOGIE BLOOGIE", resp.content)
+        self.assertContains(resp, "OOGIE BLOOGIE")
 
     def test_invalid_course_key(self):
         self.setup_user()
+        self.addCleanup(set_current_request, None)
         request = get_mock_request(self.user)
         with self.assertRaises(Http404):
             StaticCourseTabView().get(request, course_id='edX/toy', tab_slug='new_tab')
@@ -270,16 +271,17 @@ class StaticTabDateTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     def test_get_static_tab_fragment(self):
         self.setup_user()
         course = get_course_by_id(self.course.id)
+        self.addCleanup(set_current_request, None)
         request = get_mock_request(self.user)
         tab = xmodule_tabs.CourseTabList.get_tab_by_slug(course.tabs, 'new_tab')
 
         # Test render works okay
         tab_content = get_static_tab_fragment(request, course, tab).content
-        self.assertIn(self.course.id.to_deprecated_string(), tab_content)
+        self.assertIn(text_type(self.course.id), tab_content)
         self.assertIn('static_tab', tab_content)
 
         # Test when render raises an exception
-        with patch('courseware.views.views.get_module') as mock_module_render:
+        with patch('lms.djangoapps.courseware.views.views.get_module') as mock_module_render:
             mock_module_render.return_value = MagicMock(
                 render=Mock(side_effect=Exception('Render failed!'))
             )
@@ -287,7 +289,6 @@ class StaticTabDateTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
             self.assertIn("this module is temporarily unavailable", static_tab_content)
 
 
-@attr(shard=1)
 class StaticTabDateTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
     """
     Tests for the static tab dates of an XML course
@@ -324,20 +325,17 @@ class StaticTabDateTestCaseXML(LoginEnrollmentTestCase, ModuleStoreTestCase):
     @patch.dict('django.conf.settings.FEATURES', {'DISABLE_START_DATES': False})
     def test_logged_in_xml(self):
         self.setup_user()
-        url = reverse('static_tab', args=[self.xml_course_key.to_deprecated_string(), self.xml_url])
+        url = reverse('static_tab', args=[text_type(self.xml_course_key), self.xml_url])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn(self.xml_data, resp.content)
+        self.assertContains(resp, self.xml_data)
 
     @patch.dict('django.conf.settings.FEATURES', {'DISABLE_START_DATES': False})
     def test_anonymous_user_xml(self):
-        url = reverse('static_tab', args=[self.xml_course_key.to_deprecated_string(), self.xml_url])
+        url = reverse('static_tab', args=[text_type(self.xml_course_key), self.xml_url])
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn(self.xml_data, resp.content)
+        self.assertContains(resp, self.xml_data)
 
 
-@attr(shard=1)
 @patch.dict('django.conf.settings.FEATURES', {'ENTRANCE_EXAMS': True})
 class EntranceExamsTabsTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, MilestonesTestCaseMixin):
     """
@@ -369,6 +367,7 @@ class EntranceExamsTabsTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, Mi
         self.enroll(self.course)
         self.user.is_staff = True
         self.relationship_types = get_milestone_relationship_types()
+        self.addCleanup(set_current_request, None)
 
     def test_get_course_tabs_list_entrance_exam_enabled(self):
         """
@@ -383,26 +382,25 @@ class EntranceExamsTabsTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, Mi
         )
         milestone = {
             'name': 'Test Milestone',
-            'namespace': '{}.entrance_exams'.format(unicode(self.course.id)),
+            'namespace': '{}.entrance_exams'.format(six.text_type(self.course.id)),
             'description': 'Testing Courseware Tabs'
         }
         self.user.is_staff = False
-        request = get_mock_request(self.user)
         self.course.entrance_exam_enabled = True
-        self.course.entrance_exam_id = unicode(entrance_exam.location)
+        self.course.entrance_exam_id = six.text_type(entrance_exam.location)
         milestone = add_milestone(milestone)
         add_course_milestone(
-            unicode(self.course.id),
+            six.text_type(self.course.id),
             self.relationship_types['REQUIRES'],
             milestone
         )
         add_course_content_milestone(
-            unicode(self.course.id),
-            unicode(entrance_exam.location),
+            six.text_type(self.course.id),
+            six.text_type(entrance_exam.location),
             self.relationship_types['FULFILLS'],
             milestone
         )
-        course_tab_list = get_course_tab_list(request, self.course)
+        course_tab_list = get_course_tab_list(self.user, self.course)
         self.assertEqual(len(course_tab_list), 1)
         self.assertEqual(course_tab_list[0]['tab_id'], 'courseware')
         self.assertEqual(course_tab_list[0]['name'], 'Entrance Exam')
@@ -418,7 +416,7 @@ class EntranceExamsTabsTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, Mi
         self.client.logout()
         self.client.login(username=instructor.username, password='test')
 
-        url = reverse('mark_student_can_skip_entrance_exam', kwargs={'course_id': unicode(self.course.id)})
+        url = reverse('mark_student_can_skip_entrance_exam', kwargs={'course_id': six.text_type(self.course.id)})
         response = self.client.post(url, {
             'unique_student_identifier': student.email,
         })
@@ -427,9 +425,8 @@ class EntranceExamsTabsTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, Mi
         # log in again as student
         self.client.logout()
         self.login(self.email, self.password)
-        request = get_mock_request(self.user)
-        course_tab_list = get_course_tab_list(request, self.course)
-        self.assertEqual(len(course_tab_list), 5)
+        course_tab_list = get_course_tab_list(self.user, self.course)
+        self.assertEqual(len(course_tab_list), 4)
 
     def test_course_tabs_list_for_staff_members(self):
         """
@@ -440,12 +437,10 @@ class EntranceExamsTabsTestCase(LoginEnrollmentTestCase, ModuleStoreTestCase, Mi
         self.client.logout()
         staff_user = StaffFactory(course_key=self.course.id)
         self.client.login(username=staff_user.username, password='test')
-        request = get_mock_request(staff_user)
-        course_tab_list = get_course_tab_list(request, self.course)
-        self.assertEqual(len(course_tab_list), 5)
+        course_tab_list = get_course_tab_list(staff_user, self.course)
+        self.assertEqual(len(course_tab_list), 4)
 
 
-@attr(shard=1)
 class TextBookCourseViewsTestCase(LoginEnrollmentTestCase, SharedModuleStoreTestCase):
     """
     Validate tab behavior when dealing with textbooks.
@@ -482,8 +477,8 @@ class TextBookCourseViewsTestCase(LoginEnrollmentTestCase, SharedModuleStoreTest
         Test that all textbooks tab links generating correctly.
         """
         type_to_reverse_name = {'textbook': 'book', 'pdftextbook': 'pdf_book', 'htmltextbook': 'html_book'}
-        request = get_mock_request(self.user)
-        course_tab_list = get_course_tab_list(request, self.course)
+        self.addCleanup(set_current_request, None)
+        course_tab_list = get_course_tab_list(self.user, self.course)
         num_of_textbooks_found = 0
         for tab in course_tab_list:
             # Verify links of all textbook type tabs.
@@ -491,7 +486,7 @@ class TextBookCourseViewsTestCase(LoginEnrollmentTestCase, SharedModuleStoreTest
                 book_type, book_index = tab.tab_id.split("/", 1)
                 expected_link = reverse(
                     type_to_reverse_name[book_type],
-                    args=[self.course.id.to_deprecated_string(), book_index]
+                    args=[text_type(self.course.id), book_index]
                 )
                 tab_link = tab.link_func(self.course, reverse)
                 self.assertEqual(tab_link, expected_link)
@@ -549,6 +544,7 @@ class TabListTestCase(TabTestCase):
             [
                 {'type': CoursewareTab.type},
                 {'type': CourseInfoTab.type, 'name': 'fake_name'},
+                {'type': DatesTab.type},  # Add this even though we filter it out, for testing purposes
                 {'type': 'discussion', 'name': 'fake_name'},
                 {'type': ExternalLinkCourseTab.type, 'name': 'fake_name', 'link': 'fake_link'},
                 {'type': ExternalLinkCourseTab.type, 'name': 'fake_name', 'link': 'fake_link'},
@@ -570,7 +566,6 @@ class TabListTestCase(TabTestCase):
         self.all_valid_tab_list = xmodule_tabs.CourseTabList().from_json(self.valid_tabs[1])
 
 
-@attr(shard=1)
 class ValidateTabsTestCase(TabListTestCase):
     """Test cases for validating tabs."""
 
@@ -582,7 +577,7 @@ class ValidateTabsTestCase(TabListTestCase):
 
         for valid_tab_list in self.valid_tabs:
             from_json_result = tab_list.from_json(valid_tab_list)
-            self.assertEquals(len(from_json_result), len(valid_tab_list))
+            self.assertEqual(len(from_json_result), len(valid_tab_list))
 
     def test_invalid_tab_type(self):
         """
@@ -590,7 +585,7 @@ class ValidateTabsTestCase(TabListTestCase):
         the tabs to be undisplayable.
         """
         tab_list = xmodule_tabs.CourseTabList()
-        self.assertEquals(
+        self.assertEqual(
             len(tab_list.from_json([
                 {'type': CoursewareTab.type},
                 {'type': CourseInfoTab.type, 'name': 'fake_name'},
@@ -600,9 +595,12 @@ class ValidateTabsTestCase(TabListTestCase):
         )
 
 
-@attr(shard=1)
 class CourseTabListTestCase(TabListTestCase):
     """Testing the generator method for iterating through displayable tabs"""
+
+    def setUp(self):
+        super(CourseTabListTestCase, self).setUp()
+        self.addCleanup(set_current_request, None)
 
     def has_tab(self, tab_list, tab_type):
         """ Searches the given lab_list for a given tab_type. """
@@ -640,7 +638,6 @@ class CourseTabListTestCase(TabListTestCase):
     @patch.dict("django.conf.settings.FEATURES", {
         "ENABLE_TEXTBOOK": True,
         "ENABLE_DISCUSSION_SERVICE": True,
-        "ENABLE_STUDENT_NOTES": True,
         "ENABLE_EDXNOTES": True,
     })
     def test_iterate_displayable(self):
@@ -653,22 +650,24 @@ class CourseTabListTestCase(TabListTestCase):
         self.course.tabs = self.all_valid_tab_list
 
         # enumerate the tabs with no user
-        for i, tab in enumerate(xmodule_tabs.CourseTabList.iterate_displayable(
-                self.course,
-                inline_collections=False
-        )):
-            self.assertEquals(tab.type, self.course.tabs[i].type)
+        expected = [tab.type for tab in
+                    xmodule_tabs.CourseTabList.iterate_displayable(self.course, inline_collections=False)]
+        actual = [tab.type for tab in self.course.tabs if tab.is_enabled(self.course, user=None)]
+        assert actual == expected
 
         # enumerate the tabs with a staff user
         user = UserFactory(is_staff=True)
         CourseEnrollment.enroll(user, self.course.id)
-        for i, tab in enumerate(xmodule_tabs.CourseTabList.iterate_displayable(self.course, user=user)):
-            if getattr(tab, 'is_collection_item', False):
-                # a collection item was found as a result of a collection tab
-                self.assertTrue(getattr(self.course.tabs[i], 'is_collection', False))
-            else:
-                # all other tabs must match the expected type
-                self.assertEquals(tab.type, self.course.tabs[i].type)
+        # Need to mock this flag as we care that orders match, and a tab not enabled will result in a failure
+        with patch('lms.djangoapps.courseware.tabs.RELATIVE_DATES_FLAG') as mock_flag:
+            mock_flag.is_enabled().return_value = True
+            for i, tab in enumerate(xmodule_tabs.CourseTabList.iterate_displayable(self.course, user=user)):
+                if getattr(tab, 'is_collection_item', False):
+                    # a collection item was found as a result of a collection tab
+                    self.assertTrue(getattr(self.course.tabs[i], 'is_collection', False))
+                else:
+                    # all other tabs must match the expected type
+                    self.assertEqual(tab.type, self.course.tabs[i].type)
 
         # test including non-empty collections
         self.assertIn(
@@ -689,10 +688,10 @@ class CourseTabListTestCase(TabListTestCase):
         for tab in self.course.tabs:
 
             # get tab by type
-            self.assertEquals(xmodule_tabs.CourseTabList.get_tab_by_type(self.course.tabs, tab.type), tab)
+            self.assertEqual(xmodule_tabs.CourseTabList.get_tab_by_type(self.course.tabs, tab.type), tab)
 
             # get tab by id
-            self.assertEquals(xmodule_tabs.CourseTabList.get_tab_by_id(self.course.tabs, tab.tab_id), tab)
+            self.assertEqual(xmodule_tabs.CourseTabList.get_tab_by_id(self.course.tabs, tab.tab_id), tab)
 
     def test_course_tabs_staff_only(self):
         """
@@ -706,9 +705,9 @@ class CourseTabListTestCase(TabListTestCase):
                                                             course_staff_only=True))
         self.course.save()
 
-        user = self.create_mock_user(is_authenticated=True, is_staff=False, is_enrolled=True)
-        request = get_mock_request(user)
-        course_tab_list = get_course_tab_list(request, self.course)
+        user = self.create_mock_user(is_staff=False, is_enrolled=True)
+        self.addCleanup(set_current_request, None)
+        course_tab_list = get_course_tab_list(user, self.course)
         name_list = [x.name for x in course_tab_list]
         self.assertIn('Static Tab Free', name_list)
         self.assertNotIn('Static Tab Instructors Only', name_list)
@@ -717,14 +716,12 @@ class CourseTabListTestCase(TabListTestCase):
         self.client.logout()
         staff_user = StaffFactory(course_key=self.course.id)
         self.client.login(username=staff_user.username, password='test')
-        request = get_mock_request(staff_user)
-        course_tab_list_staff = get_course_tab_list(request, self.course)
+        course_tab_list_staff = get_course_tab_list(staff_user, self.course)
         name_list_staff = [x.name for x in course_tab_list_staff]
         self.assertIn('Static Tab Free', name_list_staff)
         self.assertIn('Static Tab Instructors Only', name_list_staff)
 
 
-@attr(shard=1)
 class ProgressTestCase(TabTestCase):
     """Test cases for Progress Tab."""
 
@@ -733,7 +730,7 @@ class ProgressTestCase(TabTestCase):
         return self.check_tab(
             tab_class=ProgressTab,
             dict_tab={'type': ProgressTab.type, 'name': 'same'},
-            expected_link=self.reverse('progress', args=[self.course.id.to_deprecated_string()]),
+            expected_link=self.reverse('progress', args=[text_type(self.course.id)]),
             expected_tab_id=ProgressTab.type,
             invalid_dict_tab=None,
         )
@@ -754,7 +751,6 @@ class ProgressTestCase(TabTestCase):
         )
 
 
-@attr(shard=1)
 class StaticTabTestCase(TabTestCase):
     """Test cases for Static Tab."""
 
@@ -765,7 +761,7 @@ class StaticTabTestCase(TabTestCase):
         tab = self.check_tab(
             tab_class=xmodule_tabs.StaticTab,
             dict_tab={'type': xmodule_tabs.StaticTab.type, 'name': 'same', 'url_slug': url_slug},
-            expected_link=self.reverse('static_tab', args=[self.course.id.to_deprecated_string(), url_slug]),
+            expected_link=self.reverse('static_tab', args=[text_type(self.course.id), url_slug]),
             expected_tab_id='static_tab_schmug',
             invalid_dict_tab=self.fake_dict_tab,
         )
@@ -773,27 +769,33 @@ class StaticTabTestCase(TabTestCase):
         self.check_get_and_set_method_for_key(tab, 'url_slug')
 
 
-@attr(shard=1)
 class CourseInfoTabTestCase(TabTestCase):
     """Test cases for the course info tab."""
     def setUp(self):
         self.user = self.create_mock_user()
-        self.request = get_mock_request(self.user)
+        self.addCleanup(set_current_request, None)
 
     @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=False)
     def test_default_tab(self):
         # Verify that the course info tab is the first tab
-        tabs = get_course_tab_list(self.request, self.course)
+        tabs = get_course_tab_list(self.user, self.course)
         self.assertEqual(tabs[0].type, 'course_info')
 
     @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
     def test_default_tab_for_new_course_experience(self):
         # Verify that the unified course experience hides the course info tab
-        tabs = get_course_tab_list(self.request, self.course)
+        tabs = get_course_tab_list(self.user, self.course)
         self.assertEqual(tabs[0].type, 'courseware')
 
+    # TODO: LEARNER-611 - remove once course_info is removed.
+    @override_waffle_flag(UNIFIED_COURSE_TAB_FLAG, active=True)
+    def test_default_tab_for_displayable(self):
+        tabs = xmodule_tabs.CourseTabList.iterate_displayable(self.course, self.user)
+        for i, tab in enumerate(tabs):
+            if i == 0:
+                self.assertEqual(tab.type, 'course_info')
 
-@attr(shard=1)
+
 class DiscussionLinkTestCase(TabTestCase):
     """Test cases for discussion link tab."""
 
@@ -811,7 +813,7 @@ class DiscussionLinkTestCase(TabTestCase):
         """Custom reverse function"""
         def reverse_discussion_link(viewname, args):
             """reverse lookup for discussion link"""
-            if viewname == "discussion.views.forum_form_discussion" and args == [unicode(course.id)]:
+            if viewname == "forum_form_discussion" and args == [six.text_type(course.id)]:
                 return "default_discussion_link"
         return reverse_discussion_link
 
@@ -827,10 +829,10 @@ class DiscussionLinkTestCase(TabTestCase):
         self.course.tabs = tab_list
         self.course.discussion_link = discussion_link_in_course
         discussion_tab = xmodule_tabs.CourseTabList.get_discussion(self.course)
-        user = self.create_mock_user(is_authenticated=True, is_staff=is_staff, is_enrolled=is_enrolled)
+        user = self.create_mock_user(is_staff=is_staff, is_enrolled=is_enrolled)
         with patch('student.models.CourseEnrollment.is_enrolled') as check_is_enrolled:
             check_is_enrolled.return_value = is_enrolled
-            self.assertEquals(
+            self.assertEqual(
                 (
                     discussion_tab is not None and
                     self.is_tab_enabled(discussion_tab, self.course, user) and
@@ -898,3 +900,29 @@ class DiscussionLinkTestCase(TabTestCase):
             is_enrolled=is_enrolled,
             is_staff=is_staff
         )
+
+
+class DatesTabTestCase(TabListTestCase):
+    """Test cases for making sure no persisted dates tab is surfaced"""
+
+    def test_singular_dates_tab(self):
+        user = self.create_mock_user()
+        self.course.tabs = self.all_valid_tab_list
+        self.course.save()
+
+        # Verify that there is a dates tab in the modulestore
+        has_dates_tab = False
+        for tab in self.course.tabs:
+            if tab.type == 'dates':
+                has_dates_tab = True
+        self.assertTrue(has_dates_tab)
+
+        # Verify that there is only 1 'dates' tab in the returned result from get_course_tab_list()
+        with patch('lms.djangoapps.courseware.tabs.RELATIVE_DATES_FLAG') as mock_flag:
+            mock_flag.is_enabled().return_value = True
+            tabs = get_course_tab_list(user, self.course)
+            num_dates_tabs = 0
+            for tab in tabs:
+                if tab.type == 'dates':
+                    num_dates_tabs += 1
+            self.assertEqual(num_dates_tabs, 1)

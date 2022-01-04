@@ -4,6 +4,8 @@ authorization has authorization to do so, which infers authorization via role hi
 (GlobalStaff is superset of auths of course instructor, ...), which consults the config
 to decide whether to check course creator role, and other such functions.
 """
+
+
 from ccx_keys.locator import CCXBlockUsageLocator, CCXLocator
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
@@ -164,7 +166,7 @@ def _check_caller_authority(caller, role):
     :param caller: a user
     :param role: an AccessRole
     """
-    if not (caller.is_authenticated() and caller.is_active):
+    if not (caller.is_authenticated and caller.is_active):
         raise PermissionDenied
     # superuser
     if GlobalStaff().has_user(caller):

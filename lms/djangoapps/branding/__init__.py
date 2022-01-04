@@ -7,18 +7,16 @@ This module provides functions to retrieve basic branded parts
 such as the site visible courses, university name and logo.
 """
 
-from xmodule.modulestore.django import modulestore
-from xmodule.course_module import CourseDescriptor
-from django.conf import settings
 
-from opaque_keys.edx.locations import SlashSeparatedCourseKey
-from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from django.conf import settings
+from opaque_keys.edx.keys import CourseKey
+
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 
 
 def get_visible_courses(org=None, filter_=None):
     """
-    Return the set of CourseOverviews that should be visible in this branded
+    Yield the CourseOverviews that should be visible in this branded
     instance.
 
     Arguments:
@@ -27,8 +25,12 @@ def get_visible_courses(org=None, filter_=None):
         filter_ (dict): Optional parameter that allows custom filtering by
             fields on the course.
     """
-    courses = []
+    # Import is placed here to avoid model import at project startup.
+    from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
     current_site_orgs = configuration_helpers.get_current_site_orgs()
+
+    courses = CourseOverview.objects.none()
 
     if org:
         # Check the current site's orgs to make sure the org's courses should be displayed
@@ -40,7 +42,7 @@ def get_visible_courses(org=None, filter_=None):
     else:
         courses = CourseOverview.get_all_courses(filter_=filter_)
 
-    courses = sorted(courses, key=lambda course: course.number)
+    courses = courses.order_by('id')
 
     # Filtering can stop here.
     if current_site_orgs:
@@ -53,15 +55,15 @@ def get_visible_courses(org=None, filter_=None):
     subdomain = configuration_helpers.get_value('subdomain', 'default')
     if hasattr(settings, 'COURSE_LISTINGS') and subdomain in settings.COURSE_LISTINGS and not settings.DEBUG:
         filtered_visible_ids = frozenset(
-            [SlashSeparatedCourseKey.from_deprecated_string(c) for c in settings.COURSE_LISTINGS[subdomain]]
+            [CourseKey.from_string(c) for c in settings.COURSE_LISTINGS[subdomain]]
         )
 
     if filtered_visible_ids:
-        return [course for course in courses if course.id in filtered_visible_ids]
+        return courses.filter(id__in=filtered_visible_ids)
     else:
         # Filter out any courses based on current org, to avoid leaking these.
         orgs = configuration_helpers.get_all_orgs()
-        return [course for course in courses if course.location.org not in orgs]
+        return courses.exclude(org__in=orgs)
 
 
 def get_university_for_request():

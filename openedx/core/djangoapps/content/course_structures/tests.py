@@ -2,7 +2,7 @@
 Course Structure Content sub-application test cases
 """
 import json
-from nose.plugins.attrib import attr
+from opaque_keys.edx.django.models import UsageKey
 
 from xmodule.modulestore.django import SignalHandler
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
@@ -10,7 +10,7 @@ from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from openedx.core.djangoapps.content.course_structures.models import CourseStructure
 from openedx.core.djangoapps.content.course_structures.signals import listen_for_course_publish
 from openedx.core.djangoapps.content.course_structures.tasks import _generate_course_structure, update_course_structure
-from openedx.core.djangoapps.xmodule_django.models import UsageKey
+from openedx.core.lib.tests import attr
 
 
 class SignalDisconnectTestMixin(object):
@@ -20,9 +20,11 @@ class SignalDisconnectTestMixin(object):
 
     def setUp(self):
         super(SignalDisconnectTestMixin, self).setUp()
-        SignalHandler.course_published.disconnect(
-            listen_for_course_publish, dispatch_uid='openedx.core.djangoapps.content.course_structures'
-        )
+        SignalHandler.course_published.disconnect(listen_for_course_publish)
+
+    def tearDown(self):
+        SignalHandler.course_published.connect(listen_for_course_publish)
+        super(SignalDisconnectTestMixin, self).tearDown()
 
 
 @attr(shard=2)
@@ -55,13 +57,13 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
             """
             children = block.get_children() if block.has_children else []
 
-            blocks[unicode(block.location)] = {
-                "usage_key": unicode(block.location),
+            blocks[str(block.location)] = {
+                "usage_key": str(block.location),
                 "block_type": block.category,
                 "display_name": block.display_name,
                 "graded": block.graded,
                 "format": block.format,
-                "children": [unicode(child.location) for child in children]
+                "children": [str(child.location) for child in children]
             }
 
             for child in children:
@@ -70,7 +72,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
         add_block(self.course)
 
         expected = {
-            'root': unicode(self.course.location),
+            'root': str(self.course.location),
             'blocks': blocks
         }
 
@@ -148,7 +150,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
             course_id=self.course.id, structure_json=structure_json
         )
 
-        self.assertEqual(retrieved_course_structure.ordered_blocks.keys(), in_order_blocks)
+        self.assertEqual(list(retrieved_course_structure.ordered_blocks.keys()), in_order_blocks)
 
     def test_block_with_missing_fields(self):
         """
@@ -161,7 +163,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
         module = ItemFactory.create(parent=self.section, category=category, display_name=display_name)
         structure = _generate_course_structure(self.course.id)
 
-        usage_key = unicode(module.location)
+        usage_key = str(module.location)
         actual = structure['structure']['blocks'][usage_key]
         expected = {
             "usage_key": usage_key,
@@ -181,7 +183,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
             children = block.get_children() if block.has_children else []
 
             if block.category == 'discussion':
-                id_map[block.discussion_id] = unicode(block.location)
+                id_map[block.discussion_id] = str(block.location)
 
             for child in children:
                 add_block(child)
@@ -212,7 +214,7 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
         structure = CourseStructure.objects.create(course_id=self.course.id, discussion_id_map_json=id_map_json)
         expected_id_map = {
             key: UsageKey.from_string(value).map_into_course(self.course.id)
-            for key, value in id_map.iteritems()
+            for key, value in id_map.items()
         }
         self.assertEqual(structure.discussion_id_map, expected_id_map)
 
@@ -230,12 +232,12 @@ class CourseStructureTaskTests(ModuleStoreTestCase):
 
         # Ensure a CourseStructure object is created
         expected_structure = _generate_course_structure(course_id)
-        update_course_structure(unicode(course_id))
+        update_course_structure(str(course_id))
         structure = CourseStructure.objects.get(course_id=course_id)
         self.assertEqual(structure.course_id, course_id)
         self.assertEqual(structure.structure, expected_structure['structure'])
         self.assertEqual(structure.discussion_id_map.keys(), expected_structure['discussion_id_map'].keys())
         self.assertEqual(
-            [unicode(value) for value in structure.discussion_id_map.values()],
-            expected_structure['discussion_id_map'].values()
+            [str(value) for value in structure.discussion_id_map.values()],
+            list(expected_structure['discussion_id_map'].values())
         )

@@ -1,15 +1,17 @@
 """
 Fragment for rendering the course's sock and associated toggle button.
 """
+
 from django.template.loader import render_to_string
-from opaque_keys.edx.keys import CourseKey
 from web_fragments.fragment import Fragment
 
-from student.models import CourseEnrollment
-from course_modes.models import CourseMode
-from courseware.date_summary import VerifiedUpgradeDeadlineDate
-from courseware.views.views import get_cosmetic_verified_display_price
+from lms.djangoapps.courseware.utils import (
+    can_show_verified_upgrade,
+    verified_upgrade_deadline_link
+)
 from openedx.core.djangoapps.plugin_api.views import EdxFragmentView
+from openedx.features.discounts.utils import format_strikeout_price
+from student.models import CourseEnrollment
 
 
 class CourseSockFragmentView(EdxFragmentView):
@@ -24,29 +26,22 @@ class CourseSockFragmentView(EdxFragmentView):
         html = render_to_string('course_experience/course-sock-fragment.html', context)
         return Fragment(html)
 
-    def get_verification_context(self, request, course):
-        course_key = CourseKey.from_string(unicode(course.id))
-
-        # Establish whether the course has a verified mode
-        available_modes = CourseMode.modes_for_course_dict(unicode(course.id))
-        has_verified_mode = CourseMode.has_verified_mode(available_modes)
-
-        # Establish whether the user is already enrolled
-        is_already_verified = CourseEnrollment.is_enrolled_as_verified(request.user.id, course_key)
-
-        # Establish whether the verification deadline has already passed
-        verification_deadline = VerifiedUpgradeDeadlineDate(course, request.user)
-        deadline_has_passed = verification_deadline.deadline_has_passed()
-
-        show_course_sock = has_verified_mode and not is_already_verified and not deadline_has_passed
-
-        # Get the price of the course and format correctly
-        course_price = get_cosmetic_verified_display_price(course)
+    @staticmethod
+    def get_verification_context(request, course):
+        enrollment = CourseEnrollment.get_enrollment(request.user, course.id)
+        show_course_sock = can_show_verified_upgrade(request.user, enrollment, course)
+        if show_course_sock:
+            upgrade_url = verified_upgrade_deadline_link(request.user, course=course)
+            course_price, _ = format_strikeout_price(request.user, course)
+        else:
+            upgrade_url = ''
+            course_price = ''
 
         context = {
             'show_course_sock': show_course_sock,
             'course_price': course_price,
-            'course_id': course.id
+            'course_id': course.id,
+            'upgrade_url': upgrade_url,
         }
 
         return context

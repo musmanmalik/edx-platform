@@ -1,10 +1,7 @@
 """Mixins for use during testing."""
-import json
 
-import httpretty
 
 from openedx.core.djangoapps.credentials.models import CredentialsApiConfig
-from openedx.core.djangoapps.credentials.tests import factories
 
 
 class CredentialsApiConfigMixin(object):

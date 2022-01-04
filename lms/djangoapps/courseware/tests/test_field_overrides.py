@@ -1,11 +1,9 @@
 """
 Tests for `field_overrides` module.
 """
-# pylint: disable=missing-docstring
 import unittest
 
 from django.test.utils import override_settings
-from nose.plugins.attrib import attr
 from xblock.field_data import DictFieldData
 
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
@@ -45,21 +43,27 @@ class TestOverrideProvider(FieldOverrideProvider):
         return True
 
 
-@attr(shard=1)
-@override_settings(FIELD_OVERRIDE_PROVIDERS=(
-    'courseware.tests.test_field_overrides.TestOverrideProvider',))
-class OverrideFieldDataTests(SharedModuleStoreTestCase):
+class OverrideFieldBase(SharedModuleStoreTestCase):
     """
-    Tests for `OverrideFieldData`.
+    Base class for field data override tests.  Using override_settings and
+    a setUpClass() override in a test class which is inherited by another
+    test class doesn't work well with pytest-django.
     """
-
     @classmethod
     def setUpClass(cls):
         """
         Course is created here and shared by all the class's tests.
         """
-        super(OverrideFieldDataTests, cls).setUpClass()
+        super(OverrideFieldBase, cls).setUpClass()
         cls.course = CourseFactory.create(enable_ccx=True)
+
+
+@override_settings(FIELD_OVERRIDE_PROVIDERS=(
+    'courseware.tests.test_field_overrides.TestOverrideProvider',))
+class OverrideFieldDataTests(OverrideFieldBase):
+    """
+    Tests for `OverrideFieldData`.
+    """
 
     def setUp(self):
         super(OverrideFieldDataTests, self).setUp()
@@ -125,9 +129,8 @@ class OverrideFieldDataTests(SharedModuleStoreTestCase):
         self.assertIsInstance(data, DictFieldData)
 
 
-@attr(shard=1)
 @override_settings(
-    MODULESTORE_FIELD_OVERRIDE_PROVIDERS=['courseware.tests.test_field_overrides.TestOverrideProvider']
+    MODULESTORE_FIELD_OVERRIDE_PROVIDERS=['lms.djangoapps.courseware.tests.test_field_overrides.TestOverrideProvider']
 )
 class OverrideModulestoreFieldDataTests(FieldOverrideTestMixin, OverrideFieldDataTests):
     def make_one(self):
@@ -142,7 +145,6 @@ class OverrideModulestoreFieldDataTests(FieldOverrideTestMixin, OverrideFieldDat
         self.assertIsInstance(data, DictFieldData)
 
 
-@attr(shard=1)
 class ResolveDottedTests(unittest.TestCase):
     """
     Tests for `resolve_dotted`.

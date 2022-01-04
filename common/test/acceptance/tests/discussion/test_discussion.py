@@ -2,43 +2,43 @@
 Tests for discussion pages
 """
 
+
 import datetime
+import time
+from unittest import skip
 from uuid import uuid4
 
-from nose.plugins.attrib import attr
+import pytest
 from pytz import UTC
-from flaky import flaky
-from common.test.acceptance.tests.discussion.helpers import BaseDiscussionTestCase
-
-from common.test.acceptance.pages.lms.auto_auth import AutoAuthPage
-from common.test.acceptance.pages.lms.courseware import CoursewarePage
-from common.test.acceptance.pages.lms.discussion import (
-    DiscussionTabSingleThreadPage,
-    InlineDiscussionPage,
-    InlineDiscussionThreadPage,
-    DiscussionUserProfilePage,
-    DiscussionTabHomePage,
-    DiscussionSortPreferencePage,
-)
-from common.test.acceptance.pages.lms.learner_profile import LearnerProfilePage
-from common.test.acceptance.pages.lms.tab_nav import TabNavPage
+import six
+from six.moves import map
 
 from common.test.acceptance.fixtures.course import CourseFixture, XBlockFixtureDesc
 from common.test.acceptance.fixtures.discussion import (
-    SingleThreadViewFixture,
-    UserProfileViewFixture,
-    SearchResultFixture,
-    Thread,
-    Response,
     Comment,
+    Response,
     SearchResult,
+    SearchResultFixture,
+    SingleThreadViewFixture,
+    Thread,
+    UserProfileViewFixture
 )
-
+from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
+from common.test.acceptance.pages.lms.courseware import CoursewarePage
+from common.test.acceptance.pages.lms.discussion import (
+    DiscussionSortPreferencePage,
+    DiscussionTabHomePage,
+    DiscussionTabSingleThreadPage,
+    DiscussionUserProfilePage,
+    InlineDiscussionPage
+)
+from common.test.acceptance.pages.lms.learner_profile import LearnerProfilePage
+from common.test.acceptance.pages.lms.tab_nav import TabNavPage
 from common.test.acceptance.tests.discussion.helpers import BaseDiscussionMixin, BaseDiscussionTestCase
 from common.test.acceptance.tests.helpers import UniqueCourseTest, get_modal_alert, skip_if_browser
+from openedx.core.lib.tests import attr
 
-
-THREAD_CONTENT_WITH_LATEX = """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
+THREAD_CONTENT_WITH_LATEX = u"""Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
                                ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation
                                ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
                                reprehenderit in voluptate velit sse cillum dolore eu fugiat nulla pariatur.
@@ -125,7 +125,7 @@ class DiscussionResponsePaginationTestMixin(BaseDiscussionMixin):
             (
                 None if response_total == 0 else
                 "Showing all responses" if response_total == displayed_responses else
-                "Showing first {} responses".format(displayed_responses)
+                u"Showing first {} responses".format(displayed_responses)
             )
         )
         self.assertEqual(
@@ -230,6 +230,8 @@ class DiscussionHomePageTest(BaseDiscussionTestCase):
             "ignore": [
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region'  # TODO: AC-932
             ]
         })
         self.page.a11y_audit.check_for_accessibility_errors()
@@ -262,11 +264,13 @@ class DiscussionNavigationTest(BaseDiscussionTestCase):
         )
         self.thread_page.visit()
 
+    @skip("andya: 10/19/17: re-enable once the failure on Jenkins is determined")
     def test_breadcrumbs_push_topic(self):
         topic_button = self.thread_page.q(
             css=".forum-nav-browse-menu-item[data-discussion-id='{}']".format(self.discussion_id)
         )
         self.assertTrue(topic_button.visible)
+
         topic_button.click()
 
         # Verify the thread's topic has been pushed to breadcrumbs
@@ -274,6 +278,7 @@ class DiscussionNavigationTest(BaseDiscussionTestCase):
         self.assertEqual(len(breadcrumbs), 3)
         self.assertEqual(breadcrumbs[2].text, "Topic-Level Student-Visible Label")
 
+    @skip("andya: 10/19/17: re-enable once the failure on Jenkins is determined")
     def test_breadcrumbs_back_to_all_topics(self):
         topic_button = self.thread_page.q(
             css=".forum-nav-browse-menu-item[data-discussion-id='{}']".format(self.discussion_id)
@@ -293,6 +298,7 @@ class DiscussionNavigationTest(BaseDiscussionTestCase):
         self.thread_page.q(css=".breadcrumbs .nav-item")[0].click()
         self.assertEqual(self.thread_page.q(css=".search-input").text[0], "")
 
+    @skip("andya: 10/19/17: re-enable once the failure on Jenkins is determined")
     def test_navigation_and_sorting(self):
         """
         Test that after adding the post, user sorting preference is changing properly
@@ -310,7 +316,7 @@ class DiscussionNavigationTest(BaseDiscussionTestCase):
             self.assertEqual(self.thread_page.q(css=".forum-nav-thread-title").text[0], 'dummy thread title')
 
 
-@attr(shard=2)
+@attr(shard=19)
 class DiscussionTabSingleThreadTest(BaseDiscussionTestCase, DiscussionResponsePaginationTestMixin):
     """
     Tests for the discussion page displaying a single thread
@@ -324,6 +330,24 @@ class DiscussionTabSingleThreadTest(BaseDiscussionTestCase, DiscussionResponsePa
     def setup_thread_page(self, thread_id):
         self.thread_page = self.create_single_thread_page(thread_id)  # pylint: disable=attribute-defined-outside-init
         self.thread_page.visit()
+
+    @skip("andya: 10/19/17: re-enable once the failure on Jenkins is determined")
+    def test_mathjax_rendering(self):
+        thread_id = "test_thread_{}".format(uuid4().hex)
+
+        thread_fixture = SingleThreadViewFixture(
+            Thread(
+                id=thread_id,
+                body=THREAD_CONTENT_WITH_LATEX,
+                commentable_id=self.discussion_id,
+                thread_type="discussion"
+            )
+        )
+        thread_fixture.push()
+        self.setup_thread_page(thread_id)
+        self.assertTrue(self.thread_page.is_discussion_body_visible())
+        self.thread_page.verify_mathjax_preview_available()
+        self.thread_page.verify_mathjax_rendered()
 
     def test_markdown_reference_link(self):
         """
@@ -395,7 +419,7 @@ class DiscussionTabSingleThreadTest(BaseDiscussionTestCase, DiscussionResponsePa
             Response(id="response1"),
             [Comment(id="comment1")])
         thread_fixture.push()
-        self.setup_thread_page(thread.get("id"))  # pylint: disable=no-member
+        self.setup_thread_page(thread.get("id"))
 
         # Verify that `Add a Post` is not visible on course tab nav.
         self.assertFalse(self.tab_nav.has_new_post_button_visible_on_tab())
@@ -445,6 +469,8 @@ class DiscussionTabMultipleThreadTest(BaseDiscussionTestCase, BaseDiscussionMixi
             "ignore": [
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region',  # TODO: AC-932
             ]
         })
 
@@ -454,6 +480,7 @@ class DiscussionTabMultipleThreadTest(BaseDiscussionTestCase, BaseDiscussionMixi
             "ignore": [
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
+                'region'  # TODO: AC-932
             ]
         })
 
@@ -517,6 +544,8 @@ class DiscussionOpenClosedThreadTest(BaseDiscussionTestCase):
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
                 'color-contrast',  # Commented out for now because they reproducibly fail on Jenkins but not locally
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region',  # TODO: AC-932
             ]
         })
         page.a11y_audit.check_for_accessibility_errors()
@@ -527,17 +556,18 @@ class DiscussionOpenClosedThreadTest(BaseDiscussionTestCase):
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
                 'color-contrast',  # Commented out for now because they reproducibly fail on Jenkins but not locally
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region',  # TODO: AC-932
             ]
         })
         page.a11y_audit.check_for_accessibility_errors()
 
 
-@attr('shard_1')
+@attr(shard=2)
 class DiscussionCommentDeletionTest(BaseDiscussionTestCase):
     """
     Tests for deleting comments displayed beneath responses in the single thread view.
     """
-
     def setup_user(self, roles=[]):
         roles_str = ','.join(roles)
         self.user_id = AutoAuthPage(self.browser, course_id=self.course_id, roles=roles_str).visit().get_user_id()
@@ -551,16 +581,6 @@ class DiscussionCommentDeletionTest(BaseDiscussionTestCase):
             ]
         )
         view.push()
-
-    def test_comment_deletion_as_student(self):
-        self.setup_user()
-        self.setup_view()
-        page = self.create_single_thread_page("comment_deletion_test_thread")
-        page.visit()
-        self.assertTrue(page.is_comment_deletable("comment_self_author"))
-        self.assertTrue(page.is_comment_visible("comment_other_author"))
-        self.assertFalse(page.is_comment_deletable("comment_other_author"))
-        page.delete_comment("comment_self_author")
 
     def test_comment_deletion_as_moderator(self):
         self.setup_user(roles=['Moderator'])
@@ -625,10 +645,10 @@ class DiscussionResponseEditTest(BaseDiscussionTestCase):
         page.submit_response_edit(response_id, description)
 
         expected_response_html = (
-            '<p><a href="{}">{}</a></p>'.format(url, description)
+            u'<p><a href="{}">{}</a></p>'.format(url, description)
         )
         actual_response_html = page.q(
-            css=".response_{} .response-body".format(response_id)
+            css=u".response_{} .response-body".format(response_id)
         ).html[0]
         self.assertEqual(expected_response_html, actual_response_html)
 
@@ -659,10 +679,10 @@ class DiscussionResponseEditTest(BaseDiscussionTestCase):
         page.submit_response_edit(response_id, '')
 
         expected_response_html = (
-            '<p><img src="{}" alt="{}" title=""></p>'.format(url, description)
+            u'<p><img src="{}" alt="{}" title=""></p>'.format(url, description)
         )
         actual_response_html = page.q(
-            css=".response_{} .response-body".format(response_id)
+            css=u".response_{} .response-body".format(response_id)
         ).html[0]
         self.assertEqual(expected_response_html, actual_response_html)
 
@@ -714,11 +734,11 @@ class DiscussionResponseEditTest(BaseDiscussionTestCase):
         page.submit_response_edit(response_id, "Some content")
 
         expected_response_html = (
-            '<p>Some content<img src="{}" alt="{}" title=""></p>'.format(
+            u'<p>Some content<img src="{}" alt="{}" title=""></p>'.format(
                 url, description)
         )
         actual_response_html = page.q(
-            css=".response_{} .response-body".format(response_id)
+            css=u".response_{} .response-body".format(response_id)
         ).html[0]
         self.assertEqual(expected_response_html, actual_response_html)
 
@@ -778,7 +798,6 @@ class DiscussionResponseEditTest(BaseDiscussionTestCase):
         self.edit_response(page, "response_other_author")
 
     @attr(shard=2)
-    @flaky  # TODO fix this, see TNL-5453
     def test_vote_report_endorse_after_edit(self):
         """
         Scenario: Moderator should be able to vote, report or endorse after editing the response.
@@ -822,17 +841,18 @@ class DiscussionResponseEditTest(BaseDiscussionTestCase):
             'ignore': [
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region',  # TODO: AC-932
             ]
         })
         page.visit()
         page.a11y_audit.check_for_accessibility_errors()
 
 
-class DiscussionCommentEditTest(UniqueCourseTest):
+class DiscussionCommentEditTest(BaseDiscussionTestCase):
     """
     Tests for editing comments displayed beneath responses in the single thread view.
     """
-
     def setup_user(self, roles=[]):
         roles_str = ','.join(roles)
         self.user_id = AutoAuthPage(self.browser, course_id=self.course_id, roles=roles_str).visit().get_user_id()
@@ -924,6 +944,8 @@ class DiscussionCommentEditTest(UniqueCourseTest):
             'ignore': [
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region',  # TODO: AC-932
             ]
         })
         page.a11y_audit.check_for_accessibility_errors()
@@ -938,6 +960,9 @@ class DiscussionEditorPreviewTest(UniqueCourseTest):
         self.page = DiscussionTabHomePage(self.browser, self.course_id)
         self.page.visit()
         self.page.click_new_post_button()
+
+        # sleep/wait added to allow Major MathJax a11y files to load
+        time.sleep(5)
 
     def test_text_rendering(self):
         """When I type plain text into the editor, it should be rendered as plain text in the preview box"""
@@ -975,8 +1000,26 @@ class DiscussionEditorPreviewTest(UniqueCourseTest):
             'Text line 2 \n'
             '$$e[n]=d_2$$'
         )
+        self.assertEqual(self.page.get_new_post_preview_text(),
+                         'Text line 1\ne[n]=\nd\n1\nText line 2\ne[n]=\nd\n2'
+                         )
 
-        self.assertEqual(self.page.get_new_post_preview_text(), 'Text line 1\nText line 2')
+    def test_inline_mathjax_rendering_in_order(self):
+        """
+        Tests the order of Post body content when inline Mathjax is used.
+
+        With inline mathjax expressions, the text content doesn't break into new lines at the places of
+        mathjax expressions.
+        """
+        self.page.set_new_post_editor_value(
+            'Text line 1 \n'
+            '$e[n]=d_1$ \n'
+            'Text line 2 \n'
+            '$e[n]=d_2$'
+        )
+        self.assertEqual(self.page.get_new_post_preview_text('.wmd-preview > p'),
+                         'Text line 1\ne[n]=\nd\n1\nText line 2\ne[n]=\nd\n2'
+                         )
 
     def test_mathjax_not_rendered_after_post_cancel(self):
         """
@@ -987,9 +1030,11 @@ class DiscussionEditorPreviewTest(UniqueCourseTest):
         appear in the preview box
         """
         self.page.set_new_post_editor_value(
-            '\\begin{equation}'
-            '\\tau_g(\omega) = - \\frac{d}{d\omega}\phi(\omega) \hspace{2em} (1) '
-            '\\end{equation}'
+            six.text_type(
+                r'\begin{equation}'
+                r'\tau_g(\omega) = - \frac{d}{d\omega}\phi(\omega) \hspace{2em} (1) '
+                r'\end{equation}'
+            )
         )
         self.assertIsNotNone(self.page.get_new_post_preview_text())
         self.page.click_element(".cancel")
@@ -1000,34 +1045,31 @@ class DiscussionEditorPreviewTest(UniqueCourseTest):
         self.assertEqual(self.page.get_new_post_preview_value('.wmd-preview'), "")
 
 
-class InlineDiscussionTestMixin(BaseDiscussionMixin):
+@attr(shard=2)
+class InlineDiscussionTest(UniqueCourseTest):
     """
     Tests for inline discussions
     """
-    def _get_xblock_fixture_desc(self):
-        """ Returns Discussion XBlockFixtureDescriptor """
-        raise NotImplementedError()
-
-    def _initial_discussion_id(self):
-        """ Returns initial discussion_id for InlineDiscussionPage """
-        raise NotImplementedError()
-
-    @property
-    def discussion_id(self):
-        """ Returns selected discussion_id """
-        raise NotImplementedError()
-
-    def __init__(self, *args, **kwargs):
-        self._discussion_id = None
-        super(InlineDiscussionTestMixin, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        super(InlineDiscussionTestMixin, self).setUp()
+        super(InlineDiscussionTest, self).setUp()
+        self.thread_ids = []
+        self.discussion_id = "test_discussion_{}".format(uuid4().hex)
+        self.additional_discussion_id = "test_discussion_{}".format(uuid4().hex)
         self.course_fix = CourseFixture(**self.course_info).add_children(
             XBlockFixtureDesc("chapter", "Test Section").add_children(
                 XBlockFixtureDesc("sequential", "Test Subsection").add_children(
                     XBlockFixtureDesc("vertical", "Test Unit").add_children(
-                        self._get_xblock_fixture_desc()
+                        XBlockFixtureDesc(
+                            "discussion",
+                            "Test Discussion",
+                            metadata={"discussion_id": self.discussion_id}
+                        ),
+                        XBlockFixtureDesc(
+                            "discussion",
+                            "Test Discussion 1",
+                            metadata={"discussion_id": self.additional_discussion_id}
+                        )
                     )
                 )
             )
@@ -1037,13 +1079,38 @@ class InlineDiscussionTestMixin(BaseDiscussionMixin):
 
         self.courseware_page = CoursewarePage(self.browser, self.course_id)
         self.courseware_page.visit()
-        self.discussion_page = InlineDiscussionPage(self.browser, self._initial_discussion_id())
+        self.discussion_page = InlineDiscussionPage(self.browser, self.discussion_id)
+        self.additional_discussion_page = InlineDiscussionPage(self.browser, self.additional_discussion_id)
 
-    def setup_thread_page(self, thread_id):
+    @attr('a11y')
+    @pytest.mark.skip(reason='This test is too flaky to run at all. TNL-6215')
+    def test_inline_a11y(self):
+        """
+        Tests Inline Discussion for accessibility issues.
+        """
+        self.setup_multiple_threads(thread_count=3)
+
+        # First test the a11y of the expanded list of threads
         self.discussion_page.expand_discussion()
-        self.assertEqual(self.discussion_page.get_num_displayed_threads(), 1)
-        self.thread_page = InlineDiscussionThreadPage(self.browser, thread_id)  # pylint:disable=W0201
-        self.thread_page.expand()
+        self.discussion_page.a11y_audit.config.set_rules({
+            'ignore': [
+                'section'
+            ]
+        })
+        self.discussion_page.a11y_audit.check_for_accessibility_errors()
+
+        # Now show the first thread and test the a11y again
+        self.discussion_page.show_thread(self.thread_ids[0])
+        self.discussion_page.a11y_audit.check_for_accessibility_errors()
+
+        # Finally show the new post form and test its a11y
+        self.discussion_page.click_new_post_button()
+        self.discussion_page.a11y_audit.check_for_accessibility_errors()
+
+    def test_add_a_post_is_present_if_can_create_thread_when_expanded(self):
+        self.discussion_page.expand_discussion()
+        # Add a Post link is present
+        self.assertTrue(self.discussion_page.q(css='.new-post-btn').present)
 
     def test_add_post_not_present_if_discussion_blackout_period_started(self):
         """
@@ -1055,45 +1122,10 @@ class InlineDiscussionTestMixin(BaseDiscussionMixin):
         self.assertFalse(self.discussion_page.is_new_post_button_visible())
 
     def test_initial_render(self):
-        self.assertFalse(self.discussion_page.is_discussion_expanded())
+        self.assertTrue(self.discussion_page.is_discussion_expanded())
 
-    def test_expand_discussion_empty(self):
-        self.discussion_page.expand_discussion()
+    def test_discussion_empty(self):
         self.assertEqual(self.discussion_page.get_num_displayed_threads(), 0)
-
-    def check_anonymous_to_peers(self, is_staff):
-        thread = Thread(id=uuid4().hex, anonymous_to_peers=True, commentable_id=self.discussion_id)
-        thread_fixture = SingleThreadViewFixture(thread)
-        thread_fixture.push()
-        self.setup_thread_page(thread.get("id"))
-        self.assertEqual(self.thread_page.is_thread_anonymous(), not is_staff)
-
-    def test_anonymous_to_peers_threads_as_staff(self):
-        AutoAuthPage(self.browser, course_id=self.course_id, roles="Administrator").visit()
-        self.courseware_page.visit()
-        self.check_anonymous_to_peers(True)
-
-    def test_anonymous_to_peers_threads_as_peer(self):
-        self.check_anonymous_to_peers(False)
-
-    def test_discussion_blackout_period(self):
-        self.start_discussion_blackout_period()
-        self.browser.refresh()
-        thread = Thread(id=uuid4().hex, commentable_id=self.discussion_id)
-        thread_fixture = SingleThreadViewFixture(thread)
-        thread_fixture.addResponse(
-            Response(id="response1"),
-            [Comment(id="comment1", user_id="other"), Comment(id="comment2", user_id=self.user_id)])
-        thread_fixture.push()
-        self.setup_thread_page(thread.get("id"))
-        self.assertFalse(self.discussion_page.element_exists(".new-post-btn"))
-        self.assertFalse(self.thread_page.has_add_response_button())
-        self.assertFalse(self.thread_page.is_response_editable("response1"))
-        self.assertFalse(self.thread_page.is_add_comment_visible("response1"))
-        self.assertFalse(self.thread_page.is_comment_editable("comment1"))
-        self.assertFalse(self.thread_page.is_comment_editable("comment2"))
-        self.assertFalse(self.thread_page.is_comment_deletable("comment1"))
-        self.assertFalse(self.thread_page.is_comment_deletable("comment2"))
 
     def test_dual_discussion_xblock(self):
         """
@@ -1114,16 +1146,14 @@ class InlineDiscussionTestMixin(BaseDiscussionMixin):
         self.discussion_page.wait_for_page()
         self.additional_discussion_page.wait_for_page()
 
-        # Expand the first discussion, click to add a post
-        self.discussion_page.expand_discussion()
+        # Click to add a post to the first discussion
         self.discussion_page.click_new_post_button()
 
         # Verify that only the first discussion's form is shown
         self.assertIsNotNone(self.discussion_page.new_post_form)
         self.assertIsNone(self.additional_discussion_page.new_post_form)
 
-        # Expand the second discussion, click to add a post
-        self.additional_discussion_page.expand_discussion()
+        # Click to add a post to the second discussion
         self.additional_discussion_page.click_new_post_button()
 
         # Verify that both discussion's forms are shown
@@ -1172,49 +1202,6 @@ class InlineDiscussionTestMixin(BaseDiscussionMixin):
         self.course_fix._add_advanced_settings()  # pylint: disable=protected-access
 
 
-@attr('shard_1')
-class DiscussionXModuleInlineTest(InlineDiscussionTestMixin, UniqueCourseTest, DiscussionResponsePaginationTestMixin):
-    """ Discussion XModule inline mode tests """
-    def _get_xblock_fixture_desc(self):
-        """ Returns Discussion XBlockFixtureDescriptor """
-        return XBlockFixtureDesc(
-            'discussion',
-            "Test Discussion",
-            metadata={"discussion_id": self.discussion_id}
-        )
-
-    def _initial_discussion_id(self):
-        """ Returns initial discussion_id for InlineDiscussionPage """
-        return self.discussion_id
-
-    @property
-    def discussion_id(self):
-        """ Returns selected discussion_id """
-        if getattr(self, '_discussion_id', None) is None:
-            self._discussion_id = "test_discussion_{}".format(uuid4().hex)
-        return self._discussion_id
-
-
-@attr('shard_1')
-class DiscussionXBlockInlineTest(InlineDiscussionTestMixin, UniqueCourseTest, DiscussionResponsePaginationTestMixin):
-    """ Discussion XBlock inline mode tests """
-    def _get_xblock_fixture_desc(self):
-        """ Returns Discussion XBlockFixtureDescriptor """
-        return XBlockFixtureDesc(
-            'discussion-forum',
-            "Test Discussion"
-        )
-
-    def _initial_discussion_id(self):
-        """ Returns initial discussion_id for InlineDiscussionPage """
-        return None
-
-    @property
-    def discussion_id(self):
-        """ Returns selected discussion_id """
-        return self.discussion_page.get_discussion_id()
-
-
 @attr(shard=2)
 class DiscussionUserProfileTest(UniqueCourseTest):
     """
@@ -1234,6 +1221,7 @@ class DiscussionUserProfileTest(UniqueCourseTest):
         self.profiled_user_id = self.setup_user(username=self.PROFILED_USERNAME)
         # now create a second user who will view the profile.
         self.user_id = self.setup_user()
+        UserProfileViewFixture([]).push()
 
     def setup_course(self):
         """
@@ -1405,6 +1393,8 @@ class DiscussionSearchAlertTest(UniqueCourseTest):
             'ignore': [
                 'section',  # TODO: AC-491
                 'aria-required-children',  # TODO: AC-534
+                'aria-valid-attr',  # TODO: LEARNER-6611 & LEARNER-6865
+                'region',  # TODO: AC-932
             ]
         })
         self.page.a11y_audit.check_for_accessibility_errors()

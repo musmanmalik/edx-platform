@@ -3,11 +3,13 @@ Modules that get shown to the users when an error has occurred while
 loading or rendering other modules
 """
 
+
 import hashlib
 import json
 import logging
 import sys
 
+import six
 from lxml import etree
 from xblock.field_data import DictFieldData
 from xblock.fields import Scope, ScopeIds, String
@@ -99,7 +101,7 @@ class ErrorDescriptor(ErrorFields, XModuleDescriptor):
             # access to the user context, and this will only be seen by staff
             error_msg = 'Error not available'
 
-        if location.category == 'error':
+        if location.block_type == 'error':
             location = location.replace(
                 # Pick a unique url_name -- the sha1 hash of the contents.
                 # NOTE: We could try to pull out the url_name of the errored descriptor,
@@ -111,7 +113,7 @@ class ErrorDescriptor(ErrorFields, XModuleDescriptor):
 
         # real metadata stays in the content, but add a display name
         field_data = DictFieldData({
-            'error_msg': unicode(error_msg),
+            'error_msg': six.text_type(error_msg),
             'contents': contents,
             'location': location,
             'category': 'error'

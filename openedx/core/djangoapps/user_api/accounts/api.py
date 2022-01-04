@@ -1,51 +1,49 @@
+# pylint: disable=missing-docstring
 """
 Programmatic integration point for User API Accounts sub-application
 """
-from django.utils.translation import override as override_language, ugettext as _
-from django.db import transaction, IntegrityError
+
+
 import datetime
-from pytz import UTC
-from django.core.exceptions import ObjectDoesNotExist
+
 from django.conf import settings
-from django.core.validators import validate_email, ValidationError
-from django.http import HttpResponseForbidden
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.validators import ValidationError, validate_email
+from django.utils.translation import override as override_language
+from django.utils.translation import ugettext as _
+from edx_notifications.lib import admin as notification_admin
 from openedx.core.djangoapps.profile_images.tasks import delete_profile_images
-from openedx.core.djangoapps.user_api.preferences.api import update_user_preferences
-from openedx.core.djangoapps.user_api.errors import PreferenceValidationError
-
-from student.models import User, UserProfile, Registration
-from student import forms as student_forms
+from pytz import UTC
 from student import views as student_views
+from student.models import (
+    AccountRecovery,
+    User,
+    UserProfile,
+    email_exists_or_retired,
+    username_exists_or_retired
+)
 from util.model_utils import emit_setting_changed_event
-from lms.lib.comment_client.user import User as CCUser
-from lms.lib.comment_client.utils import CommentClientRequestError
+from util.password_policy_validators import validate_password
+from openedx.core.djangoapps.django_comment_common.comment_client.user import User as CCUser
+from openedx.core.djangoapps.django_comment_common.comment_client.utils import CommentClientRequestError
 
+from openedx.core.djangoapps.user_api import accounts, errors, helpers
+from openedx.core.djangoapps.user_api.errors import (
+    AccountUpdateError,
+    AccountValidationError,
+    PreferenceValidationError
+)
+from openedx.core.djangoapps.user_api.preferences.api import update_user_preferences
+from openedx.core.djangoapps.user_authn.views.registration_form import validate_name, validate_username
 from openedx.core.lib.api.view_utils import add_serializer_errors
-
-from ..errors import (
-    AccountUpdateError, AccountValidationError, AccountUsernameInvalid, AccountPasswordInvalid,
-    AccountEmailInvalid, AccountUserAlreadyExists,
-    UserAPIInternalError, UserAPIRequestError, UserNotFound, UserNotAuthorized
-)
-from ..forms import PasswordResetFormNoActive
-from ..helpers import intercept_errors
-
-from . import (
-    EMAIL_MIN_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH,
-    USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH
-)
-from .serializers import (
-    AccountLegacyProfileSerializer, AccountUserSerializer,
-    UserReadOnlySerializer, _visible_fields  # pylint: disable=invalid-name
-)
-from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-
+from openedx.features.enterprise_support.utils import get_enterprise_readonly_account_fields
+from .serializers import AccountLegacyProfileSerializer, AccountUserSerializer, UserReadOnlySerializer, _visible_fields
 
 # Public access point for this function.
 visible_fields = _visible_fields
 
 
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
+@helpers.intercept_errors(errors.UserAPIInternalError, ignore_errors=[errors.UserAPIRequestError])
 def get_account_settings(request, usernames=None, configuration=None, view=None):
     """Returns account information for a user serialized as JSON.
 
@@ -70,16 +68,17 @@ def get_account_settings(request, usernames=None, configuration=None, view=None)
          A list of users account details.
 
     Raises:
-         UserNotFound: no user with username `username` exists (or `request.user.username` if
+         errors.UserNotFound: no user with username `username` exists (or `request.user.username` if
             `username` is not specified)
-         UserAPIInternalError: the operation failed due to an unexpected error.
+         errors.UserAPIInternalError: the operation failed due to an unexpected error.
+
     """
     requesting_user = request.user
     usernames = usernames or [requesting_user.username]
 
     requested_users = User.objects.select_related('profile').filter(username__in=usernames)
     if not requested_users:
-        raise UserNotFound()
+        raise errors.UserNotFound()
 
     serialized_users = []
     for user in requested_users:
@@ -98,7 +97,7 @@ def get_account_settings(request, usernames=None, configuration=None, view=None)
     return serialized_users
 
 
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
+@helpers.intercept_errors(errors.UserAPIInternalError, ignore_errors=[errors.UserAPIRequestError])
 def update_account_settings(requesting_user, update, username=None):
     """Update user account information.
 
@@ -114,136 +113,341 @@ def update_account_settings(requesting_user, update, username=None):
             `requesting_user.username` is assumed.
 
     Raises:
-        UserNotFound: no user with username `username` exists (or `requesting_user.username` if
+        errors.UserNotFound: no user with username `username` exists (or `requesting_user.username` if
             `username` is not specified)
-        UserNotAuthorized: the requesting_user does not have access to change the account
+        errors.UserNotAuthorized: the requesting_user does not have access to change the account
             associated with `username`
-        AccountValidationError: the update was not attempted because validation errors were found with
+        errors.AccountValidationError: the update was not attempted because validation errors were found with
             the supplied update
-        AccountUpdateError: the update could not be completed. Note that if multiple fields are updated at the same
-            time, some parts of the update may have been successful, even if an AccountUpdateError is returned;
-            in particular, the user account (not including e-mail address) may have successfully been updated,
+        errors.AccountUpdateError: the update could not be completed. Note that if multiple fields are updated at the
+            same time, some parts of the update may have been successful, even if an errors.AccountUpdateError is
+            returned; in particular, the user account (not including e-mail address) may have successfully been updated,
             but then the e-mail change request, which is processed last, may throw an error.
-        UserAPIInternalError: the operation failed due to an unexpected error.
+        errors.UserAPIInternalError: the operation failed due to an unexpected error.
+
     """
+    # Get user
     if username is None:
         username = requesting_user.username
-
-    existing_user, existing_user_profile = _get_user_and_profile(username)
-
     if requesting_user.username != username:
-        raise UserNotAuthorized()
+        raise errors.UserNotAuthorized()
+    user, user_profile = _get_user_and_profile(username)
 
-    # If user has requested to change email, we must call the multi-step process to handle this.
-    # It is not handled by the serializer (which considers email to be read-only).
-    changing_email = False
-    if "email" in update:
-        changing_email = True
-        new_email = update["email"]
-        del update["email"]
-
-    # If user has requested to change name, store old name because we must update associated metadata
-    # after the save process is complete.
-    old_name = None
-    if "name" in update:
-        old_name = existing_user_profile.name
-
-    # Check for fields that are not editable. Marking them read-only causes them to be ignored, but we wish to 400.
-    read_only_fields = set(update.keys()).intersection(
-        AccountUserSerializer.get_read_only_fields() + AccountLegacyProfileSerializer.get_read_only_fields()
-    )
-
-    # Build up all field errors, whether read-only, validation, or email errors.
+    # Validate fields to update
     field_errors = {}
+    _validate_read_only_fields(user, update, field_errors)
 
-    if read_only_fields:
-        for read_only_field in read_only_fields:
-            field_errors[read_only_field] = {
-                "developer_message": u"This field is not editable via this API",
-                "user_message": _(u"The '{field_name}' field cannot be edited.").format(field_name=read_only_field)
-            }
-            del update[read_only_field]
-
-    user_serializer = AccountUserSerializer(existing_user, data=update)
-    legacy_profile_serializer = AccountLegacyProfileSerializer(existing_user_profile, data=update)
-
+    user_serializer = AccountUserSerializer(user, data=update)
+    legacy_profile_serializer = AccountLegacyProfileSerializer(user_profile, data=update)
     for serializer in user_serializer, legacy_profile_serializer:
-        field_errors = add_serializer_errors(serializer, update, field_errors)
+        add_serializer_errors(serializer, update, field_errors)
 
-    # If the user asked to change email, validate it.
-    if changing_email:
-        try:
-            student_views.validate_new_email(existing_user, new_email)
-        except ValueError as err:
-            field_errors["email"] = {
-                "developer_message": u"Error thrown from validate_new_email: '{}'".format(err.message),
-                "user_message": err.message
-            }
+    _validate_email_change(user, update, field_errors)
+    _validate_secondary_email(user, update, field_errors)
+    old_name = _validate_name_change(user_profile, update, field_errors)
+    old_language_proficiencies = _get_old_language_proficiencies_if_updating(user_profile, update)
 
-    # If we have encountered any validation errors, return them to the user.
     if field_errors:
-        raise AccountValidationError(field_errors)
+        raise errors.AccountValidationError(field_errors)
 
+    # Save requested changes
     try:
-        # If everything validated, go ahead and save the serializers.
-
-        # We have not found a way using signals to get the language proficiency changes (grouped by user).
-        # As a workaround, store old and new values here and emit them after save is complete.
-        if "language_proficiencies" in update:
-            old_language_proficiencies = legacy_profile_serializer.data["language_proficiencies"]
-
         for serializer in user_serializer, legacy_profile_serializer:
             serializer.save()
 
-        # if any exception is raised for user preference (i.e. account_privacy), the entire transaction for user account
-        # patch is rolled back and the data is not saved
-        if 'account_privacy' in update:
-            update_user_preferences(
-                requesting_user, {'account_privacy': update["account_privacy"]}, existing_user
-            )
-
-        if "language_proficiencies" in update:
-            new_language_proficiencies = update["language_proficiencies"]
-            emit_setting_changed_event(
-                user=existing_user,
-                db_table=existing_user_profile.language_proficiencies.model._meta.db_table,
-                setting_name="language_proficiencies",
-                old_value=old_language_proficiencies,
-                new_value=new_language_proficiencies,
-            )
-
-        # If the name was changed, store information about the change operation. This is outside of the
-        # serializer so that we can store who requested the change.
-        if old_name:
-            meta = existing_user_profile.get_meta()
-            if 'old_names' not in meta:
-                meta['old_names'] = []
-            meta['old_names'].append([
-                old_name,
-                u"Name change requested through account API by {0}".format(requesting_user.username),
-                datetime.datetime.now(UTC).isoformat()
-            ])
-            existing_user_profile.set_meta(meta)
-            existing_user_profile.save()
+        _update_preferences_if_needed(update, requesting_user, user)
+        _notify_language_proficiencies_update_if_needed(update, user, user_profile, old_language_proficiencies)
+        _store_old_name_if_needed(old_name, user_profile, requesting_user)
+        _update_extended_profile_if_needed(update, user_profile)
+        _update_state_if_needed(update, user_profile)
 
     except PreferenceValidationError as err:
         raise AccountValidationError(err.preference_errors)
+    except (AccountUpdateError, AccountValidationError) as err:
+        raise err
     except Exception as err:
         raise AccountUpdateError(
-            u"Error thrown when saving account updates: '{}'".format(err.message)
+            "Error thrown when saving account updates: '{}'".format(str(err))
         )
 
-    # And try to send the email change request if necessary.
-    if changing_email:
-        if not settings.FEATURES['ALLOW_EMAIL_ADDRESS_CHANGE']:
-            raise AccountUpdateError(u"Email address changes have been disabled by the site operators.")
+    _send_email_change_requests_if_needed(update, user)
+
+
+def _validate_read_only_fields(user, data, field_errors):
+    # Check for fields that are not editable. Marking them read-only causes them to be ignored, but we wish to 400.
+    read_only_fields = set(data.keys()).intersection(
+        # Remove email since it is handled separately below when checking for changing_email.
+        (set(AccountUserSerializer.get_read_only_fields()) - {"email"}) |
+        set(AccountLegacyProfileSerializer.get_read_only_fields() or set()) |
+        get_enterprise_readonly_account_fields(user)
+    )
+
+    for read_only_field in read_only_fields:
+        field_errors[read_only_field] = {
+            "developer_message": "This field is not editable via this API",
+            "user_message": _("The '{field_name}' field cannot be edited.").format(field_name=read_only_field)
+        }
+        del data[read_only_field]
+
+
+def _validate_email_change(user, data, field_errors):
+    # If user has requested to change email, we must call the multi-step process to handle this.
+    # It is not handled by the serializer (which considers email to be read-only).
+    if "email" not in data:
+        return
+
+    if not settings.FEATURES['ALLOW_EMAIL_ADDRESS_CHANGE']:
+        raise AccountUpdateError("Email address changes have been disabled by the site operators.")
+
+    new_email = data["email"]
+    try:
+        student_views.validate_new_email(user, new_email)
+    except ValueError as err:
+        field_errors["email"] = {
+            "developer_message": "Error thrown from validate_new_email: '{}'".format(str(err)),
+            "user_message": str(err)
+        }
+        return
+
+    # Don't process with sending email to given new email, if it is already associated with
+    # an account. User must see same success message with no error.
+    # This is so that this endpoint cannot be used to determine if an email is valid or not.
+    if email_exists_or_retired(new_email):
+        del data["email"]
+
+
+def _validate_secondary_email(user, data, field_errors):
+    if "secondary_email" not in data:
+        return
+
+    secondary_email = data["secondary_email"]
+
+    try:
+        student_views.validate_secondary_email(user, secondary_email)
+    except ValueError as err:
+        field_errors["secondary_email"] = {
+            "developer_message": "Error thrown from validate_secondary_email: '{}'".format(str(err)),
+            "user_message": str(err)
+        }
+    else:
+        # Don't process with sending email to given new email, if it is already associated with
+        # an account. User must see same success message with no error.
+        # This is so that this endpoint cannot be used to determine if an email is valid or not.
+        if email_exists_or_retired(secondary_email):
+            del data["secondary_email"]
+
+
+def _validate_name_change(user_profile, data, field_errors):
+    # If user has requested to change name, store old name because we must update associated metadata
+    # after the save process is complete.
+    if "name" not in data:
+        return None
+
+    old_name = user_profile.name
+    try:
+        validate_name(data['name'])
+    except ValidationError as err:
+        field_errors["name"] = {
+            "developer_message": "Error thrown from validate_name: '{}'".format(err.message),
+            "user_message": err.message
+        }
+        return None
+
+    return old_name
+
+
+def _get_old_language_proficiencies_if_updating(user_profile, data):
+    if "language_proficiencies" in data:
+        return list(user_profile.language_proficiencies.values('code'))
+
+
+def _update_preferences_if_needed(data, requesting_user, user):
+    if 'account_privacy' in data:
+        update_user_preferences(
+            requesting_user, {'account_privacy': data["account_privacy"]}, user
+        )
+
+
+def _notify_language_proficiencies_update_if_needed(data, user, user_profile, old_language_proficiencies):
+    if "language_proficiencies" in data:
+        new_language_proficiencies = data["language_proficiencies"]
+        emit_setting_changed_event(
+            user=user,
+            db_table=user_profile.language_proficiencies.model._meta.db_table,
+            setting_name="language_proficiencies",
+            old_value=old_language_proficiencies,
+            new_value=new_language_proficiencies,
+        )
+
+
+def _update_extended_profile_if_needed(data, user_profile):
+    if 'extended_profile' in data:
+        meta = user_profile.get_meta()
+        new_extended_profile = data['extended_profile']
+        for field in new_extended_profile:
+            field_name = field['field_name']
+            new_value = field['field_value']
+            meta[field_name] = new_value
+        user_profile.set_meta(meta)
+        user_profile.save()
+
+
+def _update_state_if_needed(data, user_profile):
+    # If the country was changed to something other than US, remove the state.
+    if "country" in data and data['country'] != UserProfile.COUNTRY_WITH_STATES:
+        user_profile.state = None
+        user_profile.save()
+
+
+def _store_old_name_if_needed(old_name, user_profile, requesting_user):
+    # If the name was changed, store information about the change operation. This is outside of the
+    # serializer so that we can store who requested the change.
+    if old_name:
+        meta = user_profile.get_meta()
+        if 'old_names' not in meta:
+            meta['old_names'] = []
+        meta['old_names'].append([
+            old_name,
+            "Name change requested through account API by {}".format(requesting_user.username),
+            datetime.datetime.now(UTC).isoformat()
+        ])
+        user_profile.set_meta(meta)
+        user_profile.save()
+
+
+def _send_email_change_requests_if_needed(data, user):
+    new_email = data.get("email")
+    if new_email:
         try:
-            student_views.do_email_change_request(existing_user, new_email)
+            student_views.do_email_change_request(user, new_email)
         except ValueError as err:
             raise AccountUpdateError(
-                u"Error thrown from do_email_change_request: '{}'".format(err.message),
-                user_message=err.message
+                "Error thrown from do_email_change_request: '{}'".format(str(err)),
+                user_message=str(err)
             )
+
+    new_secondary_email = data.get("secondary_email")
+    if new_secondary_email:
+        try:
+            student_views.do_email_change_request(
+                user=user,
+                new_email=new_secondary_email,
+                secondary_email_change_request=True,
+            )
+        except ValueError as err:
+            raise AccountUpdateError(
+                "Error thrown from do_email_change_request: '{}'".format(str(err)),
+                user_message=str(err)
+            )
+
+
+def get_name_validation_error(name):
+    """Get the built-in validation error message for when
+    the user's real name is invalid in some way (we wonder how).
+
+    :param name: The proposed user's real name.
+    :return: Validation error message.
+
+    """
+    return '' if name else accounts.REQUIRED_FIELD_NAME_MSG
+
+
+def get_username_validation_error(username):
+    """Get the built-in validation error message for when
+    the username is invalid in some way.
+
+    :param username: The proposed username (unicode).
+    :param default: The message to default to in case of no error.
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_username, errors.AccountUsernameInvalid, username)
+
+
+def get_email_validation_error(email):
+    """Get the built-in validation error message for when
+    the email is invalid in some way.
+
+    :param email: The proposed email (unicode).
+    :param default: The message to default to in case of no error.
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_email, errors.AccountEmailInvalid, email)
+
+
+def get_secondary_email_validation_error(email):
+    """
+    Get the built-in validation error message for when the email is invalid in some way.
+
+    Arguments:
+        email (str): The proposed email (unicode).
+    Returns:
+        (str): Validation error message.
+
+    """
+    return _validate(_validate_secondary_email_doesnt_exist, errors.AccountEmailAlreadyExists, email)
+
+
+def get_confirm_email_validation_error(confirm_email, email):
+    """Get the built-in validation error message for when
+    the confirmation email is invalid in some way.
+
+    :param confirm_email: The proposed confirmation email (unicode).
+    :param email: The email to match (unicode).
+    :param default: THe message to default to in case of no error.
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_confirm_email, errors.AccountEmailInvalid, confirm_email, email)
+
+
+def get_password_validation_error(password, username=None, email=None):
+    """Get the built-in validation error message for when
+    the password is invalid in some way.
+
+    :param password: The proposed password (unicode).
+    :param username: The username associated with the user's account (unicode).
+    :param email: The email associated with the user's account (unicode).
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_password, errors.AccountPasswordInvalid, password, username, email)
+
+
+def get_country_validation_error(country):
+    """Get the built-in validation error message for when
+    the country is invalid in some way.
+
+    :param country: The proposed country.
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_country, errors.AccountCountryInvalid, country)
+
+
+def get_username_existence_validation_error(username):
+    """Get the built-in validation error message for when
+    the username has an existence conflict.
+
+    :param username: The proposed username (unicode).
+    :param default: The message to default to in case of no error.
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_username_doesnt_exist, errors.AccountUsernameAlreadyExists, username)
+
+
+def get_email_existence_validation_error(email):
+    """Get the built-in validation error message for when
+    the email has an existence conflict.
+
+    :param email: The proposed email (unicode).
+    :param default: The message to default to in case of no error.
+    :return: Validation error message.
+
+    """
+    return _validate(_validate_email_doesnt_exist, errors.AccountEmailAlreadyExists, email)
 
 
 def _get_user_and_profile(username):
@@ -253,172 +457,29 @@ def _get_user_and_profile(username):
     try:
         existing_user = User.objects.get(username=username)
     except ObjectDoesNotExist:
-        raise UserNotFound()
+        raise errors.UserNotFound()
 
     existing_user_profile, _ = UserProfile.objects.get_or_create(user=existing_user)
 
     return existing_user, existing_user_profile
 
 
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
-@transaction.atomic
-def create_account(username, password, email):
-    """Create a new user account.
+def _validate(validation_func, err, *args):
+    """Generic validation function that returns default on
+    no errors, but the message associated with the err class
+    otherwise. Passes all other arguments into the validation function.
 
-    This will implicitly create an empty profile for the user.
+    :param validation_func: The function used to perform validation.
+    :param err: The error class to catch.
+    :param args: The arguments to pass into the validation function.
+    :return: Validation error message, or empty string if no error.
 
-    WARNING: This function does NOT yet implement all the features
-    in `student/views.py`.  Until it does, please use this method
-    ONLY for tests of the account API, not in production code.
-    In particular, these are currently missing:
-
-    * 3rd party auth
-    * External auth (shibboleth)
-    * Complex password policies (ENFORCE_PASSWORD_POLICY)
-
-    In addition, we assume that some functionality is handled
-    at higher layers:
-
-    * Analytics events
-    * Activation email
-    * Terms of service / honor code checking
-    * Recording demographic info (use profile API)
-    * Auto-enrollment in courses (if invited via instructor dash)
-
-    Args:
-        username (unicode): The username for the new account.
-        password (unicode): The user's password.
-        email (unicode): The email address associated with the account.
-
-    Returns:
-        unicode: an activation key for the account.
-
-    Raises:
-        AccountUserAlreadyExists
-        AccountUsernameInvalid
-        AccountEmailInvalid
-        AccountPasswordInvalid
-        UserAPIInternalError: the operation failed due to an unexpected error.
-    """
-    # Check if ALLOW_PUBLIC_ACCOUNT_CREATION flag turned off to restrict user account creation
-    if not configuration_helpers.get_value(
-            'ALLOW_PUBLIC_ACCOUNT_CREATION',
-            settings.FEATURES.get('ALLOW_PUBLIC_ACCOUNT_CREATION', True)
-    ):
-        return HttpResponseForbidden(_("Account creation not allowed."))
-
-    # Validate the username, password, and email
-    # This will raise an exception if any of these are not in a valid format.
-    _validate_username(username)
-    _validate_password(password, username)
-    _validate_email(email)
-
-    # Create the user account, setting them to "inactive" until they activate their account.
-    user = User(username=username, email=email, is_active=False)
-    user.set_password(password)
-
-    try:
-        user.save()
-    except IntegrityError:
-        raise AccountUserAlreadyExists
-
-    # Create a registration to track the activation process
-    # This implicitly saves the registration.
-    registration = Registration()
-    registration.register(user)
-
-    # Create an empty user profile with default values
-    UserProfile(user=user).save()
-
-    # Return the activation key, which the caller should send to the user
-    return registration.activation_key
-
-
-def check_account_exists(username=None, email=None):
-    """Check whether an account with a particular username or email already exists.
-
-    Keyword Arguments:
-        username (unicode)
-        email (unicode)
-
-    Returns:
-        list of conflicting fields
-
-    Example Usage:
-        >>> account_api.check_account_exists(username="bob")
-        []
-        >>> account_api.check_account_exists(username="ted", email="ted@example.com")
-        ["email", "username"]
-
-    """
-    conflicts = []
-
-    if email is not None and User.objects.filter(email=email).exists():
-        conflicts.append("email")
-
-    if username is not None and User.objects.filter(username=username).exists():
-        conflicts.append("username")
-
-    return conflicts
-
-
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
-def activate_account(activation_key):
-    """Activate a user's account.
-
-    Args:
-        activation_key (unicode): The activation key the user received via email.
-
-    Returns:
-        None
-
-    Raises:
-        UserNotAuthorized
-        UserAPIInternalError: the operation failed due to an unexpected error.
     """
     try:
-        registration = Registration.objects.get(activation_key=activation_key)
-    except Registration.DoesNotExist:
-        raise UserNotAuthorized
-    else:
-        # This implicitly saves the registration
-        registration.activate()
-
-
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
-def request_password_change(email, is_secure):
-    """Email a single-use link for performing a password reset.
-
-    Users must confirm the password change before we update their information.
-
-    Args:
-        email (str): An email address
-        orig_host (str): An originating host, extracted from a request with get_host
-        is_secure (bool): Whether the request was made with HTTPS
-
-    Returns:
-        None
-
-    Raises:
-        UserNotFound
-        AccountRequestError
-        UserAPIInternalError: the operation failed due to an unexpected error.
-    """
-    # Binding data to a form requires that the data be passed as a dictionary
-    # to the Form class constructor.
-    form = PasswordResetFormNoActive({'email': email})
-
-    # Validate that a user exists with the given email address.
-    if form.is_valid():
-        # Generate a single-use link for performing a password reset
-        # and email it to the user.
-        form.save(
-            from_email=configuration_helpers.get_value('email_from_address', settings.DEFAULT_FROM_EMAIL),
-            use_https=is_secure
-        )
-    else:
-        # No user with the provided email address exists.
-        raise UserNotFound
+        validation_func(*args)
+    except err as validation_err:
+        return str(validation_err)
+    return ''
 
 
 def _validate_username(username):
@@ -431,71 +492,26 @@ def _validate_username(username):
         None
 
     Raises:
-        AccountUsernameInvalid
+        errors.AccountUsernameInvalid
 
     """
-    if not isinstance(username, basestring):
-        raise AccountUsernameInvalid(u"Username must be a string")
-
-    if len(username) < USERNAME_MIN_LENGTH:
-        raise AccountUsernameInvalid(
-            u"Username '{username}' must be at least {min} characters long".format(
-                username=username,
-                min=USERNAME_MIN_LENGTH
-            )
-        )
-    if len(username) > USERNAME_MAX_LENGTH:
-        raise AccountUsernameInvalid(
-            u"Username '{username}' must be at most {max} characters long".format(
-                username=username,
-                max=USERNAME_MAX_LENGTH
-            )
-        )
     try:
+        _validate_unicode(username)
+        _validate_type(username, (str,), accounts.USERNAME_BAD_TYPE_MSG)
+        _validate_length(
+            username,
+            accounts.USERNAME_MIN_LENGTH,
+            accounts.USERNAME_MAX_LENGTH,
+            accounts.USERNAME_BAD_LENGTH_MSG
+        )
         with override_language('en'):
             # `validate_username` provides a proper localized message, however the API needs only the English
             # message by convention.
-            student_forms.validate_username(username)
-    except ValidationError as error:
-        raise AccountUsernameInvalid(error.message)
-
-
-def _validate_password(password, username):
-    """Validate the format of the user's password.
-
-    Passwords cannot be the same as the username of the account,
-    so we take `username` as an argument.
-
-    Arguments:
-        password (unicode): The proposed password.
-        username (unicode): The username associated with the user's account.
-
-    Returns:
-        None
-
-    Raises:
-        AccountPasswordInvalid
-
-    """
-    if not isinstance(password, basestring):
-        raise AccountPasswordInvalid(u"Password must be a string")
-
-    if len(password) < PASSWORD_MIN_LENGTH:
-        raise AccountPasswordInvalid(
-            u"Password must be at least {min} characters long".format(
-                min=PASSWORD_MIN_LENGTH
-            )
-        )
-
-    if len(password) > PASSWORD_MAX_LENGTH:
-        raise AccountPasswordInvalid(
-            u"Password must be at most {max} characters long".format(
-                max=PASSWORD_MAX_LENGTH
-            )
-        )
-
-    if password == username:
-        raise AccountPasswordInvalid(u"Password cannot be the same as the username")
+            validate_username(username)
+    except (UnicodeError, errors.AccountDataBadType, errors.AccountDataBadLength) as username_err:
+        raise errors.AccountUsernameInvalid(str(username_err))
+    except ValidationError as validation_err:
+        raise errors.AccountUsernameInvalid(validation_err.message)
 
 
 def _validate_email(email):
@@ -508,34 +524,176 @@ def _validate_email(email):
         None
 
     Raises:
-        AccountEmailInvalid
+        errors.AccountEmailInvalid
 
     """
-    if not isinstance(email, basestring):
-        raise AccountEmailInvalid(u"Email must be a string")
-
-    if len(email) < EMAIL_MIN_LENGTH:
-        raise AccountEmailInvalid(
-            u"Email '{email}' must be at least {min} characters long".format(
-                email=email,
-                min=EMAIL_MIN_LENGTH
-            )
-        )
-
-    if len(email) > EMAIL_MAX_LENGTH:
-        raise AccountEmailInvalid(
-            u"Email '{email}' must be at most {max} characters long".format(
-                email=email,
-                max=EMAIL_MAX_LENGTH
-            )
-        )
-
     try:
+        _validate_unicode(email)
+        _validate_type(email, (str,), accounts.EMAIL_BAD_TYPE_MSG)
+        _validate_length(email, accounts.EMAIL_MIN_LENGTH, accounts.EMAIL_MAX_LENGTH, accounts.EMAIL_BAD_LENGTH_MSG)
+        validate_email.message = accounts.EMAIL_INVALID_MSG.format(email=email)
         validate_email(email)
-    except ValidationError:
-        raise AccountEmailInvalid(
-            u"Email '{email}' format is not valid".format(email=email)
-        )
+    except (UnicodeError, errors.AccountDataBadType, errors.AccountDataBadLength) as invalid_email_err:
+        raise errors.AccountEmailInvalid(str(invalid_email_err))
+    except ValidationError as validation_err:
+        raise errors.AccountEmailInvalid(validation_err.message)
+
+
+def _validate_confirm_email(confirm_email, email):
+    """Validate the confirmation email field.
+
+    :param confirm_email: The proposed confirmation email. (unicode)
+    :param email: The email to match. (unicode)
+    :return: None
+
+    """
+    if not confirm_email or confirm_email != email:
+        raise errors.AccountEmailInvalid(accounts.REQUIRED_FIELD_CONFIRM_EMAIL_MSG)
+
+
+def _validate_password(password, username=None, email=None):
+    """Validate the format of the user's password.
+
+    Passwords cannot be the same as the username of the account,
+    so we create a temp_user using the username and email to test the password against.
+    This user is never saved.
+
+    Arguments:
+        password (unicode): The proposed password.
+        username (unicode): The username associated with the user's account.
+        email (unicode): The email associated with the user's account.
+
+    Returns:
+        None
+
+    Raises:
+        errors.AccountPasswordInvalid
+
+    """
+    try:
+        _validate_type(password, (str,), accounts.PASSWORD_BAD_TYPE_MSG)
+        temp_user = User(username=username, email=email) if username else None
+        validate_password(password, user=temp_user)
+    except errors.AccountDataBadType as invalid_password_err:
+        raise errors.AccountPasswordInvalid(str(invalid_password_err))
+    except ValidationError as validation_err:
+        raise errors.AccountPasswordInvalid(' '.join(validation_err.messages))
+
+
+def _validate_country(country):
+    """Validate the country selection.
+
+    :param country: The proposed country.
+    :return: None
+
+    """
+    if country == '' or country == '--':
+        raise errors.AccountCountryInvalid(accounts.REQUIRED_FIELD_COUNTRY_MSG)
+
+
+def _validate_username_doesnt_exist(username):
+    """Validate that the username is not associated with an existing user.
+
+    :param username: The proposed username (unicode).
+    :return: None
+    :raises: errors.AccountUsernameAlreadyExists
+    """
+    if username is not None and username_exists_or_retired(username):
+        raise errors.AccountUsernameAlreadyExists(_(accounts.USERNAME_CONFLICT_MSG).format(username=username))
+
+
+def _validate_email_doesnt_exist(email):
+    """Validate that the email is not associated with an existing user.
+
+    :param email: The proposed email (unicode).
+    :return: None
+    :raises: errors.AccountEmailAlreadyExists
+    """
+    if email is not None and email_exists_or_retired(email):
+        raise errors.AccountEmailAlreadyExists(_(accounts.EMAIL_CONFLICT_MSG).format(email_address=email))
+
+
+def _validate_secondary_email_doesnt_exist(email):
+    """
+    Validate that the email is not associated as a secondary email of an existing user.
+
+    Arguments:
+        email (unicode): The proposed email.
+
+    Returns:
+        None
+
+    Raises:
+        errors.AccountEmailAlreadyExists: Raised if given email address is already associated as another
+            user's secondary email.
+    """
+    if email is not None and AccountRecovery.objects.filter(secondary_email=email).exists():
+        # pylint: disable=no-member
+        raise errors.AccountEmailAlreadyExists(accounts.EMAIL_CONFLICT_MSG.format(email_address=email))
+
+
+def _validate_password_works_with_username(password, username=None):
+    """Run validation checks on whether the password and username
+    go well together.
+
+    An example check is to see whether they are the same.
+
+    :param password: The proposed password (unicode).
+    :param username: The username associated with the user's account (unicode).
+    :return: None
+    :raises: errors.AccountPasswordInvalid
+    """
+    if password == username:
+        raise errors.AccountPasswordInvalid(accounts.PASSWORD_CANT_EQUAL_USERNAME_MSG)
+
+
+def _validate_type(data, type, err):
+    """Checks whether the input data is of type. If not,
+    throws a generic error message.
+
+    :param data: The data to check.
+    :param type: The type to check against.
+    :param err: The error message to throw back if data is not of type.
+    :return: None
+    :raises: errors.AccountDataBadType
+
+    """
+    if not isinstance(data, type):
+        raise errors.AccountDataBadType(err)
+
+
+def _validate_length(data, min, max, err):
+    """Validate that the data's length is less than or equal to max,
+    and greater than or equal to min.
+
+    :param data: The data to do the test on.
+    :param min: The minimum allowed length.
+    :param max: The maximum allowed length.
+    :param err: The error message to throw back if data's length is below min or above max.
+    :return: None
+    :raises: errors.AccountDataBadLength
+
+    """
+    if len(data) < min or len(data) > max:
+        raise errors.AccountDataBadLength(err)
+
+
+def _validate_unicode(data, err="Input not valid unicode"):
+    """Checks whether the input data is valid unicode or not.
+
+    :param data: The data to check for unicode validity.
+    :param err: The error message to throw back if unicode is invalid.
+    :return: None
+    :raises: UnicodeError
+
+    """
+    try:
+        if not isinstance(data, str) and not isinstance(data, str):
+            raise UnicodeError(err)
+        # In some cases we pass the above, but it's still inappropriate utf-8.
+        str(data)
+    except UnicodeError:
+        raise UnicodeError(err)
 
 
 def retire_user_comments(user):
@@ -550,7 +708,7 @@ def retire_user_comments(user):
             raise
 
 
-@intercept_errors(UserAPIInternalError, ignore_errors=[UserAPIRequestError])
+@helpers.intercept_errors(errors.UserAPIInternalError, ignore_errors=[errors.UserAPIRequestError])
 def delete_users(users):
     """
     Delete the users and their data in related records.
@@ -559,19 +717,43 @@ def delete_users(users):
     1. models with a ForeignKey relationship to User (with on_delete=CASCADE).
     2. models with indirect relationship to User (i.e. through another model, or with on_delete other than CASCADE)
     3. files belonging to the user.
+    4. user notifications in edx-notification models
 
     Arguments:
         users: An iterable of 'User' objects.
 
     Returns:
-        None
+        results array of dictionaries with user email and error message or None in case of success
 
     Raises:
         UserAPIInternalError
     """
+    failed = {}
     for user in users:
-        retire_user_comments(user)
+        try:
+            retire_user_comments(user)
+        except Exception as e:
+            failed[user.email] = str(e)
 
-    delete_profile_images.delay(users)
+    # Delete user profile images in background task
+    usernames = list(users.values_list('username', flat=True))
+    delete_profile_images.delay(usernames)
 
-    users.delete()
+    # Delete notifications
+    user_ids = users.values_list('id', flat=True)
+
+    notification_admin.purge_user_data(user_ids)
+
+    # Delete notifications that mention the users, e.g. group work
+    for username in usernames:
+        payload = '"action_username": "{}"'.format(username)
+        notification_admin.purge_notifications_with_payload(payload)
+
+    # Finally delete user and related models
+    for user in users.exclude(email__in=failed):
+        try:
+            user.delete()
+        except Exception as e:
+            failed[user.email] = str(e)
+
+    return failed

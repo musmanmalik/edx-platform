@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Tests for setting and displaying the site status message. """
+
+
 import unittest
 
 import ddt
@@ -8,8 +10,10 @@ from django.core.cache import cache
 from django.test import TestCase
 from opaque_keys.edx.locations import CourseLocator
 
-from .models import CourseMessage, GlobalStatusMessage
-from .status import get_site_status_msg
+# Status is not in CMS' INSTALLED_APPS so these imports will error during test collection
+if settings.ROOT_URLCONF == 'lms.urls':
+    from .models import CourseMessage, GlobalStatusMessage
+    from .status import get_site_status_msg
 
 
 @ddt.ddt

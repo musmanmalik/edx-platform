@@ -1,9 +1,11 @@
 define(
     [
         'jquery', 'backbone', 'underscore',
-        'js/views/video/transcripts/utils'
+        'js/views/video/transcripts/utils',
+        'edx-ui-toolkit/js/utils/html-utils'
     ],
-function($, Backbone, _, Utils) {
+function($, Backbone, _, TranscriptUtils, HtmlUtils) {
+    'use strict';
     var FileUploader = Backbone.View.extend({
         invisibleClass: 'is-invisible',
 
@@ -29,8 +31,7 @@ function($, Backbone, _, Utils) {
 
         render: function() {
             var tpl = $(this.uploadTpl).text(),
-                tplContainer = this.$el.find('.transcripts-file-uploader'),
-                videoList = this.options.videoListObject.getVideoObjectsList();
+                tplContainer = this.$el.find('.transcripts-file-uploader');
 
             if (tplContainer.length) {
                 if (!tpl) {
@@ -38,12 +39,10 @@ function($, Backbone, _, Utils) {
 
                     return;
                 }
-                this.template = _.template(tpl);
-
-                tplContainer.html(this.template({
+                this.template = HtmlUtils.template(tpl);
+                HtmlUtils.setHtml(tplContainer, this.template({
                     ext: this.validFileExtensions,
-                    component_locator: this.options.component_locator,
-                    video_list: videoList
+                    component_locator: this.options.component_locator
                 }));
 
                 this.$form = this.$el.find('.file-chooser');
@@ -59,6 +58,10 @@ function($, Backbone, _, Utils) {
         *
         */
         upload: function() {
+            var data = {
+                edx_video_id: TranscriptUtils.Storage.get('edx_video_id') || ''
+            };
+
             if (!this.file) {
                 return;
             }
@@ -66,7 +69,8 @@ function($, Backbone, _, Utils) {
             this.$form.ajaxSubmit({
                 beforeSend: this.xhrResetProgressBar,
                 uploadProgress: this.xhrProgressHandler,
-                complete: this.xhrCompleteHandler
+                complete: this.xhrCompleteHandler,
+                data: data
             });
         },
 
@@ -123,11 +127,12 @@ function($, Backbone, _, Utils) {
         *
         */
         checkExtValidity: function(file) {
+            var fileExtension;
             if (!file.name) {
                 return void(0);
             }
 
-            var fileExtension = file.name
+            fileExtension = file.name
                                     .split('.')
                                     .pop()
                                     .toLowerCase();
@@ -150,7 +155,7 @@ function($, Backbone, _, Utils) {
 
             this.$progress
                 .width(percentVal)
-                .html(percentVal)
+                .text(percentVal)
                 .removeClass(this.invisibleClass);
         },
 
@@ -174,7 +179,7 @@ function($, Backbone, _, Utils) {
 
             this.$progress
                 .width(percentVal)
-                .html(percentVal);
+                .text(percentVal);
         },
 
         /**
@@ -186,14 +191,14 @@ function($, Backbone, _, Utils) {
         xhrCompleteHandler: function(xhr) {
             var resp = JSON.parse(xhr.responseText),
                 err = resp.status || gettext('Error: Uploading failed.'),
-                sub = resp.subs;
+                edxVideoId = resp.edx_video_id;
 
             this.$progress
                 .addClass(this.invisibleClass);
 
             if (xhr.status === 200) {
                 this.options.messenger.render('uploaded', resp);
-                Utils.Storage.set('sub', sub);
+                Backbone.trigger('transcripts:basicTabUpdateEdxVideoId', edxVideoId);
             } else {
                 this.options.messenger.showError(err);
             }

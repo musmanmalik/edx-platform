@@ -1,42 +1,47 @@
 """
     Test split modulestore w/o using any django stuff.
 """
-from mock import patch
+
+
 import datetime
-from importlib import import_module
-from path import Path as path
+import os
 import random
 import re
 import unittest
-import uuid
+from importlib import import_module
 
 import ddt
+import six
+from ccx_keys.locator import CCXBlockUsageLocator
 from contracts import contract
-from nose.plugins.attrib import attr
-from django.core.cache import caches, InvalidCacheBackendError
+from django.core.cache import InvalidCacheBackendError, caches
+from mock import patch
+from opaque_keys.edx.locator import BlockUsageLocator, CourseKey, CourseLocator, LocalId, VersionTree
+from path import Path as path
+from six.moves import range
+from xblock.fields import Reference, ReferenceList, ReferenceValueDict
 
 from openedx.core.lib import tempdir
-from xblock.fields import Reference, ReferenceList, ReferenceValueDict
+from openedx.core.lib.tests import attr
 from xmodule.course_module import CourseDescriptor
-from xmodule.modulestore import ModuleStoreEnum
-from xmodule.modulestore.exceptions import (
-    ItemNotFoundError, VersionConflictError,
-    DuplicateItemError, DuplicateCourseError,
-    InsufficientSpecificationError
-)
-from opaque_keys.edx.locator import CourseKey, CourseLocator, BlockUsageLocator, VersionTree, LocalId
-from ccx_keys.locator import CCXBlockUsageLocator
-from xmodule.modulestore.inheritance import InheritanceMixin
-from xmodule.x_module import XModuleMixin
 from xmodule.fields import Date, Timedelta
-from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore
-from xmodule.modulestore.tests.test_modulestore import check_has_course_method
-from xmodule.modulestore.split_mongo import BlockKey
-from xmodule.modulestore.tests.factories import check_mongo_calls
-from xmodule.modulestore.tests.mongo_connection import MONGO_PORT_NUM, MONGO_HOST
-from xmodule.modulestore.tests.utils import mock_tab_from_json
+from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.edit_info import EditInfoMixin
-
+from xmodule.modulestore.exceptions import (
+    DuplicateCourseError,
+    DuplicateItemError,
+    InsufficientSpecificationError,
+    ItemNotFoundError,
+    VersionConflictError
+)
+from xmodule.modulestore.inheritance import InheritanceMixin
+from xmodule.modulestore.split_mongo import BlockKey
+from xmodule.modulestore.split_mongo.split import SplitMongoModuleStore
+from xmodule.modulestore.tests.factories import check_mongo_calls
+from xmodule.modulestore.tests.mongo_connection import MONGO_HOST, MONGO_PORT_NUM
+from xmodule.modulestore.tests.test_modulestore import check_has_course_method
+from xmodule.modulestore.tests.utils import mock_tab_from_json
+from xmodule.x_module import XModuleMixin
 
 BRANCH_NAME_DRAFT = ModuleStoreEnum.BranchName.draft
 BRANCH_NAME_PUBLISHED = ModuleStoreEnum.BranchName.published
@@ -52,9 +57,9 @@ class SplitModuleTest(unittest.TestCase):
     # Snippets of what would be in the django settings envs file
     DOC_STORE_CONFIG = {
         'host': MONGO_HOST,
-        'db': 'test_xmodule',
+        'db': 'test_xmodule_{0}'.format(os.getpid()),
         'port': MONGO_PORT_NUM,
-        'collection': 'modulestore{0}'.format(uuid.uuid4().hex[:5]),
+        'collection': 'modulestore',
     }
     modulestore_options = {
         'default_class': 'xmodule.raw_module.RawDescriptor',
@@ -497,7 +502,7 @@ class SplitModuleTest(unittest.TestCase):
         '''
         Sets up the initial data into the db
         '''
-        for _course_id, course_spec in SplitModuleTest.COURSE_CONTENT.iteritems():
+        for _course_id, course_spec in six.iteritems(SplitModuleTest.COURSE_CONTENT):
             course = split_store.create_course(
                 course_spec['org'],
                 course_spec['course'],
@@ -508,7 +513,7 @@ class SplitModuleTest(unittest.TestCase):
                 root_block_id=course_spec['root_block_id']
             )
             for revision in course_spec.get('revisions', []):
-                for (block_type, block_id), fields in revision.get('update', {}).iteritems():
+                for (block_type, block_id), fields in six.iteritems(revision.get('update', {})):
                     # cheat since course is most frequent
                     if course.location.block_id == block_id:
                         block = course
@@ -516,7 +521,7 @@ class SplitModuleTest(unittest.TestCase):
                         # not easy to figure out the category but get_item won't care
                         block_usage = BlockUsageLocator.make_relative(course.location, block_type, block_id)
                         block = split_store.get_item(block_usage)
-                    for key, value in fields.iteritems():
+                    for key, value in six.iteritems(fields):
                         setattr(block, key, value)
                 # create new blocks into dag: parent must already exist; thus, order is important
                 new_ele_dict = {}
@@ -932,7 +937,7 @@ class SplitModuleCourseTests(SplitModuleTest):
         root_block_key = modulestore().make_course_usage_key(course_key)
         self.assertIsInstance(root_block_key, root_block_cls)
         self.assertEqual(root_block_key.block_type, "course")
-        self.assertEqual(root_block_key.name, "course")
+        self.assertEqual(root_block_key.block_id, "course")
 
 
 class TestCourseStructureCache(SplitModuleTest):
@@ -971,6 +976,15 @@ class TestCourseStructureCache(SplitModuleTest):
 
         # now make sure that you get the same structure
         self.assertEqual(cached_structure, not_cached_structure)
+
+        # If data is corrupted, get it from mongo again.
+        cache_key = self.new_course.id.version_guid
+        self.cache.set(cache_key, b"bad_data")
+        with check_mongo_calls(1):
+            not_corrupt_structure = self._get_structure(self.new_course)
+
+        # now make sure that you get the same structure
+        self.assertEqual(not_corrupt_structure, not_cached_structure)
 
     @patch('xmodule.modulestore.split_mongo.mongo_connection.get_cache')
     def test_course_structure_cache_no_cache_configured(self, mock_get_cache):
@@ -1755,8 +1769,8 @@ class TestItemCrud(SplitModuleTest):
             # First child should have been moved to second position, and better child takes the lead
             refetch_course = store.get_course(versionless_course_locator)
             children = refetch_course.get_children()
-            self.assertEqual(unicode(children[1].location), unicode(first_child.location))
-            self.assertEqual(unicode(children[0].location), unicode(second_child.location))
+            self.assertEqual(six.text_type(children[1].location), six.text_type(first_child.location))
+            self.assertEqual(six.text_type(children[0].location), six.text_type(second_child.location))
 
             # Clean up the data so we don't break other tests which apparently expect a particular state
             store.delete_course(refetch_course.id, user)
@@ -1805,7 +1819,7 @@ class TestCourseCreation(SplitModuleTest):
             'best', 'leech', 'leech_run', 'leech_master', BRANCH_NAME_DRAFT,
             versions_dict=original_index['versions'])
         new_draft_locator = new_draft.location
-        self.assertRegexpMatches(new_draft_locator.org, 'best')
+        self.assertRegex(new_draft_locator.org, 'best')
         # the edited_by and other meta fields on the new course will be the original author not this one
         self.assertEqual(new_draft.edited_by, 'test@edx.org')
         self.assertEqual(new_draft_locator.version_guid, original_index['versions'][BRANCH_NAME_DRAFT])
@@ -1855,7 +1869,7 @@ class TestCourseCreation(SplitModuleTest):
             fields=fields
         )
         new_draft_locator = new_draft.location
-        self.assertRegexpMatches(new_draft_locator.org, 'counter')
+        self.assertRegex(new_draft_locator.org, 'counter')
         # the edited_by and other meta fields on the new course will be the original author not this one
         self.assertEqual(new_draft.edited_by, 'leech_master')
         self.assertNotEqual(new_draft_locator.version_guid, original_index['versions'][BRANCH_NAME_DRAFT])
@@ -2221,12 +2235,12 @@ class TestSchema(SplitModuleTest):
         db_connection = modulestore().db_connection
         for collection in [db_connection.course_index, db_connection.structures, db_connection.definitions]:
             self.assertEqual(
-                collection.find({'schema_version': {'$exists': False}}).count(),
+                collection.count_documents({'schema_version': {'$exists': False}}),
                 0,
                 "{0.name} has records without schema_version".format(collection)
             )
             self.assertEqual(
-                collection.find({'schema_version': {'$ne': SplitMongoModuleStore.SCHEMA_VERSION}}).count(),
+                collection.count_documents({'schema_version': {'$ne': SplitMongoModuleStore.SCHEMA_VERSION}}),
                 0,
                 "{0.name} has records with wrong schema_version".format(collection)
             )
@@ -2264,6 +2278,6 @@ def modulestore():
     return SplitModuleTest.modulestore
 
 
-# pylint: disable=unused-argument, missing-docstring
+# pylint: disable=unused-argument
 def render_to_template_mock(*args):
     pass

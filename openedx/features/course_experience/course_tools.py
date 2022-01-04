@@ -1,10 +1,23 @@
 """
 Support for course tool plugins.
 """
-from openedx.core.lib.api.plugins import PluginManager
+
+
+from enum import Enum
+
+from openedx.core.lib.plugins import PluginManager
 
 # Stevedore extension point namespace
 COURSE_TOOLS_NAMESPACE = 'openedx.course_tool'
+
+
+class HttpMethod(Enum):
+    """ Enum for HTTP Methods """
+    DELETE = 'DELETE'
+    GET = 'GET'
+    OPTIONS = 'OPTIONS'
+    POST = 'POST'
+    PUT = 'PUT'
 
 
 class CourseTool(object):
@@ -16,6 +29,16 @@ class CourseTool(object):
     not a requirement, and plugin implementations outside of this repo should
     simply follow the contract defined below.
     """
+    http_method = HttpMethod.GET
+
+    @classmethod
+    def analytics_id(cls):
+        """
+        Returns an id to uniquely identify this tool in analytics events.
+
+        For example, 'edx.bookmarks'.  New tools may warrant doc updates for the new id.
+        """
+        raise NotImplementedError("Must specify an id to enable course tool eventing.")
 
     @classmethod
     def is_enabled(cls, request, course_key):
@@ -47,6 +70,16 @@ class CourseTool(object):
         """
         raise NotImplementedError("Must specify a url for a course tool.")
 
+    @classmethod
+    def data(cls):
+        """
+        Additional data to send with a form submission
+        """
+        if cls.http_method == HttpMethod.POST:
+            return {}
+        else:
+            return None
+
 
 class CourseToolsPluginManager(PluginManager):
     """
@@ -62,6 +95,14 @@ class CourseToolsPluginManager(PluginManager):
         """
         Returns the list of available course tools in their canonical order.
         """
-        course_tools = cls.get_available_plugins().values()
+        course_tools = list(cls.get_available_plugins().values())
         course_tools.sort(key=lambda course_tool: course_tool.title())
         return course_tools
+
+    @classmethod
+    def get_enabled_course_tools(cls, request, course_key):
+        """
+        Returns the course tools applicable to the current user and course.
+        """
+        course_tools = CourseToolsPluginManager.get_course_tools()
+        return [tool for tool in course_tools if tool.is_enabled(request, course_key)]

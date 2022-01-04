@@ -2,10 +2,11 @@
 Tests for Verified Track Cohorting models
 """
 # pylint: disable=attribute-defined-outside-init
-# pylint: disable=no-member
 
+
+import ddt
 import mock
-from mock import patch
+import six
 
 from django.test import TestCase
 from opaque_keys.edx.keys import CourseKey
@@ -52,7 +53,7 @@ class TestVerifiedTrackCohortedCourse(TestCase):
         # Enable for a course
         config = VerifiedTrackCohortedCourse.objects.create(course_key=course_key, enabled=True)
         config.save()
-        self.assertEqual(unicode(config), "Course: {}, enabled: True".format(self.SAMPLE_COURSE))
+        self.assertEqual(six.text_type(config), u"Course: {}, enabled: True".format(self.SAMPLE_COURSE))
 
     def test_verified_cohort_name(self):
         cohort_name = 'verified cohort'
@@ -70,6 +71,7 @@ class TestVerifiedTrackCohortedCourse(TestCase):
 
 
 @skip_unless_lms
+@ddt.ddt
 class TestMoveToVerified(SharedModuleStoreTestCase):
     """ Tests for the post-save listener. """
 
@@ -82,7 +84,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         super(TestMoveToVerified, self).setUp()
         self.user = UserFactory()
         # Spy on number of calls to celery task.
-        celery_task_patcher = patch.object(
+        celery_task_patcher = mock.patch.object(
             sync_cohort_with_mode, 'apply_async',
             mock.Mock(wraps=sync_cohort_with_mode.apply_async)
         )
@@ -115,15 +117,15 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         """ Enroll self.user in self.course. """
         self.enrollment = CourseEnrollmentFactory(course_id=self.course.id, user=self.user)
 
-    def _upgrade_to_verified(self):
+    def _upgrade_enrollment(self, mode=CourseMode.VERIFIED):
         """ Upgrade the default enrollment to verified. """
-        self.enrollment.update_enrollment(mode=CourseMode.VERIFIED)
+        self.enrollment.update_enrollment(mode=mode)
 
     def _verify_no_automatic_cohorting(self):
         """ Check that upgrading self.user to verified does not move them into a cohort. """
         self._enroll_in_course()
         self.assertIsNone(get_cohort(self.user, self.course.id, assign=False))
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertIsNone(get_cohort(self.user, self.course.id, assign=False))
         self.assertEqual(0, self.mocked_celery_task.call_count)
 
@@ -178,10 +180,11 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         self.assertTrue(VerifiedTrackCohortedCourse.is_verified_track_cohort_enabled(self.course.id))
         self._verify_no_automatic_cohorting()
         self.assertTrue(error_logger.called)
-        error_message = "cohort named '%s' does not exist"
+        error_message = u"cohort named '%s' does not exist"
         self.assertIn(error_message, error_logger.call_args[0][0])
 
-    def test_automatic_cohorting_enabled(self):
+    @ddt.data(CourseMode.VERIFIED, CourseMode.CREDIT_MODE)
+    def test_automatic_cohorting_enabled(self, upgrade_mode):
         """
         If the VerifiedTrackCohortedCourse feature is enabled for a course (with course cohorting enabled
         with an existing verified cohort), enrollment in the verified track automatically moves learners
@@ -198,7 +201,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         self.assertEqual(2, self.mocked_celery_task.call_count)
         self.assertEqual(DEFAULT_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
 
-        self._upgrade_to_verified()
+        self._upgrade_enrollment(upgrade_mode)
         self.assertEqual(4, self.mocked_celery_task.call_count)
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
 
@@ -219,7 +222,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
 
         self._enroll_in_course()
         self.assertIn(get_cohort(self.user, self.course.id, assign=False).name, ["Random 1", "Random 2"])
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
 
         self._unenroll()
@@ -236,7 +239,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         self._create_verified_cohort()
         self._enable_verified_track_cohorting()
         self._enroll_in_course()
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
 
         # Un-enroll from the course and then re-enroll
@@ -244,7 +247,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
         self._reenroll()
         self.assertEqual(DEFAULT_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
 
     def test_custom_verified_cohort_name(self):
@@ -256,7 +259,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         self._create_verified_cohort(name=custom_cohort_name)
         self._enable_verified_track_cohorting(cohort_name=custom_cohort_name)
         self._enroll_in_course()
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertEqual(custom_cohort_name, get_cohort(self.user, self.course.id, assign=False).name)
 
     def test_custom_default_cohort_name(self):
@@ -271,7 +274,7 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         self._enable_verified_track_cohorting()
         self._enroll_in_course()
         self.assertEqual(random_cohort_name, get_cohort(self.user, self.course.id, assign=False).name)
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)
 
         # Un-enroll from the course. The learner stays in the verified cohort, but is no longer active.
@@ -286,5 +289,5 @@ class TestMoveToVerified(SharedModuleStoreTestCase):
         # Re-enroll in the course, which will downgrade the learner to audit.
         self._reenroll()
         self.assertEqual(modified_cohort_name, get_cohort(self.user, self.course.id, assign=False).name)
-        self._upgrade_to_verified()
+        self._upgrade_enrollment()
         self.assertEqual(DEFAULT_VERIFIED_COHORT_NAME, get_cohort(self.user, self.course.id, assign=False).name)

@@ -1,20 +1,27 @@
 """
 Tests for paver quality tasks
 """
+
+
 import os
+import shutil
 import tempfile
 import textwrap
 import unittest
 
-import paver.easy
-import paver.tasks
-from ddt import ddt, file_data
+import six
+from ddt import data, ddt, file_data, unpack
 from mock import MagicMock, mock_open, patch
 from path import Path as path
 from paver.easy import BuildFailure
 
 import pavelib.quality
-from pavelib.paver_tests.utils import fail_on_eslint, fail_on_pylint
+from pavelib.paver_tests.utils import PaverTestCase, fail_on_eslint
+
+if six.PY2:
+    OPEN_BUILTIN = '__builtin__.open'
+else:
+    OPEN_BUILTIN = 'builtins.open'
 
 
 @ddt
@@ -56,8 +63,36 @@ class TestPaverQualityViolations(unittest.TestCase):
     def test_pep8_parser(self):
         with open(self.f.name, 'w') as f:
             f.write("hello\nhithere")
-        num, _violations = pavelib.quality._pep8_violations(f.name)  # pylint: disable=protected-access
+        num = len(pavelib.quality._pep8_violations(f.name))  # pylint: disable=protected-access
         self.assertEqual(num, 2)
+
+
+@ddt
+class TestPaverQualityOptions(unittest.TestCase):
+    """
+    Tests the paver pylint command-line options parsing.
+    """
+    @data(
+        ({'limit': '5500'}, (-1, 5500, False, pavelib.quality.ALL_SYSTEMS.split(','))),
+        ({'limit': '1000:5500'}, (1000, 5500, False, pavelib.quality.ALL_SYSTEMS.split(','))),
+        ({'limit': '1:2:3:4:5'}, (1, 2, False, pavelib.quality.ALL_SYSTEMS.split(','))),
+        ({'system': 'lms,cms'}, (-1, -1, False, ['lms', 'cms'])),
+        (
+            {'limit': '2000:5000', 'errors': True, 'system': 'lms,cms,openedx'},
+            (2000, 5000, True, ['lms', 'cms', 'openedx'])
+        ),
+    )
+    @unpack
+    def test_pylint_parser_other_string(self, options, expected_values):
+        class PaverOptions(object):
+            """
+            Simple options class to mimick paver's Namespace object.
+            """
+            def __init__(self, d):
+                self.__dict__ = d
+        paver_options = PaverOptions(options)
+        returned_values = pavelib.quality._parse_pylint_options(paver_options)  # pylint: disable=protected-access
+        self.assertEqual(returned_values, expected_values)
 
 
 class TestPaverReportViolationsCounts(unittest.TestCase):
@@ -69,16 +104,11 @@ class TestPaverReportViolationsCounts(unittest.TestCase):
     def setUp(self):
         super(TestPaverReportViolationsCounts, self).setUp()
 
-        # Mock the paver @needs decorator
-        self._mock_paver_needs = patch.object(pavelib.quality.run_quality, 'needs').start()
-        self._mock_paver_needs.return_value = 0
-
         # Temporary file infrastructure
         self.f = tempfile.NamedTemporaryFile(delete=False)
         self.f.close()
 
         # Cleanup various mocks and tempfiles
-        self.addCleanup(self._mock_paver_needs.stop)
         self.addCleanup(os.remove, self.f.name)
 
     def test_get_eslint_violations_count(self):
@@ -244,7 +274,7 @@ class TestPrepareReportDir(unittest.TestCase):
         self.assertEqual(os.listdir(path(self.test_dir)), [])
 
 
-class TestPaverRunQuality(unittest.TestCase):
+class TestPaverRunQuality(PaverTestCase):
     """
     For testing the paver run_quality task
     """
@@ -252,104 +282,110 @@ class TestPaverRunQuality(unittest.TestCase):
     def setUp(self):
         super(TestPaverRunQuality, self).setUp()
 
-        # test_no_diff_quality_failures seems to alter the way that paver
-        # executes these lines is subsequent tests.
-        # https://github.com/paver/paver/blob/master/paver/tasks.py#L175-L180
-        #
-        # The other tests don't appear to have the same impact. This was
-        # causing a test order dependency. This line resets that state
-        # of environment._task_in_progress so that the paver commands in the
-        # tests will be considered top level tasks by paver, and we can predict
-        # which path it will chose in the above code block.
-        #
-        # TODO: Figure out why one test is altering the state to begin with.
-        paver.tasks.environment = paver.tasks.Environment()
-
         # mock the @needs decorator to skip it
-        self._mock_paver_needs = patch.object(pavelib.quality.run_quality, 'needs').start()
-        self._mock_paver_needs.return_value = 0
         patcher = patch('pavelib.quality.sh')
         self._mock_paver_sh = patcher.start()
         self.addCleanup(patcher.stop)
-        self.addCleanup(self._mock_paver_needs.stop)
 
-    @patch('__builtin__.open', mock_open())
-    def test_failure_on_diffquality_pep8(self):
-        """
-        If pep8 finds errors, pylint and eslint should still be run
-        """
-        # Mock _get_pep8_violations to return a violation
-        _mock_pep8_violations = MagicMock(
-            return_value=(1, ['lms/envs/common.py:32:2: E225 missing whitespace around operator'])
-        )
-        with patch('pavelib.quality._get_pep8_violations', _mock_pep8_violations):
-            with self.assertRaises(SystemExit):
-                pavelib.quality.run_quality("")
+        self.report_dir = tempfile.mkdtemp()
+        report_dir_patcher = patch('pavelib.utils.envs.Env.REPORT_DIR', path(self.report_dir))
+        report_dir_patcher.start()
+        self.addCleanup(shutil.rmtree, self.report_dir)
+        self.addCleanup(report_dir_patcher.stop)
 
-        # Test that pep8, pylint and eslint were called by counting the calls to
-        # _get_pep8_violations (for pep8) and sh (for diff-quality pylint & eslint)
-        self.assertEqual(_mock_pep8_violations.call_count, 1)
-        self.assertEqual(self._mock_paver_sh.call_count, 2)
-
-    @patch('__builtin__.open', mock_open())
+    @patch(OPEN_BUILTIN, mock_open())
     def test_failure_on_diffquality_pylint(self):
         """
-        If diff-quality fails on pylint, the paver task should also fail
+        If diff-quality fails on pylint, the paver task should also fail, but
+        only after runnning diff-quality with eslint
         """
 
         # Underlying sh call must fail when it is running the pylint diff-quality task
-        self._mock_paver_sh.side_effect = fail_on_pylint
-        _mock_pep8_violations = MagicMock(return_value=(0, []))
-        with patch('pavelib.quality._get_pep8_violations', _mock_pep8_violations):
-            with self.assertRaises(SystemExit):
-                pavelib.quality.run_quality("")
+        _mock_pylint_violations = MagicMock(return_value=(10000, ['some error']))
+        with patch('pavelib.quality._get_pylint_violations', _mock_pylint_violations):
+            with patch('pavelib.quality._parse_pylint_options', return_value=(0, 1000, 0, 0)):
+                with self.assertRaises(SystemExit):
+                    pavelib.quality.run_quality("")
 
-        # Test that both pep8 and pylint were called by counting the calls
-        # Assert that _get_pep8_violations (which calls "pep8") is called once
-        self.assertEqual(_mock_pep8_violations.call_count, 1)
-        # And assert that sh was called twice (for the calls to pylint & eslint).
-        # This means that even in the event of a diff-quality pylint failure, eslint is still called.
+        # Assert that _get_pylint_violations (which calls "pylint") is called once
+        self.assertEqual(_mock_pylint_violations.call_count, 1)
+        # Assert that sh was called twice- once for diff quality with pylint
+        # and once for diff quality with eslint. This means that in the event
+        # of a diff-quality pylint failure, eslint is still called.
         self.assertEqual(self._mock_paver_sh.call_count, 2)
 
-    @patch('__builtin__.open', mock_open())
+    @patch(OPEN_BUILTIN, mock_open())
     def test_failure_on_diffquality_eslint(self):
         """
         If diff-quality fails on eslint, the paver task should also fail
         """
-
         # Underlying sh call must fail when it is running the eslint diff-quality task
         self._mock_paver_sh.side_effect = fail_on_eslint
-        _mock_pep8_violations = MagicMock(return_value=(0, []))
-        with patch('pavelib.quality._get_pep8_violations', _mock_pep8_violations):
+        _mock_pylint_violations = MagicMock(return_value=(0, []))
+        with patch('pavelib.quality._get_pylint_violations', _mock_pylint_violations):
             with self.assertRaises(SystemExit):
                 pavelib.quality.run_quality("")
-                self.assertRaises(BuildFailure)
-        # Test that both pep8 and pylint were called by counting the calls
-        # Assert that _get_pep8_violations (which calls "pep8") is called once
-        self.assertEqual(_mock_pep8_violations.call_count, 1)
-        # And assert that sh was called twice (for the calls to pep8 and pylint)
-        self.assertEqual(self._mock_paver_sh.call_count, 2)
+        print(self._mock_paver_sh.mock_calls)
 
-    @patch('__builtin__.open', mock_open())
+        # Test that pylint is called
+        _mock_pylint_violations.assert_called_once_with(clean=False)
+        # Assert that sh was called four times - once to get the comparison commit hash,
+        # once to get the current commit hash, once for diff quality with pylint,
+        # and once for diff quality with eslint
+        self.assertEqual(self._mock_paver_sh.call_count, 4)
+
+    @patch(OPEN_BUILTIN, mock_open())
     def test_other_exception(self):
         """
-        If diff-quality fails for an unknown reason on the first run (pep8), then
+        If diff-quality fails for an unknown reason on the first run, then
         pylint should not be run
         """
         self._mock_paver_sh.side_effect = [Exception('unrecognized failure!'), 0]
         with self.assertRaises(SystemExit):
             pavelib.quality.run_quality("")
-            self.assertRaises(Exception)
         # Test that pylint is NOT called by counting calls
         self.assertEqual(self._mock_paver_sh.call_count, 1)
 
-    @patch('__builtin__.open', mock_open())
+    @patch(OPEN_BUILTIN, mock_open())
     def test_no_diff_quality_failures(self):
         # Assert nothing is raised
-        _mock_pep8_violations = MagicMock(return_value=(0, []))
-        with patch('pavelib.quality._get_pep8_violations', _mock_pep8_violations):
-            pavelib.quality.run_quality("")
-        # Assert that _get_pep8_violations (which calls "pep8") is called once
-        self.assertEqual(_mock_pep8_violations.call_count, 1)
-        # And assert that sh was called twice (for the call to "pylint" & "eslint")
-        self.assertEqual(self._mock_paver_sh.call_count, 2)
+        pavelib.quality.run_quality("")
+        # And assert that sh was called 8 times:
+        # 6 for pylint on each of the system directories
+        # 1 for diff_quality for pylint
+        # 1 for diff_quality for eslint
+        self.assertEqual(self._mock_paver_sh.call_count, 8)
+
+
+class TestPaverRunDiffQuality(PaverTestCase):
+    """
+    For testing the paver run_diff_quality task
+
+    Note: Although diff_quality is tested as part of quality, some
+    cases weren't tested properly.
+    """
+    def setUp(self):
+        super(TestPaverRunDiffQuality, self).setUp()
+
+        # mock the @needs decorator to skip it
+        patcher = patch('pavelib.quality.sh')
+        self._mock_paver_sh = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @patch(OPEN_BUILTIN, mock_open())
+    def test_percentage_failure(self):
+        """
+        When diff_quality is run with a threshold percentage, it ends with an exit code of 1.
+        This bubbles up to paver with a subprocess return code error and should return False.
+        """
+        self._mock_paver_sh.side_effect = [BuildFailure('Subprocess return code: 1')]
+        self.assertEqual(pavelib.quality.run_diff_quality(""), False)
+
+    @patch(OPEN_BUILTIN, mock_open())
+    def test_other_failures(self):
+        """
+        Run diff_quality with an exception that is not a percentage failure.
+        """
+        self._mock_paver_sh.side_effect = [BuildFailure('Some failure.')]
+        with self.assertRaisesRegex(BuildFailure, '.*Diff Quality Report.*Some failure.'):
+            pavelib.quality.run_diff_quality("")

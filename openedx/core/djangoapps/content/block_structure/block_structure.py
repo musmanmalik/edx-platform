@@ -8,15 +8,17 @@ The following internal data structures are implemented:
     _BlockRelations - Data structure for a single block's relations.
     _BlockData - Data structure for a single block's data.
 """
+
+
 from copy import deepcopy
 from functools import partial
 from logging import getLogger
 
-from django.conf import settings
-from openedx.core.lib.graph_traversals import traverse_topologically, traverse_post_order
+import six
+
+from openedx.core.lib.graph_traversals import traverse_post_order, traverse_topologically
 
 from .exceptions import TransformerException
-
 
 logger = getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -146,7 +148,7 @@ class BlockStructure(object):
             iterator(UsageKey) - An iterator of the usage
             keys of all the blocks in the block structure.
         """
-        return self._block_relations.iterkeys()
+        return six.iterkeys(self._block_relations)
 
     #--- Block structure traversal methods ---#
 
@@ -301,7 +303,7 @@ class FieldData(object):
         try:
             return self.fields[field_name]
         except KeyError:
-            raise AttributeError("Field {0} does not exist".format(field_name))
+            raise AttributeError(u"Field {0} does not exist".format(field_name))
 
     def __setattr__(self, field_name, field_value):
         if self._is_own_field(field_name):
@@ -313,17 +315,7 @@ class FieldData(object):
         if self._is_own_field(field_name):
             return super(FieldData, self).__delattr__(field_name)
         else:
-            # pylint: disable=fixme
-            # FIXME: Bug with Course Blocks API and student_view_data fixed by
-            #  https://github.com/edx/edx-platform/pull/15905/commits/ae15e69a0ad52fec2f146176e418eb2e37f0ecb2
-            # Will be brought in once McKinsey's apps have been updated.
-            # For now, only deployed where settings.FEATURES['ENABLE_STUDENT_VIEW_DATA_BUGFIX']=True, so QA can test.
-            # See lms/djangoapps/course_api/blocks/transformers/tests/test_student_view.py
-            #   TestStudentViewTransformer for affected tests.
-            if settings.FEATURES.get('ENABLE_STUDENT_VIEW_DATA_BUGFIX', False):
-                del self.fields[field_name]
-            else:
-                delattr(self.fields, field_name)
+            del self.fields[field_name]
 
     def _is_own_field(self, field_name):
         """
@@ -443,14 +435,14 @@ class BlockStructureBlockData(BlockStructure):
         Returns iterator of (UsageKey, BlockData) pairs for all
         blocks in the BlockStructure.
         """
-        return self._block_data_map.iteritems()
+        return six.iteritems(self._block_data_map)
 
     def itervalues(self):
         """
         Returns iterator of BlockData for all blocks in the
         BlockStructure.
         """
-        return self._block_data_map.itervalues()
+        return six.itervalues(self._block_data_map)
 
     def __getitem__(self, usage_key):
         """
@@ -476,6 +468,22 @@ class BlockStructureBlockData(BlockStructure):
         """
         block_data = self._block_data_map.get(usage_key)
         return getattr(block_data, field_name, default) if block_data else default
+
+    def override_xblock_field(self, usage_key, field_name, override_data):
+        """
+        Set value of the XBlock field for the requested block for the requested field_name;
+
+        Arguments:
+            usage_key (UsageKey) - Usage key of the block whose xBlock
+                field is requested.
+
+            field_name (string) - The name of the field that is
+                requested.
+
+            override_data (object) - The data you want to set
+        """
+        block_data = self._block_data_map.get(usage_key)
+        setattr(block_data, field_name, override_data)
 
     def get_transformer_data(self, transformer, key, default=None):
         """
@@ -741,8 +749,8 @@ class BlockStructureBlockData(BlockStructure):
         Adds the given transformer to the block structure by recording
         its current version number.
         """
-        if transformer.READ_VERSION == 0 or transformer.WRITE_VERSION == 0:
-            raise TransformerException('Version attributes are not set on transformer {0}.', transformer.name())
+        if transformer.WRITE_VERSION == 0:
+            raise TransformerException(u'Version attributes are not set on transformer {0}.', transformer.name())
         self.set_transformer_data(transformer, TRANSFORMER_VERSION_KEY, transformer.WRITE_VERSION)
 
     def _get_or_create_block(self, usage_key):
@@ -830,7 +838,7 @@ class BlockStructureModulestoreData(BlockStructureBlockData):
         Iterates through all instantiated xBlocks that were added and
         collects all xBlock fields that were requested.
         """
-        for xblock_usage_key, xblock in self._xblock_map.iteritems():
+        for xblock_usage_key, xblock in six.iteritems(self._xblock_map):
             block_data = self._get_or_create_block(xblock_usage_key)
             for field_name in self._requested_xblock_fields:
                 self._set_xblock_field(block_data, xblock, field_name)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 from django.db import migrations, models
 
@@ -15,14 +15,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CourseModeTarget',
             fields=[
-                ('target_ptr', models.OneToOneField(parent_link=True, auto_created=True, primary_key=True, serialize=False, to='bulk_email.Target')),
-                ('track', models.ForeignKey(to='course_modes.CourseMode')),
+                ('target_ptr', models.OneToOneField(parent_link=True, auto_created=True, primary_key=True, serialize=False, to='bulk_email.Target', on_delete=models.CASCADE)),
+                ('track', models.ForeignKey(to='course_modes.CourseMode', on_delete=models.CASCADE)),
             ],
             bases=('bulk_email.target',),
         ),
         migrations.AlterField(
             model_name='target',
             name='target_type',
-            field=models.CharField(max_length=64, choices=[(b'myself', b'Myself'), (b'staff', b'Staff and instructors'), (b'learners', b'All students'), (b'cohort', b'Specific cohort'), (b'track', b'Specific course mode')]),
+            field=models.CharField(max_length=64, choices=[(u'myself', u'Myself'), (u'staff', u'Staff and instructors'), (u'learners', u'All students'), (u'cohort', u'Specific cohort'), (u'track', u'Specific course mode')]),
         ),
     ]

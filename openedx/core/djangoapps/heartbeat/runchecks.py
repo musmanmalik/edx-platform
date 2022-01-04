@@ -1,9 +1,12 @@
+"""
+Code for system checks.
+"""
+
+
 from importlib import import_module
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-
-from .defaults import HEARTBEAT_DEFAULT_CHECKS, HEARTBEAT_EXTENDED_DEFAULT_CHECKS
 
 
 def runchecks(include_extended=False):
@@ -13,11 +16,9 @@ def runchecks(include_extended=False):
     """
     response_dict = {}
 
-    #Taken straight from Django
-    #If there is a better way, I don't know it
-    list_of_checks = getattr(settings, 'HEARTBEAT_CHECKS', HEARTBEAT_DEFAULT_CHECKS)
+    list_of_checks = list(settings.HEARTBEAT_CHECKS)
     if include_extended:
-        list_of_checks += getattr(settings, 'HEARTBEAT_EXTENDED_CHECKS', HEARTBEAT_EXTENDED_DEFAULT_CHECKS)
+        list_of_checks += settings.HEARTBEAT_EXTENDED_CHECKS
 
     for path in list_of_checks:
         module, _, attr = path.rpartition('.')
@@ -34,8 +35,7 @@ def runchecks(include_extended=False):
                 'message': message
             }
         except ImportError as e:
-            raise ImproperlyConfigured('Error importing module %s: "%s"' % (module, e))
+            raise ImproperlyConfigured(u'Error importing module %s: "%s"' % (module, e))
         except AttributeError:
-            raise ImproperlyConfigured('Module "%s" does not define a "%s" callable' % (module, attr))
-
+            raise ImproperlyConfigured(u'Module "%s" does not define a "%s" callable' % (module, attr))
     return response_dict

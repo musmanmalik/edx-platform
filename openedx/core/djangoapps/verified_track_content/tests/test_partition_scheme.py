@@ -1,18 +1,22 @@
 """
 Tests for verified_track_content/partition_scheme.py.
 """
+
+
 from datetime import datetime, timedelta
+
 import pytz
+import six
 
-from ..partition_scheme import EnrollmentTrackPartitionScheme, EnrollmentTrackUserPartition, ENROLLMENT_GROUP_IDS
-from ..models import VerifiedTrackCohortedCourse
 from course_modes.models import CourseMode
-
 from student.models import CourseEnrollment
 from student.tests.factories import UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
-from xmodule.partitions.partitions import UserPartition, MINIMUM_STATIC_PARTITION_ID
+from xmodule.partitions.partitions import MINIMUM_STATIC_PARTITION_ID, UserPartition, ReadOnlyUserPartitionError
+
+from ..models import VerifiedTrackCohortedCourse
+from ..partition_scheme import ENROLLMENT_GROUP_IDS, EnrollmentTrackPartitionScheme, EnrollmentTrackUserPartition
 
 
 class EnrollmentTrackUserPartitionTest(SharedModuleStoreTestCase):
@@ -60,8 +64,9 @@ class EnrollmentTrackUserPartitionTest(SharedModuleStoreTestCase):
         self.assertEqual('Test partition for segmenting users by enrollment track', user_partition_json['description'])
 
     def test_from_json_not_supported(self):
-        with self.assertRaises(TypeError):
-            EnrollmentTrackUserPartition.from_json()
+        user_partition_json = create_enrollment_track_partition(self.course).to_json()
+        with self.assertRaises(ReadOnlyUserPartitionError):
+            UserPartition.from_json(user_partition_json)
 
     def test_group_ids(self):
         """
@@ -69,7 +74,7 @@ class EnrollmentTrackUserPartitionTest(SharedModuleStoreTestCase):
         with group IDs associated with cohort and random user partitions).
         """
         for mode in ENROLLMENT_GROUP_IDS:
-            self.assertLess(ENROLLMENT_GROUP_IDS[mode], MINIMUM_STATIC_PARTITION_ID)
+            self.assertLess(ENROLLMENT_GROUP_IDS[mode]['id'], MINIMUM_STATIC_PARTITION_ID)
 
     @staticmethod
     def get_group_by_name(partition, name):
@@ -98,11 +103,11 @@ class EnrollmentTrackPartitionSchemeTest(SharedModuleStoreTestCase):
         """
         Ensure that the scheme extension is correctly plugged in (via entry point in setup.py)
         """
-        self.assertEquals(UserPartition.get_scheme('enrollment_track'), EnrollmentTrackPartitionScheme)
+        self.assertEqual(UserPartition.get_scheme('enrollment_track'), EnrollmentTrackPartitionScheme)
 
     def test_create_user_partition(self):
         user_partition = UserPartition.get_scheme('enrollment_track').create_user_partition(
-            301, "partition", "test partition", parameters={"course_id": unicode(self.course.id)}
+            301, "partition", "test partition", parameters={"course_id": six.text_type(self.course.id)}
         )
         self.assertEqual(type(user_partition), EnrollmentTrackUserPartition)
         self.assertEqual(user_partition.name, "partition")
@@ -146,6 +151,19 @@ class EnrollmentTrackPartitionSchemeTest(SharedModuleStoreTestCase):
         create_mode(self.course, CourseMode.VERIFIED, "Verified Enrollment Track", min_price=1)
         self.assertEqual("Verified Enrollment Track", self._get_user_group().name)
 
+    def test_credit_after_upgrade_deadline(self):
+        create_mode(self.course, CourseMode.CREDIT_MODE, "Credit Enrollment Track", min_price=1)
+        CourseEnrollment.enroll(self.student, self.course.id, mode=CourseMode.CREDIT_MODE)
+
+        # Create a verified mode and check that it is returned for the learner enrolled in Credit.
+        # Make the mode "expired" to ensure that credit users can still see verified-only content after
+        # the upgrade deadline has passed (see EDUCATOR-1511 for why this matters).
+        create_mode(
+            self.course, CourseMode.VERIFIED, "Verified Enrollment Track", min_price=1,
+            expiration_datetime=datetime.now(pytz.UTC) + timedelta(days=-1)
+        )
+        self.assertEqual("Verified Enrollment Track", self._get_user_group().name)
+
     def test_using_verified_track_cohort(self):
         VerifiedTrackCohortedCourse.objects.create(course_key=self.course.id, enabled=True).save()
         CourseEnrollment.enroll(self.student, self.course.id)
@@ -168,7 +186,7 @@ def create_enrollment_track_partition(course):
         id=1,
         name="Test Enrollment Track Partition",
         description="Test partition for segmenting users by enrollment track",
-        parameters={"course_id": unicode(course.id)}
+        parameters={"course_id": six.text_type(course.id)}
     )
     return partition
 

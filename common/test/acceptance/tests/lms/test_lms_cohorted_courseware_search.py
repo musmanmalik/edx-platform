@@ -2,10 +2,9 @@
 Test courseware search
 """
 
+
 import json
 import uuid
-
-from nose.plugins.attrib import attr
 
 from common.test.acceptance.fixtures.course import XBlockFixtureDesc
 from common.test.acceptance.pages.common.auto_auth import AutoAuthPage
@@ -13,20 +12,19 @@ from common.test.acceptance.pages.common.logout import LogoutPage
 from common.test.acceptance.pages.lms.course_home import CourseHomePage
 from common.test.acceptance.pages.lms.instructor_dashboard import InstructorDashboardPage
 from common.test.acceptance.pages.lms.staff_view import StaffCoursewarePage
-from common.test.acceptance.pages.studio.component_editor import ComponentVisibilityEditorView
 from common.test.acceptance.pages.studio.overview import CourseOutlinePage as StudioCourseOutlinePage
 from common.test.acceptance.pages.studio.settings_group_configurations import GroupConfigurationsPage
+from common.test.acceptance.pages.studio.xblock_editor import XBlockVisibilityEditorView
 from common.test.acceptance.tests.discussion.helpers import CohortTestMixin
 from common.test.acceptance.tests.helpers import remove_file
 from common.test.acceptance.tests.studio.base_studio_test import ContainerBase
 
 
-@attr(shard=1)
 class CoursewareSearchCohortTest(ContainerBase, CohortTestMixin):
     """
     Test courseware search.
     """
-
+    shard = 1
     TEST_INDEX_FILENAME = "test_root/index_file.dat"
 
     def setUp(self, is_staff=True):
@@ -177,14 +175,14 @@ class CoursewareSearchCohortTest(ContainerBase, CohortTestMixin):
             """
             html_block = container_page.xblocks[html_block_index]
             html_block.edit_visibility()
-            visibility_dialog = ComponentVisibilityEditorView(self.browser, html_block.locator)
+            visibility_dialog = XBlockVisibilityEditorView(self.browser, html_block.locator)
             visibility_dialog.select_groups_in_partition_scheme(visibility_dialog.CONTENT_GROUP_PARTITION, groups)
 
         set_visibility(1, [self.content_group_a])
         set_visibility(2, [self.content_group_b])
         set_visibility(3, [self.content_group_a, self.content_group_b])
 
-        container_page.publish_action.click()
+        container_page.publish()
 
     def create_cohorts_and_assign_students(self):
         """

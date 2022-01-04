@@ -1,10 +1,12 @@
 """
 Test grading with access changes.
 """
-# pylint: disable=protected-access
+
+
+from crum import set_current_request
 
 from capa.tests.response_xml_factory import MultipleChoiceResponseXMLFactory
-from courseware.tests.test_submitting_problems import ProblemSubmissionTestMixin
+from lms.djangoapps.courseware.tests.test_submitting_problems import ProblemSubmissionTestMixin
 from lms.djangoapps.course_blocks.api import get_course_blocks
 from openedx.core.djangolib.testing.utils import get_mock_request
 from student.models import CourseEnrollment
@@ -14,7 +16,7 @@ from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
-from ...new.subsection_grade_factory import SubsectionGradeFactory
+from ...subsection_grade_factory import SubsectionGradeFactory
 
 
 class GradesAccessIntegrationTest(ProblemSubmissionTestMixin, SharedModuleStoreTestCase):
@@ -68,6 +70,7 @@ class GradesAccessIntegrationTest(ProblemSubmissionTestMixin, SharedModuleStoreT
 
     def setUp(self):
         super(GradesAccessIntegrationTest, self).setUp()
+        self.addCleanup(set_current_request, None)
         self.request = get_mock_request(UserFactory())
         self.student = self.request.user
         self.client.login(username=self.student.username, password="test")

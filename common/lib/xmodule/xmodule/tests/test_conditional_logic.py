@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """Test for Conditional Xmodule functional logic."""
 
+
 from xmodule.conditional_module import ConditionalDescriptor
+
 from . import LogicTest
 
 
@@ -16,6 +18,6 @@ class ConditionalModuleTest(LogicTest):
         self.xmodule.descriptor.get_children = lambda: []
 
         response = self.ajax_request('No', {})
-        html = response['html']
+        fragments = response['fragments']
 
-        self.assertEqual(html, [])
+        self.assertEqual(fragments, [])

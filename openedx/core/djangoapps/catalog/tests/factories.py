@@ -1,13 +1,18 @@
 """Factories for generating fake catalog data."""
-# pylint: disable=missing-docstring, invalid-name
+# pylint: disable=missing-class-docstring, invalid-name
+
+
+import uuid
 from functools import partial
 
 import factory
-import uuid
+from factory.fuzzy import FuzzyChoice
 from faker import Faker
 
+from openedx.core.djangoapps.catalog.constants import PathwayType
 
 fake = Faker()
+VERIFIED_MODE = 'verified'
 
 
 def generate_instances(factory_class, count=3):
@@ -56,6 +61,37 @@ class DictFactoryBase(factory.Factory):
     class Meta(object):
         model = dict
 
+    def __getitem__(self, item):
+        """
+        Pass-through to superclass's __getitem__.
+
+        This is a no-op hack to convince pylint that instances of this class
+        are subscriptable.
+
+        As a specific example, it stops pylint from complaining about:
+            program = ProgramFactory()
+            courses = program['courses']
+        with `Value 'program' is unsubscriptable`.
+        """
+        # pylint: disable=useless-super-delegation
+        return super().__getitem__(item)  # pylint: disable=no-member
+
+    def __setitem__(self, item, value):
+        """
+        Pass-through to superclass's __setitem__.
+
+        This is no-op hack to convince pylint that instances of this class
+        support item assignment.
+
+        As a specific example, it stops pylint from complaining about:
+            program = ProgramFactory()
+            new_course = ...
+            program['courses'] += [new_course]
+        with `Value 'program' does not support item assignment`.
+        """
+        # pylint: disable=no-member,useless-super-delegation
+        return super().__setitem__(item, value)
+
 
 class ImageFactoryBase(DictFactoryBase):
     height = factory.Faker('random_int')
@@ -81,6 +117,11 @@ class StdImageFactory(ImageFactoryBase):
     url = factory.Faker('image_url')
 
 
+class VideoFactory(DictFactoryBase):
+    src = factory.Faker('url')
+    description = factory.Faker('sentence')
+
+
 def generate_sized_stdimage():
     return {
         size: StdImageFactory() for size in ['large', 'medium', 'small', 'x-small']
@@ -98,8 +139,16 @@ class SeatFactory(DictFactoryBase):
     currency = 'USD'
     price = factory.Faker('random_int')
     sku = factory.LazyFunction(generate_seat_sku)
-    type = 'verified'
+    type = VERIFIED_MODE
     upgrade_deadline = factory.LazyFunction(generate_zulu_datetime)
+
+
+class EntitlementFactory(DictFactoryBase):
+    currency = 'USD'
+    price = factory.Faker('random_int')
+    sku = factory.LazyFunction(generate_seat_sku)
+    mode = VERIFIED_MODE
+    expires = None
 
 
 class CourseRunFactory(DictFactoryBase):
@@ -116,12 +165,16 @@ class CourseRunFactory(DictFactoryBase):
     start = factory.LazyFunction(generate_zulu_datetime)
     status = 'published'
     title = factory.Faker('catch_phrase')
-    type = 'verified'
+    type = VERIFIED_MODE
     uuid = factory.Faker('uuid4')
+    content_language = 'en'
+    max_effort = 4
+    weeks_to_complete = 10
 
 
 class CourseFactory(DictFactoryBase):
     course_runs = factory.LazyFunction(partial(generate_instances, CourseRunFactory))
+    entitlements = factory.LazyFunction(partial(generate_instances, EntitlementFactory))
     image = ImageFactory()
     key = factory.LazyFunction(generate_course_key)
     owners = factory.LazyFunction(partial(generate_instances, OrganizationFactory, count=1))
@@ -142,7 +195,7 @@ class PersonFactory(DictFactoryBase):
 
 
 class EndorserFactory(DictFactoryBase):
-    person = PersonFactory()
+    endorser = PersonFactory()
     quote = factory.Faker('sentence')
 
 
@@ -155,16 +208,46 @@ class FAQFactory(DictFactoryBase):
     question = factory.Faker('sentence')
 
 
+class CorporateEndorsementFactory(DictFactoryBase):
+    corporation_name = factory.Faker('company')
+    image = ImageFactory()
+    individual_endorsements = factory.LazyFunction(partial(generate_instances, EndorserFactory))
+
+
+def generate_curricula():
+    """
+    Use this to populate fields with values derived from other factories. If
+    the array is used directly, the same value will be used repeatedly.
+    """
+    curricula = generate_instances(CurriculumFactory, 3)
+    curricula[0]['is_active'] = True
+    curricula[1]['is_active'] = False
+    curricula[2]['is_active'] = False
+    return curricula
+
+
+class ProgramTypeFactory(DictFactoryBase):
+    name = factory.Faker('word')
+    logo_image = factory.LazyFunction(generate_sized_stdimage)
+
+
+class ProgramTypeAttrsFactory(DictFactoryBase):
+    uuid = factory.Faker('uuid4')
+    slug = factory.Faker('word')
+    coaching_supported = False
+
+
 class ProgramFactory(DictFactoryBase):
     authoring_organizations = factory.LazyFunction(partial(generate_instances, OrganizationFactory, count=1))
-    applicable_seat_types = []
+    applicable_seat_types = factory.LazyFunction(lambda: [])
     banner_image = factory.LazyFunction(generate_sized_stdimage)
     card_image_url = factory.Faker('image_url')
+    corporate_endorsements = factory.LazyFunction(partial(generate_instances, CorporateEndorsementFactory))
     courses = factory.LazyFunction(partial(generate_instances, CourseFactory))
     expected_learning_items = factory.LazyFunction(partial(generate_instances, CourseFactory))
     faq = factory.LazyFunction(partial(generate_instances, FAQFactory))
     hidden = False
-    individual_endorsements = factory.LazyFunction(partial(generate_instances, EndorserFactory))
+    instructor_ordering = factory.LazyFunction(partial(generate_instances, PersonFactory))
     is_program_eligible_for_one_click_purchase = True
     job_outlook_items = factory.LazyFunction(partial(generate_instances, JobOutlookItemFactory))
     marketing_slug = factory.Faker('slug')
@@ -178,10 +261,29 @@ class ProgramFactory(DictFactoryBase):
     subtitle = factory.Faker('sentence')
     title = factory.Faker('catch_phrase')
     type = factory.Faker('word')
+    type_attrs = ProgramTypeAttrsFactory()
     uuid = factory.Faker('uuid4')
+    video = VideoFactory()
     weeks_to_complete = fake.random_int(1, 45)
+    curricula = factory.LazyFunction(generate_curricula)
 
 
-class ProgramTypeFactory(DictFactoryBase):
-    name = factory.Faker('word')
-    logo_image = factory.LazyFunction(generate_sized_stdimage)
+class CurriculumFactory(DictFactoryBase):
+    uuid = factory.Faker('uuid4')
+    name = factory.Faker('catch_phrase')
+    marketing_text = factory.Faker('catch_phrase')
+    marketing_text_brief = factory.Faker('word')
+    is_active = True
+    courses = factory.LazyFunction(partial(generate_instances, CourseFactory))
+    programs = factory.LazyFunction(lambda: [])
+
+
+class PathwayFactory(DictFactoryBase):
+    id = factory.Sequence(lambda x: x)
+    description = factory.Faker('sentence')
+    destination_url = factory.Faker('url')
+    email = factory.Faker('email')
+    name = factory.Faker('sentence')
+    org_name = factory.Faker('company')
+    programs = factory.LazyFunction(partial(generate_instances, ProgramFactory))
+    pathway_type = FuzzyChoice((path_type.value for path_type in PathwayType))

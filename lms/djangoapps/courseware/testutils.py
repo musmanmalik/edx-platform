@@ -1,17 +1,19 @@
 """
 Common test utilities for courseware functionality
 """
-# pylint: disable=attribute-defined-outside-init
+
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime, timedelta
-from urllib import urlencode
 
 import ddt
+import six
 from mock import patch
+from six.moves.urllib.parse import urlencode
 
 from lms.djangoapps.courseware.field_overrides import OverrideModulestoreFieldData
 from lms.djangoapps.courseware.url_helpers import get_redirect_url
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
 from student.tests.factories import AdminFactory, CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
@@ -19,12 +21,11 @@ from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory, chec
 
 
 @ddt.ddt
-class RenderXBlockTestMixin(object):
+class RenderXBlockTestMixin(six.with_metaclass(ABCMeta, object)):
     """
     Mixin for testing the courseware.render_xblock function.
     It can be used for testing any higher-level endpoint that calls this method.
     """
-    __metaclass__ = ABCMeta
 
     # DOM elements that appear in the LMS Courseware,
     # but are excluded from the xBlock-only rendering.
@@ -68,7 +69,7 @@ class RenderXBlockTestMixin(object):
             usage_key: The course block usage key. This ensures that the positive and negative tests stay in sync.
             url_encoded_params: URL encoded parameters that should be appended to the requested URL.
         """
-        pass   # pragma: no cover
+        pass  # pragma: no cover
 
     def login(self):
         """
@@ -104,6 +105,12 @@ class RenderXBlockTestMixin(object):
                 category='html',
                 data="<p>Test HTML Content<p>"
             )
+            self.problem_block = ItemFactory.create(
+                parent=self.vertical_block,
+                category='problem',
+                display_name='Problem'
+            )
+        CourseOverview.load_from_module_store(self.course.id)
 
         # block_name_to_be_tested can be `html_block` or `vertical_block`.
         # These attributes help ensure the positive and negative tests are in sync.
@@ -148,9 +155,9 @@ class RenderXBlockTestMixin(object):
         return response
 
     @ddt.data(
-        ('vertical_block', ModuleStoreEnum.Type.mongo, 14),
+        ('vertical_block', ModuleStoreEnum.Type.mongo, 13),
         ('vertical_block', ModuleStoreEnum.Type.split, 6),
-        ('html_block', ModuleStoreEnum.Type.mongo, 15),
+        ('html_block', ModuleStoreEnum.Type.mongo, 14),
         ('html_block', ModuleStoreEnum.Type.split, 6),
     )
     @ddt.unpack
@@ -176,7 +183,7 @@ class RenderXBlockTestMixin(object):
                     self.assertContains(response, chrome_element)
 
     @ddt.data(
-        (ModuleStoreEnum.Type.mongo, 10),
+        (ModuleStoreEnum.Type.mongo, 5),
         (ModuleStoreEnum.Type.split, 5),
     )
     @ddt.unpack
@@ -267,6 +274,7 @@ class FieldOverrideTestMixin(object):
     """
     A Mixin helper class for classes that test Field Overrides.
     """
+
     def setUp(self):
         super(FieldOverrideTestMixin, self).setUp()
         OverrideModulestoreFieldData.provider_classes = None

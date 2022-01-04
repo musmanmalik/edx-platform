@@ -4,29 +4,29 @@ Utilities for writing third_party_auth tests.
 Used by Django and non-Django tests; must not have Django deps.
 """
 
+
 import os.path
 from contextlib import contextmanager
 
 import django.test
 import mock
+import six
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from mako.template import Template
-from provider import constants
-from provider.oauth2.models import Client as OAuth2Client
-from storages.backends.overwrite import OverwriteStorage
+from oauth2_provider.models import Application
+from openedx.core.djangolib.testing.utils import CacheIsolationMixin
+from openedx.core.storage import OverwriteStorage
 
-from third_party_auth.models import cache as config_cache
 from third_party_auth.models import (
     LTIProviderConfig,
     OAuth2ProviderConfig,
-    ProviderApiPermissions,
     SAMLConfiguration,
     SAMLProviderConfig,
     SAMLProviderData
 )
-from third_party_auth.saml import EdXSAMLIdentityProvider, get_saml_idp_class
+from third_party_auth.models import cache as config_cache
 
 AUTH_FEATURES_KEY = 'ENABLE_THIRD_PARTY_AUTH'
 AUTH_FEATURE_ENABLED = AUTH_FEATURES_KEY in settings.FEATURES
@@ -49,7 +49,7 @@ class FakeDjangoSettings(object):
 
     def __init__(self, mappings):
         """Initializes the fake from mappings dict."""
-        for key, value in mappings.iteritems():
+        for key, value in six.iteritems(mappings):
             setattr(self, key, value)
 
 
@@ -60,7 +60,7 @@ class ThirdPartyAuthTestMixin(object):
         # Django's FileSystemStorage will rename files if they already exist.
         # This storage backend overwrites files instead, which makes it easier
         # to make assertions about filenames.
-        icon_image_field = OAuth2ProviderConfig._meta.get_field('icon_image')  # pylint: disable=protected-access
+        icon_image_field = OAuth2ProviderConfig._meta.get_field('icon_image')
         patch = mock.patch.object(icon_image_field, 'storage', OverwriteStorage())
         patch.start()
         self.addCleanup(patch.stop)
@@ -79,7 +79,7 @@ class ThirdPartyAuthTestMixin(object):
     @staticmethod
     def configure_oauth_provider(**kwargs):
         """ Update the settings for an OAuth2-based third party auth provider """
-        kwargs.setdefault('provider_slug', kwargs['backend_name'])
+        kwargs.setdefault('slug', kwargs['backend_name'])
         obj = OAuth2ProviderConfig(**kwargs)
         obj.save()
         return obj
@@ -87,7 +87,7 @@ class ThirdPartyAuthTestMixin(object):
     def configure_saml_provider(self, **kwargs):
         """ Update the settings for a SAML-based third party auth provider """
         self.assertTrue(
-            SAMLConfiguration.is_enabled(Site.objects.get_current()),
+            SAMLConfiguration.is_enabled(Site.objects.get_current(), 'default'),
             "SAML Provider Configuration only works if SAML is enabled."
         )
         obj = SAMLProviderConfig(**kwargs)
@@ -166,6 +166,12 @@ class ThirdPartyAuthTestMixin(object):
         return cls.configure_oauth_provider(**kwargs)
 
     @classmethod
+    def configure_identityServer3_provider(cls, **kwargs):
+        kwargs.setdefault("name", "identityServer3TestConfig")
+        kwargs.setdefault("backend_name", "identityServer3")
+        return cls.configure_oauth_provider(**kwargs)
+
+    @classmethod
     def verify_user_email(cls, email):
         """ Mark the user with the given email as verified """
         user = User.objects.get(email=email)
@@ -173,14 +179,9 @@ class ThirdPartyAuthTestMixin(object):
         user.save()
 
     @staticmethod
-    def configure_oauth_client():
-        """ Configure a oauth client for testing """
-        return OAuth2Client.objects.create(client_type=constants.CONFIDENTIAL)
-
-    @staticmethod
-    def configure_api_permission(client, provider_id):
-        """ Configure the client and provider_id pair. This will give the access to a client for that provider. """
-        return ProviderApiPermissions.objects.create(client=client, provider_id=provider_id)
+    def configure_oauth_dot_client():
+        """ Configure an oauth DOP client for testing """
+        return Application.objects.create(client_type=Application.CLIENT_CONFIDENTIAL)
 
     @staticmethod
     def read_data_file(filename):
@@ -189,14 +190,16 @@ class ThirdPartyAuthTestMixin(object):
             return f.read()
 
 
-class TestCase(ThirdPartyAuthTestMixin, django.test.TestCase):
+class TestCase(ThirdPartyAuthTestMixin, CacheIsolationMixin, django.test.TestCase):
     """Base class for auth test cases."""
-    def setUp(self):
+
+    def setUp(self):  # pylint: disable=arguments-differ
         super(TestCase, self).setUp()
         # Explicitly set a server name that is compatible with all our providers:
         # (The SAML lib we use doesn't like the default 'testserver' as a domain)
-        self.client.defaults['SERVER_NAME'] = 'example.none'
-        self.url_prefix = 'http://example.none'
+        self.hostname = 'example.none'
+        self.client.defaults['SERVER_NAME'] = self.hostname
+        self.url_prefix = 'http://{}'.format(self.hostname)
 
 
 class SAMLTestCase(TestCase):
@@ -221,16 +224,6 @@ class SAMLTestCase(TestCase):
             kwargs['public_key'] = self._get_public_key()
         kwargs.setdefault('entity_id', "https://saml.example.none")
         super(SAMLTestCase, self).enable_saml(**kwargs)
-
-    @mock.patch('third_party_auth.saml.log')
-    def test_get_saml_idp_class_with_fake_identifier(self, log_mock):
-        error_mock = log_mock.error
-        idp_class = get_saml_idp_class('fake_idp_class_option')
-        error_mock.assert_called_once_with(
-            '%s is not a valid EdXSAMLIdentityProvider subclass; using EdXSAMLIdentityProvider base class.',
-            'fake_idp_class_option'
-        )
-        self.assertIs(idp_class, EdXSAMLIdentityProvider)
 
 
 @contextmanager
@@ -287,7 +280,8 @@ def simulate_running_pipeline(pipeline_target, backend, email=None, fullname=Non
     pipeline_data = {
         "backend": backend,
         "kwargs": {
-            "details": kwargs
+            "details": kwargs,
+            "response": kwargs.get("response", {})
         }
     }
 

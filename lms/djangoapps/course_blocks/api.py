@@ -2,31 +2,56 @@
 API entry point to the course_blocks app with top-level
 get_course_blocks function.
 """
+
+
+from django.conf import settings
+from edx_when import field_data
+
+from lms.djangoapps.course_api.blocks.transformers.block_completion import BlockCompletionTransformer
 from openedx.core.djangoapps.content.block_structure.api import get_block_structure_manager
 from openedx.core.djangoapps.content.block_structure.transformers import BlockStructureTransformers
+from openedx.features.content_type_gating.block_transformers import ContentTypeGateTransformer
 
-from .transformers import library_content, start_date, user_partitions, visibility
+from .transformers import library_content, load_override_data, start_date, user_partitions, visibility
 from .usage_info import CourseUsageInfo
 
-# Default list of transformers for manipulating course block structures
-# based on the user's access to the course blocks.
-COURSE_BLOCK_ACCESS_TRANSFORMERS = [
-    library_content.ContentLibraryTransformer(),
-    start_date.StartDateTransformer(),
-    start_date.StartDateFieldTransformer(),
-    user_partitions.UserPartitionTransformer(),
-    visibility.VisibilityTransformer(),
-]
+INDIVIDUAL_STUDENT_OVERRIDE_PROVIDER = (
+    'lms.djangoapps.courseware.student_field_overrides.IndividualStudentOverrideProvider'
+)
 
 
-def get_course_block_access_transformers():
+def has_individual_student_override_provider():
     """
-    Functional access to COURSE_BLOCK_ACCESS_TRANSFORMERS.
-
-    This is for compatibility with code written for post ginkgo versions of
-    edx-platform.
+    check if FIELD_OVERRIDE_PROVIDERS has class
+    `lms.djangoapps.courseware.student_field_overrides.IndividualStudentOverrideProvider`
     """
-    return COURSE_BLOCK_ACCESS_TRANSFORMERS
+    return INDIVIDUAL_STUDENT_OVERRIDE_PROVIDER in getattr(settings, 'FIELD_OVERRIDE_PROVIDERS', ())
+
+
+def get_course_block_access_transformers(user):
+    """
+    Default list of transformers for manipulating course block structures
+    based on the user's access to the course blocks.
+
+    Arguments:
+        user (django.contrib.auth.models.User) - User object for
+            which the block structure is to be transformed.
+
+    """
+    course_block_access_transformers = [
+        library_content.ContentLibraryTransformer(),
+        start_date.StartDateTransformer(),
+        start_date.StartDateFieldTransformer(),
+        ContentTypeGateTransformer(),
+        user_partitions.UserPartitionTransformer(),
+        visibility.VisibilityTransformer(),
+        field_data.DateOverrideTransformer(user),
+    ]
+
+    if has_individual_student_override_provider():
+        course_block_access_transformers += [load_override_data.OverrideDataTransformer(user)]
+
+    return course_block_access_transformers
 
 
 def get_course_blocks(
@@ -34,6 +59,8 @@ def get_course_blocks(
         starting_block_usage_key,
         transformers=None,
         collected_block_structure=None,
+        allow_start_dates_in_future=False,
+        include_completion=False,
 ):
     """
     A higher order function implemented on top of the
@@ -49,7 +76,7 @@ def get_course_blocks(
 
         transformers (BlockStructureTransformers) - A collection of
             transformers whose transform methods are to be called.
-            If None, COURSE_BLOCK_ACCESS_TRANSFORMERS is used.
+            If None, get_course_block_access_transformers() is used.
 
         collected_block_structure (BlockStructureBlockData) - A
             block structure retrieved from a prior call to
@@ -66,8 +93,10 @@ def get_course_blocks(
             access.
     """
     if not transformers:
-        transformers = BlockStructureTransformers(COURSE_BLOCK_ACCESS_TRANSFORMERS)
-    transformers.usage_info = CourseUsageInfo(starting_block_usage_key.course_key, user)
+        transformers = BlockStructureTransformers(get_course_block_access_transformers(user))
+    if include_completion:
+        transformers += [BlockCompletionTransformer()]
+    transformers.usage_info = CourseUsageInfo(starting_block_usage_key.course_key, user, allow_start_dates_in_future)
 
     return get_block_structure_manager(starting_block_usage_key.course_key).get_transformed(
         transformers,

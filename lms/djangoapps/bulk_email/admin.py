@@ -1,6 +1,8 @@
 """
 Django admin page for bulk email models
 """
+
+
 from config_models.admin import ConfigurationModelAdmin
 from django.contrib import admin
 
@@ -25,7 +27,7 @@ class CourseEmailTemplateAdmin(admin.ModelAdmin):
         (None, {
             # make the HTML template display above the plain template:
             'fields': ('html_template', 'plain_template', 'name'),
-            'description': '''
+            'description': u'''
 Enter template to be used by course staff when sending emails to enrolled students.
 
 The HTML template is for HTML email, and may contain HTML markup.  The plain template is
@@ -70,7 +72,7 @@ class CourseAuthorizationAdmin(admin.ModelAdmin):
         (None, {
             'fields': ('course_id', 'email_enabled'),
             'description': '''
-Enter a course id in the following form: Org/Course/CourseRun, eg MITx/6.002x/2012_Fall
+Enter a course id in the following form: course-v1:Org+CourseNumber+CourseRun, eg course-v1:edX+DemoX+Demo_Course
 Do not enter leading or trailing slashes. There is no need to surround the course ID with quotes.
 Validation will be performed on the course name, and if it is invalid, an error message will display.
 
@@ -78,6 +80,7 @@ To enable email for the course, check the "Email enabled" box, then click "Save"
 '''
         }),
     )
+
 
 admin.site.register(CourseEmail, CourseEmailAdmin)
 admin.site.register(Optout, OptoutAdmin)

@@ -1,7 +1,9 @@
 """
 Methods for interacting programmatically with the user creator table.
 """
-from course_creators.models import CourseCreator
+
+
+from cms.djangoapps.course_creators.models import CourseCreator
 from student import auth
 from student.roles import CourseCreatorRole
 

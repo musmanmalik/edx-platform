@@ -16,9 +16,6 @@ defuse_xml_libs()
 import contracts
 contracts.disable_all()
 
-import openedx.core.operations
-openedx.core.operations.install_memory_dumper()
-
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lms.envs.aws")
 
@@ -35,4 +32,4 @@ modulestore()
 # This application object is used by the development server
 # as well as any WSGI server configured to use this file.
 from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()  # pylint: disable=invalid-name
+application = get_wsgi_application()

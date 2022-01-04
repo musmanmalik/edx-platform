@@ -2,6 +2,7 @@
 Tests for the fake payment page used in acceptance tests.
 """
 
+
 from collections import OrderedDict
 
 from django.test import TestCase
@@ -55,7 +56,7 @@ class PaymentFakeViewTest(TestCase):
 
         # Expect that we were served the payment page
         # (not the error page)
-        self.assertIn("Payment Form", resp.content)
+        self.assertContains(resp, "Payment Form")
 
     def test_rejects_invalid_signature(self):
 
@@ -72,7 +73,7 @@ class PaymentFakeViewTest(TestCase):
         )
 
         # Expect that we got an error
-        self.assertIn("Error", resp.content)
+        self.assertContains(resp, "Error")
 
     def test_sends_valid_signature(self):
 
@@ -93,7 +94,6 @@ class PaymentFakeViewTest(TestCase):
 
         # Generate shoppingcart signatures
         post_params = sign(self.client_post_params)
-
         # Configure the view to declined payments
         resp = self.client.put(
             '/shoppingcart/payment_fake',

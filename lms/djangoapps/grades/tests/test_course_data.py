@@ -1,6 +1,9 @@
 """
 Tests for CourseData utility class.
 """
+
+
+import six
 from mock import patch
 
 from lms.djangoapps.course_blocks.api import get_course_blocks
@@ -10,7 +13,7 @@ from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory
 
-from ..new.course_data import CourseData
+from ..course_data import CourseData
 
 
 class CourseDataTest(ModuleStoreTestCase):
@@ -37,7 +40,7 @@ class CourseDataTest(ModuleStoreTestCase):
             'location': self.course.location,
         }
 
-    @patch('lms.djangoapps.grades.new.course_data.get_course_blocks')
+    @patch('lms.djangoapps.grades.course_data.get_course_blocks')
     def test_fill_course_data(self, mock_get_blocks):
         """
         Tests to ensure that course data is fully filled with just a single input.
@@ -68,13 +71,13 @@ class CourseDataTest(ModuleStoreTestCase):
             dict(course_key=self.course.id),
         ]:
             course_data = CourseData(self.user, **kwargs)
-            self.assertEquals(course_data.course_key, self.course.id)
-            self.assertEquals(course_data.location, self.course.location)
-            self.assertEquals(course_data.structure.root_block_usage_key, self.one_true_structure.root_block_usage_key)
-            self.assertEquals(course_data.course.id, self.course.id)
-            self.assertEquals(course_data.version, self.course.course_version)
-            self.assertEquals(course_data.edited_on, expected_edited_on)
-            self.assertIn(u'Course: course_key', unicode(course_data))
+            self.assertEqual(course_data.course_key, self.course.id)
+            self.assertEqual(course_data.location, self.course.location)
+            self.assertEqual(course_data.structure.root_block_usage_key, self.one_true_structure.root_block_usage_key)
+            self.assertEqual(course_data.course.id, self.course.id)
+            self.assertEqual(course_data.version, self.course.course_version)
+            self.assertEqual(course_data.edited_on, expected_edited_on)
+            self.assertIn(u'Course: course_key', six.text_type(course_data))
             self.assertIn(u'Course: course_key', course_data.full_string())
 
     def test_no_data(self):

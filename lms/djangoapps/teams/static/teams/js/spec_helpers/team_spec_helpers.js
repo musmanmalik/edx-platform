@@ -7,10 +7,13 @@ define([
 ], function(Backbone, _, TeamCollection, TopicCollection, TopicModel) {
     'use strict';
     var createMockPostResponse, createMockDiscussionResponse, createAnnotatedContentInfo, createMockThreadResponse,
-        createMockTopicData, createMockTopicCollection, createMockTopic,
+        createMockTopicData, createMockTopicCollection, createMockTopic, createMockInstructorManagedTopic,
+        createMockContext,
+        testContext,
         testCourseID = 'course/1',
         testUser = 'testUser',
         testTopicID = 'test-topic-1',
+        testInstructorManagedTopicID = 'test-instructor-managed-topic-1',
         testTeamDiscussionID = '12345',
         teamEvents = _.clone(Backbone.Events),
         testCountries = [
@@ -57,7 +60,7 @@ define([
 
     var createMockTeams = function(responseOptions, options, collectionType) {
         if (_.isUndefined(collectionType)) {
-            collectionType = TeamCollection;
+            collectionType = TeamCollection; // eslint-disable-line no-param-reassign
         }
         return new collectionType(
             createMockTeamsResponse(responseOptions),
@@ -143,38 +146,39 @@ define([
     };
 
     createMockDiscussionResponse = function(threads) {
+        var responseThreads = threads;
         if (_.isUndefined(threads)) {
-            threads = [
+            responseThreads = [
                 createMockPostResponse({id: '1', title: 'First Post'}),
                 createMockPostResponse({id: '2', title: 'Second Post'}),
                 createMockPostResponse({id: '3', title: 'Third Post'})
             ];
         }
         return {
-            'num_pages': 1,
-            'page': 1,
-            'discussion_data': threads,
-            'user_info': {
-                'username': testUser,
-                'follower_ids': [],
-                'default_sort_key': 'date',
-                'downvoted_ids': [],
-                'subscribed_thread_ids': [],
-                'upvoted_ids': [],
-                'external_id': '9',
-                'id': '9',
-                'subscribed_user_ids': [],
-                'subscribed_commentable_ids': []
+            num_pages: 1,
+            page: 1,
+            discussion_data: responseThreads,
+            user_info: {
+                username: testUser,
+                follower_ids: [],
+                default_sort_key: 'date',
+                downvoted_ids: [],
+                subscribed_thread_ids: [],
+                upvoted_ids: [],
+                external_id: '9',
+                id: '9',
+                subscribed_user_ids: [],
+                subscribed_commentable_ids: []
             },
-            'annotated_content_info': {
+            annotated_content_info: {
             },
-            'roles': {'Moderator': [], 'Administrator': [], 'Community TA': []},
-            'course_settings': {
-                'is_cohorted': false,
-                'allow_anonymous_to_peers': false,
-                'allow_anonymous': true,
-                'category_map': {'subcategories': {}, 'children': [], 'entries': {}},
-                'cohorts': []
+            roles: {Moderator: [], Administrator: [], 'Community TA': []},
+            course_settings: {
+                is_cohorted: false,
+                allow_anonymous_to_peers: false,
+                allow_anonymous: true,
+                category_map: {subcategories: {}, children: [], entries: {}},
+                cohorts: []
             }
         };
     };
@@ -207,7 +211,7 @@ define([
                 resp_skip: 0,
                 id: '55c1323c56c02ce921000001',
                 pinned: false,
-                votes: {'count': 0, 'down_count': 0, 'point': 0, 'up_count': 0},
+                votes: {count: 0, down_count: 0, point: 0, up_count: 0},
                 resp_limit: 25,
                 abuse_flaggers: [],
                 closed: false,
@@ -229,10 +233,10 @@ define([
     createMockTopicData = function(startIndex, stopIndex) {
         return _.map(_.range(startIndex, stopIndex + 1), function(i) {
             return {
-                'description': 'Test description ' + i,
-                'name': 'Test Topic ' + i,
-                'id': 'test-topic-' + i,
-                'team_count': 0
+                description: 'Test description ' + i,
+                name: 'Test Topic ' + i,
+                id: 'test-topic-' + i,
+                team_count: 0
             };
         });
     };
@@ -242,13 +246,26 @@ define([
             {
                 id: testTopicID,
                 name: 'Test Topic 1',
-                description: 'Test description 1'
+                description: 'Test description 1',
+                type: 'open'
             },
             options
         ));
     };
 
-    var testContext = {
+    createMockInstructorManagedTopic = function(options) {
+        return new TopicModel(_.extend(
+            {
+                id: testInstructorManagedTopicID,
+                name: 'Test Instructor Managed Topic 1',
+                description: 'Test instructor managed topic description 1',
+                type: 'public_managed'
+            },
+            options
+        ));
+    };
+
+    testContext = {
         courseID: testCourseID,
         topics: {
             count: 5,
@@ -257,7 +274,10 @@ define([
             start: 0,
             results: createMockTopicData(1, 5)
         },
-        maxTeamSize: 6,
+        hasOpenTopic: true,
+        hasPublicManagedTopic: false,
+        hasManagedTopic: false,
+        courseMaxTeamSize: 6,
         languages: testLanguages,
         countries: testCountries,
         topicUrl: '/api/team/v0/topics/topic_id,' + testCourseID,
@@ -269,11 +289,12 @@ define([
         userInfo: createMockUserInfo()
     };
 
-    var createMockContext = function(options) {
+    createMockContext = function(options) {
         return _.extend({}, testContext, options);
     };
 
     createMockTopicCollection = function(topicData) {
+        // eslint-disable-next-line no-param-reassign
         topicData = topicData !== undefined ? topicData : createMockTopicData(1, 5);
 
         return new TopicCollection(
@@ -309,6 +330,7 @@ define([
         createMockUserInfo: createMockUserInfo,
         createMockContext: createMockContext,
         createMockTopic: createMockTopic,
+        createMockInstructorManagedTopic: createMockInstructorManagedTopic,
         createMockPostResponse: createMockPostResponse,
         createMockDiscussionResponse: createMockDiscussionResponse,
         createAnnotatedContentInfo: createAnnotatedContentInfo,

@@ -6,13 +6,16 @@ If student does not yet answered - `num_inputs` numbers of text inputs.
 If student have answered - words he entered and cloud.
 """
 
+
 import json
 import logging
 
 from pkg_resources import resource_string
-from xblock.fields import Boolean, Dict, Integer, List, Scope, String
-from xblock.fragment import Fragment
 
+import six
+from six.moves import map
+from web_fragments.fragment import Fragment
+from xblock.fields import Boolean, Dict, Integer, List, Scope, String
 from xmodule.editing_module import MetadataOnlyEditingDescriptor
 from xmodule.raw_module import EmptyDataRawDescriptor
 from xmodule.x_module import XModule
@@ -91,18 +94,14 @@ class WordCloudFields(object):
 
 class WordCloudModule(WordCloudFields, XModule):
     """WordCloud Xmodule"""
-    js = {
-        'js': [
-            resource_string(__name__, 'js/src/javascript_loader.js'),
-        ],
-    }
+    js = {'js': [resource_string(__name__, 'assets/word_cloud/src/js/word_cloud.js')]}
     css = {'scss': [resource_string(__name__, 'css/word_cloud/display.scss')]}
     js_module_name = "WordCloud"
 
     def get_state(self):
         """Return success json answer for client."""
         if self.submitted:
-            total_count = sum(self.all_words.itervalues())
+            total_count = sum(six.itervalues(self.all_words))
             return json.dumps({
                 'status': 'success',
                 'submitted': True,
@@ -148,11 +147,12 @@ class WordCloudModule(WordCloudFields, XModule):
         """
         list_to_return = []
         percents = 0
-        for num, word_tuple in enumerate(top_words.iteritems()):
+        sorted_top_words = sorted(top_words.items(), key=lambda x: x[0].lower())
+        for num, word_tuple in enumerate(sorted_top_words):
             if num == len(top_words) - 1:
                 percent = 100 - percents
             else:
-                percent = round(100.0 * word_tuple[1] / total_count)
+                percent = round((100.0 * word_tuple[1]) / total_count)
                 percents += percent
             list_to_return.append(
                 {
@@ -175,7 +175,7 @@ class WordCloudModule(WordCloudFields, XModule):
         """
         return dict(
             sorted(
-                dict_obj.items(),
+                list(dict_obj.items()),
                 key=lambda x: x[1],
                 reverse=True
             )[:amount]
@@ -201,7 +201,7 @@ class WordCloudModule(WordCloudFields, XModule):
             # Student words from client.
             # FIXME: we must use raw JSON, not a post data (multipart/form-data)
             raw_student_words = data.getall('student_words[]')
-            student_words = filter(None, map(self.good_word, raw_student_words))
+            student_words = [word for word in map(self.good_word, raw_student_words) if word]
 
             self.student_words = student_words
 
@@ -244,16 +244,11 @@ class WordCloudModule(WordCloudFields, XModule):
             'ajax_url': self.system.ajax_url,
             'display_name': self.display_name,
             'instructions': self.instructions,
-            'element_class': self.location.category,
+            'element_class': self.location.block_type,
             'element_id': self.location.html_id(),
             'num_inputs': self.num_inputs,
             'submitted': self.submitted,
         }))
-
-        fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/d3.min.js'))
-        fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/d3.layout.cloud.js'))
-        fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/word_cloud.js'))
-        fragment.add_javascript_url(self.runtime.local_resource_url(self, 'public/js/word_cloud_main.js'))
 
         return fragment
 

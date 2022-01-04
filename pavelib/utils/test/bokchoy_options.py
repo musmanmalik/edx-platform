@@ -2,6 +2,7 @@
 Definitions of all options used by the various bok_choy tasks.
 """
 
+
 import os
 from optparse import make_option
 
@@ -19,8 +20,15 @@ BOKCHOY_DEFAULT_STORE_DEPR = make_option(
     default=os.environ.get('DEFAULT_STORE', 'split'),
     help='deprecated in favor of default-store'
 )
-BOKCHOY_FASTTEST = make_option('-a', '--fasttest', action='store_true', help='Skip some setup')
-BOKCHOY_COVERAGERC = make_option('--coveragerc', help='coveragerc file to use during this test')
+BOKCHOY_EVAL_ATTR = make_option(
+    "-a", "--eval-attr",
+    dest="eval_attr", help="Only run tests matching given attribute expression."
+)
+BOKCHOY_FASTTEST = make_option('--fasttest', action='store_true', help='Skip some setup')
+BOKCHOY_COVERAGERC = make_option(
+    '--coveragerc',
+    help='coveragerc file to use during this test'
+)
 
 BOKCHOY_OPTS = [
     ('test-spec=', 't', 'Specific test to run'),
@@ -28,7 +36,9 @@ BOKCHOY_OPTS = [
     ('skip-clean', 'C', 'Skip cleaning repository before running tests'),
     make_option('-r', '--serversonly', action='store_true', help='Prepare suite and leave servers running'),
     make_option('-o', '--testsonly', action='store_true', help='Assume servers are running and execute tests only'),
+    BOKCHOY_COVERAGERC,
     BOKCHOY_DEFAULT_STORE,
+    BOKCHOY_EVAL_ATTR,
     make_option(
         '-d', '--test-dir',
         default='tests',
@@ -78,14 +88,10 @@ BOKCHOY_OPTS = [
         dest="save_screenshots",
         help="deprecated in favor of save-screenshots"
     ),
+    make_option(
+        '--with-wtw',
+        dest='with_wtw',
+        action='store',
+        help="Only run tests based on the lines changed relative to the specified branch"
+    ),
 ]
-
-PA11Y_SINGLE_URL = make_option('--single-url', help='Crawl only the specified url')
-PA11Y_HTML = ('with-html', 'w', 'Include html reports')
-PA11Y_COURSE_KEY = make_option('--course-key', help='Course key for test course')
-PA11Y_FETCH_COURSE = make_option(
-    "--fetch-course",
-    action="store_true",
-    dest="should_fetch_course",
-    help='Course key for test course',
-)

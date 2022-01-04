@@ -1,7 +1,12 @@
+"""
+Support for using the CodeMirror code editor as a wiki content editor.
+"""
+
+
 from django import forms
 from django.forms.utils import flatatt
 from django.template.loader import render_to_string
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_text
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from wiki.editors.base import BaseEditor
@@ -9,29 +14,41 @@ from wiki.editors.markitup import MarkItUpAdminWidget
 
 
 class CodeMirrorWidget(forms.Widget):
+    """
+    Use CodeMirror as a Django form widget (like a textarea).
+    """
     def __init__(self, attrs=None):
         # The 'rows' and 'cols' attributes are required for HTML correctness.
-        default_attrs = {'class': 'markItUp',
-                         'rows': '10', 'cols': '40', }
+        default_attrs = {
+            'class': 'markItUp',
+            'rows': '10',
+            'cols': '40',
+            'aria-describedby': 'hint_id_content'
+        }
         if attrs:
             default_attrs.update(attrs)
         super(CodeMirrorWidget, self).__init__(default_attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         if value is None:
             value = ''
 
-        final_attrs = self.build_attrs(attrs, name=name)
+        extra_attrs = attrs.copy()
+        extra_attrs['name'] = name
+        final_attrs = self.build_attrs(self.attrs, extra_attrs=extra_attrs)
 
         # TODO use the help_text field of edit form instead of rendering a template
 
         return render_to_string('wiki/includes/editor_widget.html',
                                 {'attrs': mark_safe(flatatt(final_attrs)),
-                                 'content': conditional_escape(force_unicode(value)),
+                                 'content': conditional_escape(force_text(value)),
                                  })
 
 
 class CodeMirror(BaseEditor):
+    """
+    Wiki content editor using CodeMirror.
+    """
     editor_id = 'codemirror'
 
     def get_admin_widget(self, instance=None):
@@ -40,7 +57,7 @@ class CodeMirror(BaseEditor):
     def get_widget(self, instance=None):
         return CodeMirrorWidget()
 
-    class AdminMedia(object):  # pylint: disable=missing-docstring
+    class AdminMedia(object):  # pylint: disable=missing-class-docstring
         css = {
             'all': ("wiki/markitup/skins/simple/style.css",
                     "wiki/markitup/sets/admin/style.css",)
@@ -50,7 +67,7 @@ class CodeMirror(BaseEditor):
               "wiki/markitup/sets/admin/set.js",
               )
 
-    class Media(object):  # pylint: disable=missing-docstring
+    class Media(object):
         css = {
             'all': ("js/vendor/CodeMirror/codemirror.css",)
         }

@@ -2,6 +2,7 @@
 Test authorization functions
 """
 
+
 from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase
 

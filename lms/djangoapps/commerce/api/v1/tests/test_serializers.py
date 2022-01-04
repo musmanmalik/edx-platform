@@ -1,7 +1,9 @@
 """ Commerce API v1 serializer tests. """
+
+
 from django.test import TestCase
 
-from commerce.api.v1.serializers import serializers, validate_course_id
+from ..serializers import serializers, validate_course_id
 
 
 class CourseValidatorTests(TestCase):
@@ -12,7 +14,7 @@ class CourseValidatorTests(TestCase):
         course_key = 'non/existing/keyone'
 
         error_msg = u"Course {} does not exist.".format(course_key)
-        with self.assertRaisesRegexp(serializers.ValidationError, error_msg):
+        with self.assertRaisesRegex(serializers.ValidationError, error_msg):
             validate_course_id(course_key)
 
     def test_validate_course_id_with_invalid_key(self):
@@ -20,5 +22,5 @@ class CourseValidatorTests(TestCase):
         course_key = 'invalidkey'
 
         error_msg = u"{} is not a valid course key.".format(course_key)
-        with self.assertRaisesRegexp(serializers.ValidationError, error_msg):
+        with self.assertRaisesRegex(serializers.ValidationError, error_msg):
             validate_course_id(course_key)

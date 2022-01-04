@@ -2,35 +2,37 @@
     'use strict';
 
     define(['backbone',
-            'jquery',
-            'underscore',
-            'gettext',
-            'edx-ui-toolkit/js/utils/html-utils',
-            'edx-ui-toolkit/js/utils/string-utils',
-            'common/js/components/views/search_field',
-            'js/components/header/views/header',
-            'js/components/header/models/header',
-            'teams/js/models/topic',
-            'teams/js/collections/topic',
-            'teams/js/models/team',
-            'teams/js/collections/team',
-            'teams/js/collections/my_teams',
-            'teams/js/utils/team_analytics',
-            'teams/js/views/teams_tabbed_view',
-            'teams/js/views/topics',
-            'teams/js/views/team_profile',
-            'teams/js/views/my_teams',
-            'teams/js/views/topic_teams',
-            'teams/js/views/edit_team',
-            'teams/js/views/edit_team_members',
-            'teams/js/views/team_profile_header_actions',
-            'teams/js/views/team_utils',
-            'teams/js/views/instructor_tools',
-            'text!teams/templates/teams_tab.underscore'],
+        'jquery',
+        'underscore',
+        'gettext',
+        'edx-ui-toolkit/js/utils/html-utils',
+        'edx-ui-toolkit/js/utils/string-utils',
+        'common/js/components/views/search_field',
+        'js/components/header/views/header',
+        'js/components/header/models/header',
+        'teams/js/models/topic',
+        'teams/js/collections/topic',
+        'teams/js/models/team',
+        'teams/js/collections/team',
+        'teams/js/collections/my_teams',
+        'teams/js/utils/team_analytics',
+        'teams/js/views/teams_tabbed_view',
+        'teams/js/views/topics',
+        'teams/js/views/team_profile',
+        'teams/js/views/my_teams',
+        'teams/js/views/manage',
+        'teams/js/views/topic_teams',
+        'teams/js/views/edit_team',
+        'teams/js/views/edit_team_members',
+        'teams/js/views/team_profile_header_actions',
+        'teams/js/views/team_utils',
+        'teams/js/views/instructor_tools',
+        'text!teams/templates/teams_tab.underscore'],
         function(Backbone, $, _, gettext, HtmlUtils, StringUtils, SearchFieldView, HeaderView, HeaderModel,
                   TopicModel, TopicCollection, TeamModel, TeamCollection, MyTeamsCollection, TeamAnalytics,
-                  TeamsTabbedView, TopicsView, TeamProfileView, MyTeamsView, TopicTeamsView, TeamEditView,
-                  TeamMembersEditView, TeamProfileHeaderActionsView, TeamUtils, InstructorToolsView, teamsTemplate) {
+                  TeamsTabbedView, TopicsView, TeamProfileView, MyTeamsView, ManageView, TopicTeamsView,
+                  TeamEditView, TeamMembersEditView, TeamProfileHeaderActionsView, TeamUtils, InstructorToolsView,
+                  teamsTemplate) {
             var TeamsHeaderModel = HeaderModel.extend({
                 initialize: function() {
                     _.extend(this.defaults, {nav_aria_label: gettext('Topics')});
@@ -59,7 +61,8 @@
 
             var TeamTabView = Backbone.View.extend({
                 initialize: function(options) {
-                    var router;
+                    var view = this,
+                        router, tabsList;
                     this.context = options.context;
                     // This slightly tedious approach is necessary
                     // to use regular expressions within Backbone
@@ -78,8 +81,9 @@
                         ['topics/:topic_id/search(/)', _.bind(this.searchTeams, this)],
                         ['topics/:topic_id/create-team(/)', _.bind(this.newTeam, this)],
                         ['teams/:topic_id/:team_id(/)', _.bind(this.browseTeam, this)],
-                        [new RegExp('^(browse)\/?$'), _.bind(this.goToTab, this)],
-                        [new RegExp('^(my-teams)\/?$'), _.bind(this.goToTab, this)]
+                        [new RegExp('^(browse)/?$'), _.bind(this.goToTab, this)],
+                        [new RegExp('^(my-teams)/?$'), _.bind(this.goToTab, this)],
+                        [new RegExp('^(manage)/?$'), _.bind(this.goToTab, this)]
                     ], function(route) {
                         router.route.apply(router, route);
                     });
@@ -103,7 +107,7 @@
                             teamEvents: this.teamEvents,
                             course_id: this.context.courseID,
                             username: this.context.userInfo.username,
-                            perPage: 2,
+                            perPage: 5,
                             parse: true,
                             url: this.context.myTeamsUrl
                         }
@@ -112,7 +116,8 @@
                         router: this.router,
                         teamEvents: this.teamEvents,
                         context: this.context,
-                        collection: this.myTeamsCollection
+                        collection: this.myTeamsCollection,
+                        getTopic: function(topicId) { return view.getTopic(topicId); }
                     });
 
                     this.topicsCollection = new TopicCollection(
@@ -131,19 +136,37 @@
                         collection: this.topicsCollection
                     });
 
+                    this.manageView = new ManageView({
+                        router: this.router,
+                        teamEvents: this.teamEvents,
+                        teamMembershipManagementUrl: this.context.teamMembershipManagementUrl
+                    });
+
+                    tabsList = [{
+                        title: gettext('My Teams'),
+                        url: 'my-teams',
+                        view: this.myTeamsView
+                    }];
+                    if (this.shouldSeeBrowseTab()) {
+                        tabsList.push({
+                            title: gettext('Browse'),
+                            url: 'browse',
+                            view: this.topicsView
+                        });
+                    }
+                    if (this.canViewManageTab()) {
+                        tabsList.push({
+                            title: gettext('Manage'),
+                            url: 'manage',
+                            view: this.manageView
+                        });
+                    }
+
                     this.mainView = this.tabbedView = this.createViewWithHeader({
                         title: gettext('Teams'),
-                        description: gettext('See all teams in your course, organized by topic. Join a team to collaborate with other learners who are interested in the same topic as you are.'),
+                        description: this.getTeamsTabViewDescription(),
                         mainView: new TeamsTabbedView({
-                            tabs: [{
-                                title: gettext('My Team'),
-                                url: 'my-teams',
-                                view: this.myTeamsView
-                            }, {
-                                title: gettext('Browse'),
-                                url: 'browse',
-                                view: this.topicsView
-                            }],
+                            tabs: tabsList,
                             router: this.router
                         })
                     });
@@ -159,9 +182,10 @@
 
                     // Navigate to the default page if there is no history:
                     // 1. If the user belongs to at least one team, jump to the "My Teams" page
-                    // 2. If not, then jump to the "Browse" page
+                    // 2. If the user will not see a "Browse" page, jump to the "My Teams" page
+                    // 3. Otherwise, jump to the "Browse" page
                     if (Backbone.history.getFragment() === '') {
-                        if (this.myTeamsCollection.length > 0) {
+                        if (this.myTeamsCollection.length > 0 || !this.shouldSeeBrowseTab()) {
                             this.router.navigate('my-teams', {trigger: true});
                         } else {
                             this.router.navigate('browse', {trigger: true});
@@ -174,8 +198,7 @@
                         TeamUtils.showMessage(gettext(
                             'Your request could not be completed. Reload the page and try again.'
                         ));
-                    }
-                    else if (xhr.status === 500) {
+                    } else if (xhr.status === 500) {
                         TeamUtils.showMessage(gettext(
                             'Your request could not be completed due to a server problem. Reload the page' +
                             ' and try again. If the issue persists, click the Help tab to report the problem.'
@@ -236,7 +259,10 @@
                         view.mainView = view.createViewWithHeader({
                             topic: topic,
                             title: gettext('Create a New Team'),
-                            description: gettext("Create a new team if you can't find an existing team to join, or if you would like to learn with friends you know."),
+                            description: gettext(
+                                'Create a new team if you can\'t find an existing team to join, ' +
+                                'or if you would like to learn with friends you know.'
+                            ),
                             breadcrumbs: view.createBreadcrumbs(topic),
                             mainView: new TeamEditView({
                                 action: 'create',
@@ -270,7 +296,10 @@
                         });
                         editViewWithHeader = self.createViewWithHeader({
                             title: gettext('Edit Team'),
-                            description: gettext('If you make significant changes, make sure you notify members of the team before making these changes.'),
+                            description: gettext(
+                                'If you make significant changes, ' +
+                                'make sure you notify members of the team before making these changes.'
+                            ),
                             breadcrumbs: self.createBreadcrumbs(topic, team),
                             mainView: view,
                             topic: topic,
@@ -299,7 +328,10 @@
                             mainView: view,
                             breadcrumbs: self.createBreadcrumbs(topic, team),
                             title: gettext('Membership'),
-                            description: gettext("You can remove members from this team, especially if they have not participated in the team's activity."),
+                            description: gettext(
+                                'You can remove members from this team, ' +
+                                'especially if they have not participated in the team\'s activity.'
+                            ),
                             topic: topic,
                             team: team
                         }
@@ -423,6 +455,7 @@
                             router: self.router,
                             context: self.context,
                             model: team,
+                            topic: topic,
                             setFocusToHeaderFunc: self.setFocusToHeader
                         });
 
@@ -450,6 +483,44 @@
 
                 canEditTeam: function() {
                     return this.context.userInfo.privileged || this.context.userInfo.staff;
+                },
+
+
+                /**
+                 * Returns whether the "Manage" tab should be shown to the user.
+                 */
+                canViewManageTab: function() {
+                    return this.canManageTeams() && this.context.hasManagedTopic;
+                },
+
+                /**
+                 * Returns whether a user has permission to manage teams through CSV
+                 * upload & download in the "Manage" tab.
+                 */
+                canManageTeams: function() {
+                    return this.canEditTeam();
+                },
+
+                shouldSeeBrowseTab: function() {
+                    return this.context.hasOpenTopic || this.context.hasPublicManagedTopic;
+                },
+
+                getTeamsTabViewDescription: function() {
+                    if (this.context.hasOpenTopic) {
+                        return gettext(
+                            'See all teams you belong to and all public ' +
+                            'teams in your course, organized by topic. ' +
+                            'Join an open public team to collaborate with other learners ' +
+                            'who are interested in the same topic as you are.'
+                        );
+                    } else if (this.context.hasPublicManagedTopic) {
+                        return gettext(
+                            'See all teams you belong to and all public ' +
+                            'teams in your course, organized by topic.'
+                        );
+                    } else {
+                        return gettext('See all teams you belong to.');
+                    }
                 },
 
                 createBreadcrumbs: function(topic, team) {
@@ -513,7 +584,7 @@
                 getTopic: function(topicID) {
                     // Try finding topic in the current page of the
                     // topicCollection.  Otherwise call the topic endpoint.
-                    var topic = this.topicsCollection.findWhere({'id': topicID}),
+                    var topic = this.topicsCollection.findWhere({id: topicID}),
                         self = this,
                         deferred = $.Deferred();
                     if (topic) {

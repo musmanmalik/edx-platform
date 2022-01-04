@@ -1,8 +1,12 @@
 """Unit tests for provider.py."""
 
+
+import re
 import unittest
 
 from django.contrib.sites.models import Site
+from django.db import connections, DEFAULT_DB_ALIAS
+from django.test.utils import CaptureQueriesContext
 from mock import Mock, patch
 
 from openedx.core.djangoapps.site_configuration.tests.test_util import with_site_configuration
@@ -58,7 +62,7 @@ class RegistryTest(testutil.TestCase):
         self.configure_saml_provider(
             enabled=True,
             name="Disallowed",
-            idp_slug="test",
+            slug="test",
             backend_name="disallowed"
         )
         self.assertEqual(len(provider.Registry.enabled()), 0)
@@ -73,6 +77,24 @@ class RegistryTest(testutil.TestCase):
 
         with patch('third_party_auth.provider._PSA_OAUTH2_BACKENDS', backend_names):
             self.assertEqual(sorted(provider_names), [prov.name for prov in provider.Registry.enabled()])
+
+    def test_enabled_doesnt_query_site(self):
+        """Regression test for 1+N queries for django_site (ARCHBOM-1139)"""
+        re_django_site_query = re.compile(r'FROM\s+"django_site"')
+
+        self.enable_saml()
+        provider_count = 5
+        for i in range(provider_count):
+            self.configure_saml_provider(enabled=True, slug="saml-slug-%s" % i)
+
+        with CaptureQueriesContext(connections[DEFAULT_DB_ALIAS]) as cq:
+            enabled_slugs = {p.slug for p in provider.Registry.enabled()}
+
+        self.assertEqual(len(enabled_slugs), provider_count)
+        # Should not involve any queries for Site, or at least should not *scale* with number of providers
+        all_queries = [q['sql'] for q in cq.captured_queries]
+        django_site_queries = list(filter(re_django_site_query.search, all_queries))
+        self.assertEqual(len(django_site_queries), 0)  # previously was == provider_count (1 for each provider)
 
     def test_providers_displayed_for_login(self):
         """
@@ -150,14 +172,21 @@ class RegistryTest(testutil.TestCase):
         google_provider = self.configure_google_provider(enabled=True)
         self.assertEqual(google_provider.id, provider.Registry.get(google_provider.provider_id).id)
 
-    def test_oauth2_provider_keyed_by_provider_slug(self):
+    def test_oauth2_provider_keyed_by_slug(self):
         """
-        Regression test to ensure that the Registry properly fetches OAuth2ProviderConfigs that have a provider_slug
+        Regression test to ensure that the Registry properly fetches OAuth2ProviderConfigs that have a slug
         which doesn't match any of the possible backend_names.
         """
-        google_provider = self.configure_google_provider(enabled=True, provider_slug='custom_slug')
+        google_provider = self.configure_google_provider(enabled=True, slug='custom_slug')
         self.assertIn(google_provider, provider.Registry._enabled_providers())
         self.assertIn(google_provider, provider.Registry.get_enabled_by_backend_name('google-oauth2'))
+
+    def test_oath2_different_slug_from_backend_name(self):
+        """
+        Test that an OAuth2 provider can have a slug that differs from the backend name.
+        """
+        dummy_provider = self.configure_oauth_provider(enabled=True, name="dummy", slug="default", backend_name="dummy")
+        self.assertIn(dummy_provider, provider.Registry.get_enabled_by_backend_name('dummy'))
 
     def test_oauth2_enabled_only_for_supplied_backend(self):
         """
@@ -167,6 +196,9 @@ class RegistryTest(testutil.TestCase):
         facebook_provider = self.configure_facebook_provider(enabled=True)
         self.configure_google_provider(enabled=True)
         self.assertNotIn(facebook_provider, provider.Registry.get_enabled_by_backend_name('google-oauth2'))
+
+    def test_get_returns_none_if_provider_id_is_none(self):
+        self.assertIsNone(provider.Registry.get(None))
 
     def test_get_returns_none_if_provider_not_enabled(self):
         linkedin_provider_id = "oa2-linkedin-oauth2"

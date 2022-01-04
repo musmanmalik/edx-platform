@@ -21,22 +21,23 @@
          },
 
          render: function() {
-             var renderedHtml = _.template($('#error-tpl').html())(
+             var renderedHtml = edx.HtmlUtils.template($('#error-tpl').html())(
                  {
                      errorTitle: this.model.get('errorTitle'),
                      errorMsg: this.model.get('errorMsg')
                  }
             );
-
-             $(this.el).html(renderedHtml);
+             edx.HtmlUtils.setHtml(
+                 $(this.el),
+                 renderedHtml
+             );
 
              if (this.model.get('shown')) {
                  $(this.el).show();
                  $('html, body').animate({scrollTop: 0});
-             }
-             else {
+             } else {
                  $(this.el).hide();
              }
          }
      });
- })($, _, Backbone);
+ }($, _, Backbone));

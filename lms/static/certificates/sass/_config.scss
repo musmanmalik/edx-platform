@@ -16,17 +16,16 @@ $cert-decorative-color-emphasized: palette(grayscale, accent);
 
 // typography: config
 @include font-face(
-    'Domine',
-    '../../certificates/fonts/Domine/Domine-Regular-webfont',
-    400,
-    $file-formats: woff woff2 ttf
+  'Domine',
+  '../../certificates/fonts/Domine/Domine-Regular-webfont',
+  400,
+  $file-formats: woff woff2 ttf
 );
-
 @include font-face(
-    'Domine',
-    '../../certificates/fonts/Domine/Domine-Bold-webfont',
-    700,
-    $file-formats: woff woff2 ttf
+  'Domine',
+  '../../certificates/fonts/Domine/Domine-Bold-webfont',
+  700,
+  $file-formats: woff woff2 ttf
 );
 
 // typography: config - stacks
